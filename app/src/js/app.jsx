@@ -285,7 +285,7 @@ var Login = React.createClass({
                                     <div className="form-group">
                                         <input ref="password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
                                     </div>
-                                    <button type="submit" className="btn btn-success">Log In</button>
+                                    <button type="submit" className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
                                 </form>
                             </div>
                         </div>
