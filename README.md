@@ -1,4 +1,4 @@
-Web interface for Centrifuge
+Web interface for Centrifuge >= 0.8.0
 
 Note, that at this moment Centrifuge 0.8.0 is a work in progress.
 
