@@ -588,7 +588,7 @@ var ProjectInfoHandler = React.createClass({
         var options = $.extend({}, this.props.project);
         delete options["namespaces"];
         delete options["name"];
-        delete options["secret_key"];
+        delete options["secret"];
         var optionsJson = prettifyJson(options);
         return (
             <div className="content">
@@ -600,7 +600,7 @@ var ProjectInfoHandler = React.createClass({
                     </tr>
                     <tr>
                         <th>Project secret</th>
-                        <td>{this.props.project.secret_key}</td>
+                        <td>{this.props.project.secret}</td>
                     </tr>
                 </table>
                 <h3>Options</h3>
