@@ -711,12 +711,14 @@ var ProjectActionsHandler = React.createClass({
     handleSubmit: function (e) {
         e.preventDefault();
         var form = $(this.refs.form.getDOMNode());
-        var data = this.editor.getSession().getValue();
-        try {
-            var json = JSON.stringify(JSON.parse(data));
-        } catch (e) {
-            this.showError("malformed JSON");
-            return;
+        if ($(this.refs.method.getDOMNode()).val() === "publish") {
+            var data = this.editor.getSession().getValue();
+            try {
+                var json = JSON.stringify(JSON.parse(data));
+            } catch (e) {
+                this.showError("malformed JSON");
+                return;
+            }
         }
         $(this.refs.data.getDOMNode()).val(json);
         var submitButton = $(this.refs.submit.getDOMNode());
