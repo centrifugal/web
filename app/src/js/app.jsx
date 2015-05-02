@@ -82,6 +82,7 @@ var App = React.createClass({
 
 var conn;
 var reconnectTimeout;
+var infoLoadTimeout;
 var nodeTimeouts = {};
 var maxMessageAmount = 50;
 
@@ -198,10 +199,12 @@ var Dashboard = React.createClass({
             this.setState({isConnected: false});
         }.bind(this);
         conn.onclose = function () {
-            this.setState({isConnected: false});
-            reconnectTimeout = setTimeout(function () {
-                this.connectWs();
-            }.bind(this), 3000);
+            if (this.isMounted()) {
+                this.setState({isConnected: false});
+                reconnectTimeout = setTimeout(function () {
+                    this.connectWs();
+                }.bind(this), 3000);
+            }
         }.bind(this);
     },
     clearProjectMessageCounter: function (project) {
@@ -211,7 +214,7 @@ var Dashboard = React.createClass({
         }
         this.setState({messageCounters: currentCounters});
     },
-    componentDidMount: function () {
+    loadInfo: function() {
         $.get("/info/", {}, function (data) {
             this.setState({
                 version: data.version,
@@ -226,12 +229,19 @@ var Dashboard = React.createClass({
                 structureDict[project.name] = project;
             }
             this.setState({structureDict: structureDict});
+
+            infoLoadTimeout = setTimeout(function(){
+                this.loadInfo();
+            }.bind(this), 10000);
+
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
                 this.props.handleLogout();
             }
         }.bind(this));
-
+    },
+    componentDidMount: function () {
+        this.loadInfo();
         this.connectWs();
     },
     componentWillUnmount: function () {
@@ -240,6 +250,9 @@ var Dashboard = React.createClass({
         }
         if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
+        }
+        if (infoLoadTimeout) {
+            clearTimeout(infoLoadTimeout)
         }
     },
     render: function () {
