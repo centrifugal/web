@@ -392,18 +392,19 @@ var ProjectTabLink = React.createClass({
         return (
             <li className={projectClasses}>
                 <Link to="project" params={{projectKey: this.props.project.name}}>
-                    <i className="glyphicon glyphicon-th"></i>
-                &nbsp;{this.props.project.name}
+                    <i className="glyphicon glyphicon-th"></i> {this.props.project.name}
                 </Link>
                 <ul className="nav nav-pills nav-stacked">
                     <li className={projectMessagesClasses}>
                         <Link to="messages" params={{projectKey: this.props.project.name}}>
-                            Messages
+                            <i className="glyphicon glyphicon-envelope"></i> Messages
                             <span className="badge">{this.props.counter}</span>
                         </Link>
                     </li>
                     <li className={projectActionsClasses}>
-                        <Link to="actions" params={{projectKey: this.props.project.name}}>Actions</Link>
+                        <Link to="actions" params={{projectKey: this.props.project.name}}>
+                            <i className="glyphicon glyphicon-fire"></i> Actions
+                        </Link>
                     </li>
                 </ul>
             </li>
