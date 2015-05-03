@@ -83,7 +83,6 @@ var App = React.createClass({
 var conn;
 var reconnectTimeout;
 var infoLoadTimeout;
-var nodeTimeouts = {};
 var maxMessageAmount = 50;
 
 var Dashboard = React.createClass({
@@ -118,31 +117,6 @@ var Dashboard = React.createClass({
         } else {
             this.props.handleLogout();
         }
-    },
-    handleNodeBody: function (body) {
-        var uid = body.uid;
-
-        clearTimeout(nodeTimeouts[uid]);
-        var nodes = $.extend({}, this.state.nodes);
-        nodes[uid] = {
-            name: body.name,
-            clients: body.metrics.clients,
-            channels: body.metrics.channels,
-            uniqueClients: body.metrics.unique_clients,
-            messagesRate: body.metrics["messages.rate"] || 0,
-            broadcastAvg: body.metrics["broadcast.avg"] || 0,
-            apiCount: body.metrics["api.count"] || 0
-        };
-        this.setState({nodes: nodes});
-        this.setState({nodeCount: body.nodes});
-
-        nodeTimeouts[uid] = setTimeout(function () {
-            var nodes = $.extend({}, this.state.nodes);
-            delete nodes[uid];
-            this.setState({nodes: nodes});
-            this.setState({nodeCount: this.state.nodeCount - 1});
-        }.bind(this), 15000);
-
     },
     handleMessageBody: function (body) {
         var project = body.project;
@@ -187,8 +161,6 @@ var Dashboard = React.createClass({
             var body = data.body;
             if (method === "auth") {
                 this.handleAuthBody(body);
-            } else if (method === "node") {
-                this.handleNodeBody(body);
             } else if (method === "message") {
                 this.handleMessageBody(body);
             } else {
@@ -221,7 +193,8 @@ var Dashboard = React.createClass({
                 structure: data.structure,
                 engine: data.engine,
                 nodeName: data.node_name,
-                nodeCount: data.node_count
+                nodeCount: Object.keys(data.nodes).length,
+                nodes: data.nodes
             });
             var structureDict = {};
             for (var i in data.structure) {
@@ -230,15 +203,15 @@ var Dashboard = React.createClass({
             }
             this.setState({structureDict: structureDict});
 
-            infoLoadTimeout = setTimeout(function(){
-                this.loadInfo();
-            }.bind(this), 10000);
-
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
                 this.props.handleLogout();
             }
         }.bind(this));
+
+        infoLoadTimeout = setTimeout(function(){
+            this.loadInfo();
+        }.bind(this), 5000);
     },
     componentDidMount: function () {
         this.loadInfo();
@@ -499,12 +472,9 @@ var InfoHandler = React.createClass({
                         <thead className="cf">
                             <tr>
                                 <th title="node name">Node name</th>
-                                <th title="active channels">Channels</th>
-                                <th title="connected clients">Clients</th>
-                                <th title="unique clients">Unique</th>
-                                <th title="messages per second">Msg/sec</th>
-                                <th title="broadcast average time in milliseconds">Broadcast</th>
-                                <th title="api calls">API calls</th>
+                                <th title="total active channels">Channels</th>
+                                <th title="total connected clients">Clients</th>
+                                <th title="total unique clients">Unique Clients</th>
                             </tr>
                         </thead>
                         <tbody id="node-info">
@@ -521,7 +491,7 @@ var NodeRowLoader = React.createClass({
     render: function () {
         return (
             <tr>
-                <td colSpan="7">Waiting for information...</td>
+                <td colSpan="4">Waiting for information...</td>
             </tr>
         )
     }
@@ -534,10 +504,7 @@ var NodeRow = React.createClass({
                 <td>{this.props.node.name}</td>
                 <td>{this.props.node.channels}</td>
                 <td>{this.props.node.clients}</td>
-                <td>{this.props.node.uniqueClients}</td>
-                <td>{this.props.node.messagesRate}</td>
-                <td>{this.props.node.broadcastAvg}</td>
-                <td>{this.props.node.apiCount}</td>
+                <td>{this.props.node.unique}</td>
             </tr>
         )
     }
