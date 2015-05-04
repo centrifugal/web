@@ -333,6 +333,7 @@ var Sidebar = React.createClass({
         var infoClasses = cx({
             'active': isActive
         });
+        var structure = this.props.structure || [] ;
         return (
             <div className="col-lg-2 sidebar">
                 <ul className="nav nav-pills nav-stacked">
@@ -342,7 +343,7 @@ var Sidebar = React.createClass({
                         &nbsp;Monitor
                         </Link>
                     </li>
-                    {this.props.structure.map(function (project, index) {
+                    {structure.map(function (project, index) {
                         return (
                             <ProjectTabLink key={index} project={project} counter={this.props.messageCounters[project.name] || null} />
                         )
