@@ -572,6 +572,7 @@ var ProjectInfoHandler = React.createClass({
         delete options["name"];
         delete options["secret"];
         var optionsJson = prettifyJson(options);
+        var namespaces = this.props.project.namespaces || [];
         return (
             <div className="content">
                 <h2>Project "{this.props.project.name}"</h2>
@@ -588,7 +589,7 @@ var ProjectInfoHandler = React.createClass({
                 <h3>Options</h3>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
                 <h3>Namespaces</h3>
-                {this.props.project.namespaces.map(function (namespace, index) {
+                {namespaces.map(function (namespace, index) {
                     return (
                         <NamespaceRow key={index} namespace={namespace} />
                     )
