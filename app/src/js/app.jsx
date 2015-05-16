@@ -300,18 +300,18 @@ var Nav = React.createClass({
                     <Link to="info" className="navbar-brand">
                         <span className="navbar-logo">
                         </span>
-                        Centrifuge
+                        Centrifugal web
                     </Link>
                 </div>
                 <div className="collapse navbar-collapse navbar-ex8-collapse">
                     <ul className="nav navbar-nav">
                         <li>
-                            <a href="http://centrifuge.readthedocs.org/en/latest/" target="_blank">
+                            <a href="http://fzambia.gitbooks.io/centrifugal/content/" target="_blank">
                                 Documentation
                             </a>
                         </li>
                         <li>
-                            <a href="https://github.com/centrifugal/centrifuge" target="_blank">
+                            <a href="https://github.com/centrifugal" target="_blank">
                                 Source code
                             </a>
                         </li>
