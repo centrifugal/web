@@ -83,6 +83,7 @@ var App = React.createClass({
 var conn;
 var reconnectTimeout;
 var infoLoadTimeout;
+var pingInterval;
 var maxMessageAmount = 50;
 
 var Dashboard = React.createClass({
@@ -114,6 +115,12 @@ var Dashboard = React.createClass({
     handleAuthBody: function (body) {
         if (body === true) {
             this.setState({isConnected: true});
+            pingInterval = setInterval(function() {
+                conn.send(JSON.stringify({
+                    "method": "ping",
+                    "params": {}
+                }));
+            }.bind(this), 25000);
         } else {
             this.props.handleLogout();
         }
@@ -163,6 +170,8 @@ var Dashboard = React.createClass({
                 this.handleAuthBody(body);
             } else if (method === "message") {
                 this.handleMessageBody(body);
+            } else if (method === "ping") {
+                $.noop();
             } else {
                 console.log("unknown method " + method);
             }
@@ -176,6 +185,9 @@ var Dashboard = React.createClass({
                 reconnectTimeout = setTimeout(function () {
                     this.connectWs();
                 }.bind(this), 3000);
+            }
+            if (pingInterval) {
+                clearInterval(pingInterval);
             }
         }.bind(this);
     },
@@ -211,7 +223,7 @@ var Dashboard = React.createClass({
 
         infoLoadTimeout = setTimeout(function(){
             this.loadInfo();
-        }.bind(this), 5000);
+        }.bind(this), 10000);
     },
     componentDidMount: function () {
         this.loadInfo();
