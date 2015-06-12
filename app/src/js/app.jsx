@@ -12,6 +12,12 @@ var ace = require('brace');
 require('brace/mode/json');
 require('brace/theme/monokai');
 
+var globalUrlPrefix;
+var globalAuthUrl;
+var globalSocketUrl;
+var globalInfoUrl;
+var globalActionUrl;
+
 $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
     var token = localStorage.getItem("token");
     if (token) {
@@ -56,7 +62,7 @@ var App = React.createClass({
         }
     },
     handleLogin: function (password) {
-        $.post("/auth/", {password: password}, "json").success(function (data) {
+        $.post(globalAuthUrl, {password: password}, "json").success(function (data) {
             localStorage.setItem("token", data.token);
             this.setState({isAuthenticated: true});
         }.bind(this)).error(function () {
@@ -93,9 +99,9 @@ var Dashboard = React.createClass({
         var isSecure = protocol === "https:";
         var sockjsProtocol = isSecure ? "https://" : "http://";
         var websocketProtocol = isSecure ? "wss://" : "ws://";
-        var sockjsEndpoint = sockjsProtocol + window.location.host + '/connection';
-        var wsEndpoint = websocketProtocol + window.location.host + '/connection/websocket';
-        var apiEndpoint = sockjsProtocol + window.location.host + '/api';
+        var sockjsEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'connection';
+        var wsEndpoint = websocketProtocol + window.location.host + globalUrlPrefix + 'connection/websocket';
+        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api';
         return {
             isConnected: false,
             structure: [],
@@ -153,7 +159,7 @@ var Dashboard = React.createClass({
         var protocol = window.location.protocol;
         var isSecure = protocol === "https:";
         var websocketProtocol = isSecure ? "wss://" : "ws://";
-        conn = new WebSocket(websocketProtocol + window.location.host + "/socket");
+        conn = new WebSocket(websocketProtocol + window.location.host + globalSocketUrl);
         conn.onopen = function () {
             conn.send(JSON.stringify({
                 "method": "auth",
@@ -199,7 +205,7 @@ var Dashboard = React.createClass({
         this.setState({messageCounters: currentCounters});
     },
     loadInfo: function() {
-        $.get("/info/", {}, function (data) {
+        $.get(globalInfoUrl, {}, function (data) {
             this.setState({
                 version: data.version,
                 structure: data.structure,
@@ -718,7 +724,7 @@ var ProjectActionsHandler = React.createClass({
         $(this.refs.data.getDOMNode()).val(json);
         var submitButton = $(this.refs.submit.getDOMNode());
         submitButton.attr('disabled', true);
-        $.post("/action/", form.serialize(), function (data) {
+        $.post(globalActionUrl, form.serialize(), function (data) {
             var json = prettifyJson(data);
             this.setState({response: json});
             submitButton.attr('disabled', false);
@@ -806,7 +812,14 @@ var routes = (
 
 module.exports = function () {
     Router.run(routes, function (Handler, state) {
-        React.render(<Handler query={state.query} />, document.getElementById("app"));
+        var app = document.getElementById("app");
+        var prefix = app.dataset.prefix || "/";
+        globalUrlPrefix = prefix;
+        globalAuthUrl = prefix + "auth/";
+        globalInfoUrl = prefix + "info/";
+        globalActionUrl = prefix + "action/";
+        globalSocketUrl = prefix + "socket";
+        React.render(<Handler query={state.query} />, app);
     });
 };
 
