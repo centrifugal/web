@@ -252,7 +252,7 @@ var Dashboard = React.createClass({
                 <Nav handleLogout={this.props.handleLogout} />
                 <div className="wrapper">
                     <Sidebar structure={this.state.structure} messageCounters={this.state.messageCounters} />
-                    <div className="col-lg-10">
+                    <div className="col-lg-10 col-md-9 col-sm-12 col-xs-12">
                         <ConnectionStatus isConnected={this.state.isConnected} />
                         <RouteHandler
                             dashboard={this.state}
@@ -353,7 +353,7 @@ var Sidebar = React.createClass({
         });
         var structure = this.props.structure || [] ;
         return (
-            <div className="col-lg-2 sidebar">
+            <div className="col-lg-2 col-md-3 col-sm-12 col-xs-12 sidebar">
                 <ul className="nav nav-pills nav-stacked">
                     <li className={infoClasses}>
                         <Link to="info">
