@@ -663,7 +663,8 @@ var ProjectActionsHandler = React.createClass({
             "presence": ["channel"],
             "history": ["channel"],
             "unsubscribe": ["channel", "user"],
-            "disconnect": ["user"]
+            "disconnect": ["user"],
+            "channels": []
         };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
@@ -750,6 +751,7 @@ var ProjectActionsHandler = React.createClass({
                             <option value="history">history</option>
                             <option value="unsubscribe">unsubscribe</option>
                             <option value="disconnect">disconnect</option>
+                            <option value="channels">channels</option>
                         </select>
                     </div>
                     <div className="form-group">
