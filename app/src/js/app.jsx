@@ -104,9 +104,11 @@ var Dashboard = React.createClass({
         var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api';
         return {
             isConnected: false,
-            structure: [],
+            channelOptions: [],
+            namespaces: [],
             structureDict: {},
             version: "",
+            secret: "",
             engine: "",
             nodeName: "",
             nodeCount: "",
@@ -114,8 +116,8 @@ var Dashboard = React.createClass({
             wsEndpoint: wsEndpoint,
             apiEndpoint: apiEndpoint,
             nodes: {},
-            messages: {},
-            messageCounters: {}
+            messages: [],
+            messageCounter: 0
         }
     },
     handleAuthBody: function (body) {
@@ -132,27 +134,19 @@ var Dashboard = React.createClass({
         }
     },
     handleMessageBody: function (body) {
-        var project = body.project;
         var message = body.message;
-        var currentMessages = $.extend({}, this.state.messages);
-        if (currentMessages[project] === undefined) {
-            currentMessages[project] = [];
-        }
+        var currentMessages = this.state.messages.slice();
         var d = new Date();
         message['time'] = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-        currentMessages[project].unshift(message);
-        // splice array to keep max message amount for project
-        currentMessages[project] = currentMessages[project].splice(0, maxMessageAmount);
+        currentMessages.unshift(message);
+        // splice array to keep max message amount
+        currentMessages = currentMessages.splice(0, maxMessageAmount);
         this.setState({messages: currentMessages});
         var name = this.getRoutes().reverse()[0].name;
-        var isMessagesForProjectOpen = name === "messages" && this.getParams().projectKey === project;
-        if (!isMessagesForProjectOpen) {
-            var currentCounters = $.extend({}, this.state.messageCounters);
-            if (currentCounters[project] === undefined) {
-                currentCounters[project] = 0;
-            }
-            currentCounters[project] += 1;
-            this.setState({messageCounters: currentCounters});
+        var isMessagesOpen = name === "messages";
+        if (!isMessagesOpen) {
+            var currentCounter = this.state.messageCounter;
+            this.setState({messageCounter: currentCounter + 1});
         }
     },
     connectWs: function () {
@@ -197,30 +191,21 @@ var Dashboard = React.createClass({
             }
         }.bind(this);
     },
-    clearProjectMessageCounter: function (project) {
-        var currentCounters = $.extend({}, this.state.messageCounters);
-        if (currentCounters[project] !== undefined) {
-            delete currentCounters[project];
-        }
-        this.setState({messageCounters: currentCounters});
+    clearMessageCounter: function () {
+        this.setState({messageCounter: 0});
     },
     loadInfo: function() {
         $.get(globalInfoUrl, {}, function (data) {
             this.setState({
                 version: data.version,
-                structure: data.structure,
+                channelOptions: data.channel_options,
+                namespaces: data.namespaces,
                 engine: data.engine,
                 nodeName: data.node_name,
                 nodeCount: Object.keys(data.nodes).length,
-                nodes: data.nodes
+                nodes: data.nodes,
+                secret: data.secret
             });
-            var structureDict = {};
-            for (var i in data.structure) {
-                var project = data.structure[i];
-                structureDict[project.name] = project;
-            }
-            this.setState({structureDict: structureDict});
-
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
                 this.props.handleLogout();
@@ -251,13 +236,13 @@ var Dashboard = React.createClass({
             <div>
                 <Nav handleLogout={this.props.handleLogout} />
                 <div className="wrapper">
-                    <Sidebar structure={this.state.structure} messageCounters={this.state.messageCounters} />
+                    <Sidebar messageCounter={this.state.messageCounter} />
                     <div className="col-lg-10 col-md-9 col-sm-12 col-xs-12">
                         <ConnectionStatus isConnected={this.state.isConnected} />
                         <RouteHandler
                             dashboard={this.state}
                             handleLogout={this.props.handleLogout}
-                            clearProjectMessageCounter={this.clearProjectMessageCounter}
+                            clearMessageCounter={this.clearMessageCounter}
                         {...this.props} />
                     </div>
                 </div>
@@ -346,26 +331,39 @@ var Nav = React.createClass({
 var Sidebar = React.createClass({
     mixins: [Router.State],
     render: function () {
-        var isActive = this.isActive('info', {}, {});
         var cx = Addons.addons.classSet;
-        var infoClasses = cx({
-            'active': isActive
-        });
-        var structure = this.props.structure || [] ;
+        var isStatusActive = this.isActive('status', {}, {});
+        var statusClasses = cx({'active': isStatusActive});
+        var isInfoActive = this.isActive('info', {}, {});
+        var infoClasses = cx({'active': isInfoActive});
+        var isMessagesActive = this.isActive('messages', {}, {});
+        var messagesClasses = cx({'active': isMessagesActive});
+        var isActionsActive = this.isActive('actions', {}, {});
+        var actionsClasses = cx({'active': isActionsActive});
         return (
             <div className="col-lg-2 col-md-3 col-sm-12 col-xs-12 sidebar">
                 <ul className="nav nav-pills nav-stacked">
-                    <li className={infoClasses}>
-                        <Link to="info">
-                            <i className="glyphicon glyphicon-equalizer"></i>
-                        &nbsp;Monitor
+                    <li className={statusClasses}>
+                        <Link to="status">
+                            <i className="glyphicon glyphicon-equalizer"></i>&nbsp;Status
                         </Link>
                     </li>
-                    {structure.map(function (project, index) {
-                        return (
-                            <ProjectTabLink key={index} project={project} counter={this.props.messageCounters[project.name] || null} />
-                        )
-                    }.bind(this))}
+                    <li className={infoClasses}>
+                        <Link to="info">
+                            <i className="glyphicon glyphicon-th"></i>&nbsp;Info
+                        </Link>
+                    </li>
+                    <li className={messagesClasses}>
+                        <Link to="messages">
+                            <i className="glyphicon glyphicon-envelope"></i>&nbsp;Messages
+                            <span className="badge">{this.props.counter}</span>
+                        </Link>
+                    </li>
+                    <li className={actionsClasses}>
+                        <Link to="actions">
+                            <i className="glyphicon glyphicon-fire"></i>&nbsp;Actions
+                        </Link>
+                    </li>
                 </ul>
             </div>
         )
@@ -395,43 +393,7 @@ var ConnectionStatus = React.createClass({
     }
 });
 
-var ProjectTabLink = React.createClass({
-    mixins: [Router.State],
-    render: function () {
-        var cx = Addons.addons.classSet;
-        var projectClasses = cx({
-            'active': this.isActive('project', {projectKey: this.props.project.name}, {})
-        });
-        var projectMessagesClasses = cx({
-            'active': this.isActive('messages', {projectKey: this.props.project.name}, {})
-        });
-        var projectActionsClasses = cx({
-            'active': this.isActive('actions', {projectKey: this.props.project.name}, {})
-        });
-        return (
-            <li className={projectClasses}>
-                <Link to="project" params={{projectKey: this.props.project.name}}>
-                    <i className="glyphicon glyphicon-th"></i> {this.props.project.name}
-                </Link>
-                <ul className="nav nav-pills nav-stacked">
-                    <li className={projectMessagesClasses}>
-                        <Link to="messages" params={{projectKey: this.props.project.name}}>
-                            <i className="glyphicon glyphicon-envelope"></i> Messages
-                            <span className="badge">{this.props.counter}</span>
-                        </Link>
-                    </li>
-                    <li className={projectActionsClasses}>
-                        <Link to="actions" params={{projectKey: this.props.project.name}}>
-                            <i className="glyphicon glyphicon-fire"></i> Actions
-                        </Link>
-                    </li>
-                </ul>
-            </li>
-        )
-    }
-});
-
-var InfoHandler = React.createClass({
+var StatusHandler = React.createClass({
     getInitialState: function () {
         return {}
     },
@@ -530,34 +492,6 @@ var NodeRow = React.createClass({
     }
 });
 
-var ProjectHandler = React.createClass({
-    mixins: [Router.State],
-    getInitialState: function () {
-        return {}
-    },
-    render: function () {
-        var projectKey = this.getParams()["projectKey"] || null;
-        if (!projectKey) {
-            this.transitionTo("info");
-        }
-        var project = this.props.dashboard.structureDict[projectKey];
-        if (!project) {
-            return (
-                <div className="content"></div>
-            )
-        }
-        var name = this.getRoutes().reverse()[0].name;
-        if (name === "project") {
-            return <ProjectInfoHandler project={project} dashboard={this.props.dashboard} />
-        } else if (name === "actions") {
-            return <ProjectActionsHandler project={project} dashboard={this.props.dashboard} />
-        } else if (name === "messages") {
-            return <ProjectMessagesHandler project={project} dashboard={this.props.dashboard} clearProjectMessageCounter={this.props.clearProjectMessageCounter}/>
-        }
-    }
-});
-
-
 var NamespaceRow = React.createClass({
     render: function () {
         var options = $.extend({}, this.props.namespace);
@@ -582,26 +516,19 @@ var NotFoundHandler = React.createClass({
     }
 });
 
-var ProjectInfoHandler = React.createClass({
+var InfoHandler = React.createClass({
     mixins: [Router.State],
     render: function () {
-        var options = $.extend({}, this.props.project);
-        delete options["namespaces"];
-        delete options["name"];
-        delete options["secret"];
+        var options = this.props.dashboard.channelOptions || {};
         var optionsJson = prettifyJson(options);
-        var namespaces = this.props.project.namespaces || [];
+        var namespaces = this.props.dashboard.namespaces || [];
         return (
             <div className="content">
-                <h2>Project "{this.props.project.name}"</h2>
+                <h2>INFO</h2>
                 <table className="table table-bordered table-credentials">
                     <tr>
-                        <th>Project key</th>
-                        <td>{this.props.project.name}</td>
-                    </tr>
-                    <tr>
-                        <th>Project secret</th>
-                        <td>{this.props.project.secret}</td>
+                        <th>Secret</th>
+                        <td>{this.props.dashboard.secret}</td>
                     </tr>
                 </table>
                 <h3>Options</h3>
@@ -617,20 +544,19 @@ var ProjectInfoHandler = React.createClass({
     }
 });
 
-var ProjectMessagesHandler = React.createClass({
+var MessagesHandler = React.createClass({
     mixins: [Router.State],
     componentDidMount: function () {
-        this.props.clearProjectMessageCounter(this.props.project.name);
+        this.props.clearMessageCounter();
     },
     render: function () {
-        var projectKey = this.props.project.name;
-        var messages = this.props.dashboard.messages[projectKey];
+        var messages = this.props.dashboard.messages;
         if (!messages) {
             messages = [];
         }
         return (
             <div className="content">
-                <h2>Project "{this.props.project.name}"</h2>
+                <h2>MESSAGES</h2>
                 {messages.map(function (message, index) {
                     return (
                         <Message key={index} message={message} />
@@ -641,19 +567,12 @@ var ProjectMessagesHandler = React.createClass({
     }
 });
 
-var ProjectActionsHandler = React.createClass({
+var ActionsHandler = React.createClass({
     mixins: [Router.State],
     editor: null,
     getInitialState: function () {
         return {
             "response": null
-        }
-    },
-    componentWillReceiveProps: function (nextProps) {
-        if (this.props.project.name != nextProps.project.name) {
-            this.setState({response: null});
-            this.hideError();
-            this.hideSuccess();
         }
     },
     handleMethodChange: function () {
@@ -740,9 +659,8 @@ var ProjectActionsHandler = React.createClass({
     render: function () {
         return (
             <div className="content">
-                <h2>Project "{this.getParams()["projectKey"]}"</h2>
+                <h2>ACTIONS</h2>
                 <form ref="form" role="form" method="POST" action="" onSubmit={this.handleSubmit}>
-                    <input type="hidden" name="project" value={this.getParams()["projectKey"]} />
                     <div className="form-group">
                         <label htmlFor="method">Method</label>
                         <select className="form-control" ref="method" name="method" id="method" onChange={this.handleMethodChange}>
@@ -804,10 +722,10 @@ var Message = React.createClass({
 
 var routes = (
     <Route handler={App}>
-        <DefaultRoute name="info" handler={InfoHandler} />
-        <Route name="project" path="/project/:projectKey" handler={ProjectHandler} />
-        <Route name="messages" path="/project/:projectKey/messages" handler={ProjectHandler} />
-        <Route name="actions" path="/project/:projectKey/actions" handler={ProjectHandler} />
+        <DefaultRoute name="status" handler={StatusHandler} />
+        <Route name="info" path="/info/" handler={InfoHandler} />
+        <Route name="messages" path="/messages/" handler={MessagesHandler} />
+        <Route name="actions" path="/actions/" handler={ActionsHandler} />
         <NotFoundRoute name="404" handler={NotFoundHandler} />
     </Route>
 );
