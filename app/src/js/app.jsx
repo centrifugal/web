@@ -109,6 +109,7 @@ var Dashboard = React.createClass({
             structureDict: {},
             version: "",
             secret: "",
+            connectionLifetime: 0,
             engine: "",
             nodeName: "",
             nodeCount: "",
@@ -204,7 +205,8 @@ var Dashboard = React.createClass({
                 nodeName: data.node_name,
                 nodeCount: Object.keys(data.nodes).length,
                 nodes: data.nodes,
-                secret: data.secret
+                secret: data.secret,
+                connectionLifetime: data.connection_lifetime
             });
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
@@ -499,7 +501,7 @@ var NamespaceRow = React.createClass({
         var optionsJson = prettifyJson(options);
         return (
             <div>
-                <h4>{this.props.namespace.name}:</h4>
+                <h5>{this.props.namespace.name}:</h5>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
             </div>
         )
@@ -543,23 +545,27 @@ var OptionsHandler = React.createClass({
         } else {
             secretText = this.props.dashboard.secret;
         }
+        var connLifetimeText;
+        if (this.props.dashboard.connectionLifetime == 0) {
+            connLifetimeText = "Client connections do not expire (connection_lifetime=0)";
+        } else {
+            connLifetimeText = "Client must refresh its connection every " + this.props.dashboard.connectionLifetime + " seconds";
+        }
         return (
             <div className="content">
-                <h2>OPTIONS</h2>
-                <table className="table table-bordered table-credentials">
-                    <tr>
-                        <th>Secret</th>
-                        <td className={secretClasses} onClick={this.toggleSecret}>{secretText}</td>
-                    </tr>
-                </table>
-                <h3>Channel options</h3>
+                <p className="content-help">Various important configuration options here</p>
+                <h4>Secret</h4>
+                <pre className={secretClasses} onClick={this.toggleSecret}>{secretText}</pre>
+                <h4>Channel options</h4>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
-                <h3>Namespaces</h3>
+                <h4>Namespaces</h4>
                 {namespaces.map(function (namespace, index) {
                     return (
                         <NamespaceRow key={index} namespace={namespace} />
                     )
                 })}
+                <h4>Connection Lifetime</h4>
+                <pre>{connLifetimeText}</pre>
             </div>
         )
     }
@@ -577,7 +583,7 @@ var MessagesHandler = React.createClass({
         }
         return (
             <div className="content">
-                <h2>MESSAGES</h2>
+                <p className="content-help">Waiting for messages from channels with "watch" option enabled...</p>
                 {messages.map(function (message, index) {
                     return (
                         <Message key={index} message={message} />
@@ -680,7 +686,7 @@ var ActionsHandler = React.createClass({
     render: function () {
         return (
             <div className="content">
-                <h2>ACTIONS</h2>
+                <p className="content-help">Execute command on server</p>
                 <form ref="form" role="form" method="POST" action="" onSubmit={this.handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="method">Method</label>

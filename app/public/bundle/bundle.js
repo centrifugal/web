@@ -125,6 +125,7 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             structureDict: {},
             version: "",
             secret: "",
+            connectionLifetime: 0,
             engine: "",
             nodeName: "",
             nodeCount: "",
@@ -220,7 +221,8 @@ var Dashboard = React.createClass({displayName: "Dashboard",
                 nodeName: data.node_name,
                 nodeCount: Object.keys(data.nodes).length,
                 nodes: data.nodes,
-                secret: data.secret
+                secret: data.secret,
+                connectionLifetime: data.connection_lifetime
             });
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
@@ -515,7 +517,7 @@ var NamespaceRow = React.createClass({displayName: "NamespaceRow",
         var optionsJson = prettifyJson(options);
         return (
             React.createElement("div", null, 
-                React.createElement("h4", null, this.props.namespace.name, ":"), 
+                React.createElement("h5", null, this.props.namespace.name, ":"), 
                 React.createElement("pre", {dangerouslySetInnerHTML: {"__html": optionsJson}})
             )
         )
@@ -559,23 +561,27 @@ var OptionsHandler = React.createClass({displayName: "OptionsHandler",
         } else {
             secretText = this.props.dashboard.secret;
         }
+        var connLifetimeText;
+        if (this.props.dashboard.connectionLifetime == 0) {
+            connLifetimeText = "Client connections do not expire (connection_lifetime=0)";
+        } else {
+            connLifetimeText = "Client must refresh its connection every " + this.props.dashboard.connectionLifetime + " seconds";
+        }
         return (
             React.createElement("div", {className: "content"}, 
-                React.createElement("h2", null, "OPTIONS"), 
-                React.createElement("table", {className: "table table-bordered table-credentials"}, 
-                    React.createElement("tr", null, 
-                        React.createElement("th", null, "Secret"), 
-                        React.createElement("td", {className: secretClasses, onClick: this.toggleSecret}, secretText)
-                    )
-                ), 
-                React.createElement("h3", null, "Channel options"), 
+                React.createElement("p", {className: "content-help"}, "Various important configuration options here"), 
+                React.createElement("h4", null, "Secret"), 
+                React.createElement("pre", {className: secretClasses, onClick: this.toggleSecret}, secretText), 
+                React.createElement("h4", null, "Channel options"), 
                 React.createElement("pre", {dangerouslySetInnerHTML: {"__html": optionsJson}}), 
-                React.createElement("h3", null, "Namespaces"), 
+                React.createElement("h4", null, "Namespaces"), 
                 namespaces.map(function (namespace, index) {
                     return (
                         React.createElement(NamespaceRow, {key: index, namespace: namespace})
                     )
-                })
+                }), 
+                React.createElement("h4", null, "Connection Lifetime"), 
+                React.createElement("pre", null, connLifetimeText)
             )
         )
     }
@@ -593,7 +599,7 @@ var MessagesHandler = React.createClass({displayName: "MessagesHandler",
         }
         return (
             React.createElement("div", {className: "content"}, 
-                React.createElement("h2", null, "MESSAGES"), 
+                React.createElement("p", {className: "content-help"}, "Waiting for messages from channels with \"watch\" option enabled..."), 
                 messages.map(function (message, index) {
                     return (
                         React.createElement(Message, {key: index, message: message})
@@ -696,7 +702,7 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     render: function () {
         return (
             React.createElement("div", {className: "content"}, 
-                React.createElement("h2", null, "ACTIONS"), 
+                React.createElement("p", {className: "content-help"}, "Execute command on server"), 
                 React.createElement("form", {ref: "form", role: "form", method: "POST", action: "", onSubmit: this.handleSubmit}, 
                     React.createElement("div", {className: "form-group"}, 
                         React.createElement("label", {htmlFor: "method"}, "Method"), 
