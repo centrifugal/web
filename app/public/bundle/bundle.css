@@ -117,10 +117,6 @@ pre {
   margin-bottom: 20px;
 }
 
-.nav-pills:first-child > li:first-child {
-  margin-bottom: 20px;
-}
-
 .nav-pills > li > a.active {
   outline: none;
 }
@@ -270,4 +266,8 @@ pre {
   .login .login-body .login-text {
     font-size: 25px;
   }
+}
+
+.secret-hidden {
+  color: #757575;
 }

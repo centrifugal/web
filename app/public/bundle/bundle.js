@@ -253,7 +253,7 @@ var Dashboard = React.createClass({displayName: "Dashboard",
                 React.createElement(Nav, {handleLogout: this.props.handleLogout}), 
                 React.createElement("div", {className: "wrapper"}, 
                     React.createElement(Sidebar, {messageCounter: this.state.messageCounter}), 
-                    React.createElement("div", {className: "col-lg-10 col-md-9 col-sm-12 col-xs-12"}, 
+                    React.createElement("div", {className: "col-lg-10 col-md-10 col-sm-12 col-xs-12"}, 
                         React.createElement(ConnectionStatus, {isConnected: this.state.isConnected}), 
                         React.createElement(RouteHandler, React.__spread({
                             dashboard: this.state, 
@@ -316,7 +316,7 @@ var Nav = React.createClass({displayName: "Nav",
                         React.createElement("span", {className: "icon-bar"}), 
                         React.createElement("span", {className: "icon-bar"})
                     ), 
-                    React.createElement(Link, {to: "info", className: "navbar-brand"}, 
+                    React.createElement(Link, {to: "status", className: "navbar-brand"}, 
                         React.createElement("span", {className: "navbar-logo"}
                         ), 
                         "Centrifugal web"
@@ -350,29 +350,29 @@ var Sidebar = React.createClass({displayName: "Sidebar",
         var cx = Addons.addons.classSet;
         var isStatusActive = this.isActive('status', {}, {});
         var statusClasses = cx({'active': isStatusActive});
-        var isInfoActive = this.isActive('info', {}, {});
-        var infoClasses = cx({'active': isInfoActive});
+        var isOptionsActive = this.isActive('options', {}, {});
+        var optionsClasses = cx({'active': isOptionsActive});
         var isMessagesActive = this.isActive('messages', {}, {});
         var messagesClasses = cx({'active': isMessagesActive});
         var isActionsActive = this.isActive('actions', {}, {});
         var actionsClasses = cx({'active': isActionsActive});
         return (
-            React.createElement("div", {className: "col-lg-2 col-md-3 col-sm-12 col-xs-12 sidebar"}, 
+            React.createElement("div", {className: "col-lg-2 col-md-2 col-sm-12 col-xs-12 sidebar"}, 
                 React.createElement("ul", {className: "nav nav-pills nav-stacked"}, 
                     React.createElement("li", {className: statusClasses}, 
                         React.createElement(Link, {to: "status"}, 
                             React.createElement("i", {className: "glyphicon glyphicon-equalizer"}), " Status"
                         )
                     ), 
-                    React.createElement("li", {className: infoClasses}, 
-                        React.createElement(Link, {to: "info"}, 
-                            React.createElement("i", {className: "glyphicon glyphicon-th"}), " Info"
+                    React.createElement("li", {className: optionsClasses}, 
+                        React.createElement(Link, {to: "options"}, 
+                            React.createElement("i", {className: "glyphicon glyphicon-cog"}), " Options"
                         )
                     ), 
                     React.createElement("li", {className: messagesClasses}, 
                         React.createElement(Link, {to: "messages"}, 
                             React.createElement("i", {className: "glyphicon glyphicon-envelope"}), " Messages", 
-                            React.createElement("span", {className: "badge"}, this.props.counter)
+                            React.createElement("span", {className: "badge"}, this.props.messageCounter > 0?this.props.messageCounter:"")
                         )
                     ), 
                     React.createElement("li", {className: actionsClasses}, 
@@ -532,22 +532,43 @@ var NotFoundHandler = React.createClass({displayName: "NotFoundHandler",
     }
 });
 
-var InfoHandler = React.createClass({displayName: "InfoHandler",
+var OptionsHandler = React.createClass({displayName: "OptionsHandler",
     mixins: [Router.State],
+    getInitialState: function () {
+        return {
+            secretHidden: true
+        }
+    },
+    toggleSecret: function() {
+        var secretHidden = this.state.secretHidden;
+        if (secretHidden) {
+            this.setState({secretHidden: !secretHidden});
+        }
+    },
     render: function () {
         var options = this.props.dashboard.channelOptions || {};
         var optionsJson = prettifyJson(options);
         var namespaces = this.props.dashboard.namespaces || [];
+        var cx = Addons.addons.classSet;
+        var secretClasses = cx({
+            "secret-hidden": this.state.secretHidden
+        });
+        var secretText;
+        if (this.state.secretHidden) {
+            secretText = "click to see secret";
+        } else {
+            secretText = this.props.dashboard.secret;
+        }
         return (
             React.createElement("div", {className: "content"}, 
-                React.createElement("h2", null, "INFO"), 
+                React.createElement("h2", null, "OPTIONS"), 
                 React.createElement("table", {className: "table table-bordered table-credentials"}, 
                     React.createElement("tr", null, 
                         React.createElement("th", null, "Secret"), 
-                        React.createElement("td", null, this.props.dashboard.secret)
+                        React.createElement("td", {className: secretClasses, onClick: this.toggleSecret}, secretText)
                     )
                 ), 
-                React.createElement("h3", null, "Options"), 
+                React.createElement("h3", null, "Channel options"), 
                 React.createElement("pre", {dangerouslySetInnerHTML: {"__html": optionsJson}}), 
                 React.createElement("h3", null, "Namespaces"), 
                 namespaces.map(function (namespace, index) {
@@ -739,7 +760,7 @@ var Message = React.createClass({displayName: "Message",
 var routes = (
     React.createElement(Route, {handler: App}, 
         React.createElement(DefaultRoute, {name: "status", handler: StatusHandler}), 
-        React.createElement(Route, {name: "info", path: "/info/", handler: InfoHandler}), 
+        React.createElement(Route, {name: "options", path: "/options/", handler: OptionsHandler}), 
         React.createElement(Route, {name: "messages", path: "/messages/", handler: MessagesHandler}), 
         React.createElement(Route, {name: "actions", path: "/actions/", handler: ActionsHandler}), 
         React.createElement(NotFoundRoute, {name: "404", handler: NotFoundHandler})

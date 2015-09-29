@@ -237,7 +237,7 @@ var Dashboard = React.createClass({
                 <Nav handleLogout={this.props.handleLogout} />
                 <div className="wrapper">
                     <Sidebar messageCounter={this.state.messageCounter} />
-                    <div className="col-lg-10 col-md-9 col-sm-12 col-xs-12">
+                    <div className="col-lg-10 col-md-10 col-sm-12 col-xs-12">
                         <ConnectionStatus isConnected={this.state.isConnected} />
                         <RouteHandler
                             dashboard={this.state}
@@ -300,7 +300,7 @@ var Nav = React.createClass({
                         <span className="icon-bar"></span>
                         <span className="icon-bar"></span>
                     </button>
-                    <Link to="info" className="navbar-brand">
+                    <Link to="status" className="navbar-brand">
                         <span className="navbar-logo">
                         </span>
                         Centrifugal web
@@ -334,29 +334,29 @@ var Sidebar = React.createClass({
         var cx = Addons.addons.classSet;
         var isStatusActive = this.isActive('status', {}, {});
         var statusClasses = cx({'active': isStatusActive});
-        var isInfoActive = this.isActive('info', {}, {});
-        var infoClasses = cx({'active': isInfoActive});
+        var isOptionsActive = this.isActive('options', {}, {});
+        var optionsClasses = cx({'active': isOptionsActive});
         var isMessagesActive = this.isActive('messages', {}, {});
         var messagesClasses = cx({'active': isMessagesActive});
         var isActionsActive = this.isActive('actions', {}, {});
         var actionsClasses = cx({'active': isActionsActive});
         return (
-            <div className="col-lg-2 col-md-3 col-sm-12 col-xs-12 sidebar">
+            <div className="col-lg-2 col-md-2 col-sm-12 col-xs-12 sidebar">
                 <ul className="nav nav-pills nav-stacked">
                     <li className={statusClasses}>
                         <Link to="status">
                             <i className="glyphicon glyphicon-equalizer"></i>&nbsp;Status
                         </Link>
                     </li>
-                    <li className={infoClasses}>
-                        <Link to="info">
-                            <i className="glyphicon glyphicon-th"></i>&nbsp;Info
+                    <li className={optionsClasses}>
+                        <Link to="options">
+                            <i className="glyphicon glyphicon-cog"></i>&nbsp;Options
                         </Link>
                     </li>
                     <li className={messagesClasses}>
                         <Link to="messages">
                             <i className="glyphicon glyphicon-envelope"></i>&nbsp;Messages
-                            <span className="badge">{this.props.counter}</span>
+                            <span className="badge">{this.props.messageCounter > 0?this.props.messageCounter:""}</span>
                         </Link>
                     </li>
                     <li className={actionsClasses}>
@@ -516,22 +516,43 @@ var NotFoundHandler = React.createClass({
     }
 });
 
-var InfoHandler = React.createClass({
+var OptionsHandler = React.createClass({
     mixins: [Router.State],
+    getInitialState: function () {
+        return {
+            secretHidden: true
+        }
+    },
+    toggleSecret: function() {
+        var secretHidden = this.state.secretHidden;
+        if (secretHidden) {
+            this.setState({secretHidden: !secretHidden});
+        }
+    },
     render: function () {
         var options = this.props.dashboard.channelOptions || {};
         var optionsJson = prettifyJson(options);
         var namespaces = this.props.dashboard.namespaces || [];
+        var cx = Addons.addons.classSet;
+        var secretClasses = cx({
+            "secret-hidden": this.state.secretHidden
+        });
+        var secretText;
+        if (this.state.secretHidden) {
+            secretText = "click to see secret";
+        } else {
+            secretText = this.props.dashboard.secret;
+        }
         return (
             <div className="content">
-                <h2>INFO</h2>
+                <h2>OPTIONS</h2>
                 <table className="table table-bordered table-credentials">
                     <tr>
                         <th>Secret</th>
-                        <td>{this.props.dashboard.secret}</td>
+                        <td className={secretClasses} onClick={this.toggleSecret}>{secretText}</td>
                     </tr>
                 </table>
-                <h3>Options</h3>
+                <h3>Channel options</h3>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
                 <h3>Namespaces</h3>
                 {namespaces.map(function (namespace, index) {
@@ -723,7 +744,7 @@ var Message = React.createClass({
 var routes = (
     <Route handler={App}>
         <DefaultRoute name="status" handler={StatusHandler} />
-        <Route name="info" path="/info/" handler={InfoHandler} />
+        <Route name="options" path="/options/" handler={OptionsHandler} />
         <Route name="messages" path="/messages/" handler={MessagesHandler} />
         <Route name="actions" path="/actions/" handler={ActionsHandler} />
         <NotFoundRoute name="404" handler={NotFoundHandler} />
