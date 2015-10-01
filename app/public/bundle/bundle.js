@@ -502,9 +502,9 @@ var NodeRow = React.createClass({displayName: "NodeRow",
         return (
             React.createElement("tr", null, 
                 React.createElement("td", null, this.props.node.name), 
-                React.createElement("td", null, this.props.node.channels), 
-                React.createElement("td", null, this.props.node.clients), 
-                React.createElement("td", null, this.props.node.unique)
+                React.createElement("td", null, this.props.node.num_channels), 
+                React.createElement("td", null, this.props.node.num_clients), 
+                React.createElement("td", null, this.props.node.num_unique_clients)
             )
         )
     }
@@ -626,7 +626,8 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
             "history": ["channel"],
             "unsubscribe": ["channel", "user"],
             "disconnect": ["user"],
-            "channels": []
+            "channels": [],
+            "stats": []
         };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
@@ -712,7 +713,8 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
                             React.createElement("option", {value: "history"}, "history"), 
                             React.createElement("option", {value: "unsubscribe"}, "unsubscribe"), 
                             React.createElement("option", {value: "disconnect"}, "disconnect"), 
-                            React.createElement("option", {value: "channels"}, "channels")
+                            React.createElement("option", {value: "channels"}, "channels"), 
+                            React.createElement("option", {value: "stats"}, "stats")
                         )
                     ), 
                     React.createElement("div", {className: "form-group"}, 

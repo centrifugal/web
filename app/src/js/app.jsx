@@ -486,9 +486,9 @@ var NodeRow = React.createClass({
         return (
             <tr>
                 <td>{this.props.node.name}</td>
-                <td>{this.props.node.channels}</td>
-                <td>{this.props.node.clients}</td>
-                <td>{this.props.node.unique}</td>
+                <td>{this.props.node.num_channels}</td>
+                <td>{this.props.node.num_clients}</td>
+                <td>{this.props.node.num_unique_clients}</td>
             </tr>
         )
     }
@@ -610,7 +610,8 @@ var ActionsHandler = React.createClass({
             "history": ["channel"],
             "unsubscribe": ["channel", "user"],
             "disconnect": ["user"],
-            "channels": []
+            "channels": [],
+            "stats": []
         };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
@@ -697,6 +698,7 @@ var ActionsHandler = React.createClass({
                             <option value="unsubscribe">unsubscribe</option>
                             <option value="disconnect">disconnect</option>
                             <option value="channels">channels</option>
+                            <option value="stats">stats</option>
                         </select>
                     </div>
                     <div className="form-group">
