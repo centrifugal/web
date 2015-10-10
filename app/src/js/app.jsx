@@ -508,6 +508,31 @@ var NamespaceRow = React.createClass({
     }
 });
 
+var NamespaceTable = React.createClass({
+    render: function () {
+        var namespaces = this.props.namespaces;
+        return (
+            <div>
+                {namespaces.map(function (namespace, index) {
+                    return (
+                        <NamespaceRow key={index} namespace={namespace} />
+                    )
+                })}
+            </div>
+        )
+    }
+});
+
+var NamespacesNotConfigured = React.createClass({
+    render: function () {
+        return (
+            <pre>
+                Namespaces not configured
+            </pre>
+        )
+    }
+});
+
 var NotFoundHandler = React.createClass({
     render: function () {
         return (
@@ -551,6 +576,12 @@ var OptionsHandler = React.createClass({
         } else {
             connLifetimeText = "Client must refresh its connection every " + this.props.dashboard.connectionLifetime + " seconds";
         }
+        var ns;
+        if (namespaces.length > 0) {
+            ns = <NamespaceTable namespaces={namespaces} />
+        } else {
+            ns = <NamespacesNotConfigured />
+        }
         return (
             <div className="content">
                 <p className="content-help">Various important configuration options here</p>
@@ -559,11 +590,7 @@ var OptionsHandler = React.createClass({
                 <h4>Channel options</h4>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
                 <h4>Namespaces</h4>
-                {namespaces.map(function (namespace, index) {
-                    return (
-                        <NamespaceRow key={index} namespace={namespace} />
-                    )
-                })}
+                {ns}
                 <h4>Connection Lifetime</h4>
                 <pre>{connLifetimeText}</pre>
             </div>
