@@ -101,7 +101,7 @@ var Dashboard = React.createClass({
         var websocketProtocol = isSecure ? "wss://" : "ws://";
         var sockjsEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'connection';
         var wsEndpoint = websocketProtocol + window.location.host + globalUrlPrefix + 'connection/websocket';
-        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api';
+        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api/';
         return {
             isConnected: false,
             channelOptions: [],
