@@ -254,14 +254,28 @@ var Dashboard = React.createClass({
 });
 
 var Login = React.createClass({
+    getInitialState: function() {
+        return {
+            'focus': false
+        }
+    },
     handleSubmit: function (e) {
         e.preventDefault();
         var password = this.refs.password.getDOMNode().value;
         this.props.handleLogin(password);
     },
+    inputFocus: function() {
+        this.setState({'focus': true});
+    },
+    inputBlur: function() {
+        this.setState({'focus': false});
+    },
     render: function () {
+        var cx = Addons.addons.classSet;
+        var isFocus = this.state['focus'];
+        var loginClasses = cx({'login': true, 'login-focus': isFocus});        
         return (
-            <div className="login">
+            <div className={loginClasses}>
                 <a href="https://github.com/centrifugal" target="_blank">
                     <img className="login-forkme" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" />
                 </a>
@@ -271,12 +285,12 @@ var Login = React.createClass({
                             <div className="col-md-8 col-md-offset-2">
                                 <div className="login-logo"></div>
                                 <h1 className="login-heading">Centrifugal</h1>
-                                <p className="login-text">Real-time messaging in web applications</p>
+                                <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
                                     <div className="form-group">
-                                        <input ref="password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
+                                        <input ref="password" onFocus={this.inputFocus} onBlur={this.inputBlur} autoComplete="new-password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
                                     </div>
-                                    <button type="submit" className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
+                                    <button type="submit" onFocus={this.inputFocus} onBlur={this.inputBlur} className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
                                 </form>
                             </div>
                         </div>
