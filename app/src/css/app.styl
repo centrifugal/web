@@ -180,34 +180,67 @@ body, pre {
 
 @keyframes rotate-logo {
     from {
-    -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
     }
     to {
-    -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
     }
 }
 @-webkit-keyframes rotate-logo {
     from {
-    -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
     }
     to {
-    -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
     }
 }
 @-moz-keyframes rotate-logo {
     from {
-    -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
     }
     to {
-    -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
     }
 }
 @-ms-keyframes rotate-logo {
     from {
-    -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
     }
     to {
-    -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes rotate-logo-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+@-webkit-keyframes rotate-logo-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+@-moz-keyframes rotate-logo-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+@-ms-keyframes rotate-logo-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
     }
 }
 
@@ -222,12 +255,12 @@ body, pre {
     width: 110px;
     margin: 0 auto;
 }
-.login.login-focus .login-logo {    
-    -moz-animation: rotate-logo 2.0s linear infinite;
-    -ms-animation: rotate-logo 2.0s linear infinite;
-    -o-animation: rotate-logo 2.0s linear infinite;
-    -webkit-animation: rotate-logo 2.0s linear infinite;
-    animation: rotate-logo 2.0s linear infinite;  
+.login.login-focus .login-logo {
+    -moz-animation: rotate-logo-slow 2s linear infinite;
+    -ms-animation: rotate-logo-slow 2s linear infinite;
+    -o-animation: rotate-logo-slow 2s linear infinite;
+    -webkit-animation: rotate-logo-slow 2s linear infinite;
+    animation: rotate-logo-slow 2s linear infinite;
 }
 
 .login .login-heading {
