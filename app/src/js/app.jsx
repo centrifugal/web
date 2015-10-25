@@ -101,12 +101,15 @@ var Dashboard = React.createClass({
         var websocketProtocol = isSecure ? "wss://" : "ws://";
         var sockjsEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'connection';
         var wsEndpoint = websocketProtocol + window.location.host + globalUrlPrefix + 'connection/websocket';
-        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api';
+        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api/';
         return {
             isConnected: false,
-            structure: [],
+            channelOptions: [],
+            namespaces: [],
             structureDict: {},
             version: "",
+            secret: "",
+            connectionLifetime: 0,
             engine: "",
             nodeName: "",
             nodeCount: "",
@@ -114,8 +117,8 @@ var Dashboard = React.createClass({
             wsEndpoint: wsEndpoint,
             apiEndpoint: apiEndpoint,
             nodes: {},
-            messages: {},
-            messageCounters: {}
+            messages: [],
+            messageCounter: 0
         }
     },
     handleAuthBody: function (body) {
@@ -132,27 +135,19 @@ var Dashboard = React.createClass({
         }
     },
     handleMessageBody: function (body) {
-        var project = body.project;
         var message = body.message;
-        var currentMessages = $.extend({}, this.state.messages);
-        if (currentMessages[project] === undefined) {
-            currentMessages[project] = [];
-        }
+        var currentMessages = this.state.messages.slice();
         var d = new Date();
         message['time'] = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-        currentMessages[project].unshift(message);
-        // splice array to keep max message amount for project
-        currentMessages[project] = currentMessages[project].splice(0, maxMessageAmount);
+        currentMessages.unshift(message);
+        // splice array to keep max message amount
+        currentMessages = currentMessages.splice(0, maxMessageAmount);
         this.setState({messages: currentMessages});
         var name = this.getRoutes().reverse()[0].name;
-        var isMessagesForProjectOpen = name === "messages" && this.getParams().projectKey === project;
-        if (!isMessagesForProjectOpen) {
-            var currentCounters = $.extend({}, this.state.messageCounters);
-            if (currentCounters[project] === undefined) {
-                currentCounters[project] = 0;
-            }
-            currentCounters[project] += 1;
-            this.setState({messageCounters: currentCounters});
+        var isMessagesOpen = name === "messages";
+        if (!isMessagesOpen) {
+            var currentCounter = this.state.messageCounter;
+            this.setState({messageCounter: currentCounter + 1});
         }
     },
     connectWs: function () {
@@ -197,30 +192,22 @@ var Dashboard = React.createClass({
             }
         }.bind(this);
     },
-    clearProjectMessageCounter: function (project) {
-        var currentCounters = $.extend({}, this.state.messageCounters);
-        if (currentCounters[project] !== undefined) {
-            delete currentCounters[project];
-        }
-        this.setState({messageCounters: currentCounters});
+    clearMessageCounter: function () {
+        this.setState({messageCounter: 0});
     },
     loadInfo: function() {
         $.get(globalInfoUrl, {}, function (data) {
             this.setState({
                 version: data.version,
-                structure: data.structure,
+                channelOptions: data.channel_options,
+                namespaces: data.namespaces,
                 engine: data.engine,
                 nodeName: data.node_name,
                 nodeCount: Object.keys(data.nodes).length,
-                nodes: data.nodes
+                nodes: data.nodes,
+                secret: data.secret,
+                connectionLifetime: data.connection_lifetime
             });
-            var structureDict = {};
-            for (var i in data.structure) {
-                var project = data.structure[i];
-                structureDict[project.name] = project;
-            }
-            this.setState({structureDict: structureDict});
-
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
                 this.props.handleLogout();
@@ -251,13 +238,13 @@ var Dashboard = React.createClass({
             <div>
                 <Nav handleLogout={this.props.handleLogout} />
                 <div className="wrapper">
-                    <Sidebar structure={this.state.structure} messageCounters={this.state.messageCounters} />
-                    <div className="col-lg-10 col-md-9 col-sm-12 col-xs-12">
+                    <Sidebar messageCounter={this.state.messageCounter} />
+                    <div className="col-lg-10 col-md-10 col-sm-12 col-xs-12">
                         <ConnectionStatus isConnected={this.state.isConnected} />
                         <RouteHandler
                             dashboard={this.state}
                             handleLogout={this.props.handleLogout}
-                            clearProjectMessageCounter={this.clearProjectMessageCounter}
+                            clearMessageCounter={this.clearMessageCounter}
                         {...this.props} />
                     </div>
                 </div>
@@ -267,14 +254,28 @@ var Dashboard = React.createClass({
 });
 
 var Login = React.createClass({
+    getInitialState: function() {
+        return {
+            'focus': false
+        }
+    },
     handleSubmit: function (e) {
         e.preventDefault();
         var password = this.refs.password.getDOMNode().value;
         this.props.handleLogin(password);
     },
+    inputFocus: function() {
+        this.setState({'focus': true});
+    },
+    inputBlur: function() {
+        this.setState({'focus': false});
+    },
     render: function () {
+        var cx = Addons.addons.classSet;
+        var isFocus = this.state['focus'];
+        var loginClasses = cx({'login': true, 'login-focus': isFocus});        
         return (
-            <div className="login">
+            <div className={loginClasses}>
                 <a href="https://github.com/centrifugal" target="_blank">
                     <img className="login-forkme" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" />
                 </a>
@@ -284,12 +285,12 @@ var Login = React.createClass({
                             <div className="col-md-8 col-md-offset-2">
                                 <div className="login-logo"></div>
                                 <h1 className="login-heading">Centrifugal</h1>
-                                <p className="login-text">Real-time messaging in web applications</p>
+                                <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
                                     <div className="form-group">
-                                        <input ref="password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
+                                        <input ref="password" onFocus={this.inputFocus} onBlur={this.inputBlur} autoComplete="new-password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
                                     </div>
-                                    <button type="submit" className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
+                                    <button type="submit" onFocus={this.inputFocus} onBlur={this.inputBlur} className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
                                 </form>
                             </div>
                         </div>
@@ -315,7 +316,7 @@ var Nav = React.createClass({
                         <span className="icon-bar"></span>
                         <span className="icon-bar"></span>
                     </button>
-                    <Link to="info" className="navbar-brand">
+                    <Link to="status" className="navbar-brand">
                         <span className="navbar-logo">
                         </span>
                         Centrifugal web
@@ -346,26 +347,39 @@ var Nav = React.createClass({
 var Sidebar = React.createClass({
     mixins: [Router.State],
     render: function () {
-        var isActive = this.isActive('info', {}, {});
         var cx = Addons.addons.classSet;
-        var infoClasses = cx({
-            'active': isActive
-        });
-        var structure = this.props.structure || [] ;
+        var isStatusActive = this.isActive('status', {}, {});
+        var statusClasses = cx({'active': isStatusActive});
+        var isOptionsActive = this.isActive('options', {}, {});
+        var optionsClasses = cx({'active': isOptionsActive});
+        var isMessagesActive = this.isActive('messages', {}, {});
+        var messagesClasses = cx({'active': isMessagesActive});
+        var isActionsActive = this.isActive('actions', {}, {});
+        var actionsClasses = cx({'active': isActionsActive});
         return (
-            <div className="col-lg-2 col-md-3 col-sm-12 col-xs-12 sidebar">
+            <div className="col-lg-2 col-md-2 col-sm-12 col-xs-12 sidebar">
                 <ul className="nav nav-pills nav-stacked">
-                    <li className={infoClasses}>
-                        <Link to="info">
-                            <i className="glyphicon glyphicon-equalizer"></i>
-                        &nbsp;Monitor
+                    <li className={statusClasses}>
+                        <Link to="status">
+                            <i className="glyphicon glyphicon-equalizer"></i>&nbsp;Status
                         </Link>
                     </li>
-                    {structure.map(function (project, index) {
-                        return (
-                            <ProjectTabLink key={index} project={project} counter={this.props.messageCounters[project.name] || null} />
-                        )
-                    }.bind(this))}
+                    <li className={optionsClasses}>
+                        <Link to="options">
+                            <i className="glyphicon glyphicon-cog"></i>&nbsp;Options
+                        </Link>
+                    </li>
+                    <li className={messagesClasses}>
+                        <Link to="messages">
+                            <i className="glyphicon glyphicon-envelope"></i>&nbsp;Messages
+                            <span className="badge">{this.props.messageCounter > 0?this.props.messageCounter:""}</span>
+                        </Link>
+                    </li>
+                    <li className={actionsClasses}>
+                        <Link to="actions">
+                            <i className="glyphicon glyphicon-fire"></i>&nbsp;Actions
+                        </Link>
+                    </li>
                 </ul>
             </div>
         )
@@ -395,43 +409,7 @@ var ConnectionStatus = React.createClass({
     }
 });
 
-var ProjectTabLink = React.createClass({
-    mixins: [Router.State],
-    render: function () {
-        var cx = Addons.addons.classSet;
-        var projectClasses = cx({
-            'active': this.isActive('project', {projectKey: this.props.project.name}, {})
-        });
-        var projectMessagesClasses = cx({
-            'active': this.isActive('messages', {projectKey: this.props.project.name}, {})
-        });
-        var projectActionsClasses = cx({
-            'active': this.isActive('actions', {projectKey: this.props.project.name}, {})
-        });
-        return (
-            <li className={projectClasses}>
-                <Link to="project" params={{projectKey: this.props.project.name}}>
-                    <i className="glyphicon glyphicon-th"></i> {this.props.project.name}
-                </Link>
-                <ul className="nav nav-pills nav-stacked">
-                    <li className={projectMessagesClasses}>
-                        <Link to="messages" params={{projectKey: this.props.project.name}}>
-                            <i className="glyphicon glyphicon-envelope"></i> Messages
-                            <span className="badge">{this.props.counter}</span>
-                        </Link>
-                    </li>
-                    <li className={projectActionsClasses}>
-                        <Link to="actions" params={{projectKey: this.props.project.name}}>
-                            <i className="glyphicon glyphicon-fire"></i> Actions
-                        </Link>
-                    </li>
-                </ul>
-            </li>
-        )
-    }
-});
-
-var InfoHandler = React.createClass({
+var StatusHandler = React.createClass({
     getInitialState: function () {
         return {}
     },
@@ -522,41 +500,13 @@ var NodeRow = React.createClass({
         return (
             <tr>
                 <td>{this.props.node.name}</td>
-                <td>{this.props.node.channels}</td>
-                <td>{this.props.node.clients}</td>
-                <td>{this.props.node.unique}</td>
+                <td>{this.props.node.num_channels}</td>
+                <td>{this.props.node.num_clients}</td>
+                <td>{this.props.node.num_unique_clients}</td>
             </tr>
         )
     }
 });
-
-var ProjectHandler = React.createClass({
-    mixins: [Router.State],
-    getInitialState: function () {
-        return {}
-    },
-    render: function () {
-        var projectKey = this.getParams()["projectKey"] || null;
-        if (!projectKey) {
-            this.transitionTo("info");
-        }
-        var project = this.props.dashboard.structureDict[projectKey];
-        if (!project) {
-            return (
-                <div className="content"></div>
-            )
-        }
-        var name = this.getRoutes().reverse()[0].name;
-        if (name === "project") {
-            return <ProjectInfoHandler project={project} dashboard={this.props.dashboard} />
-        } else if (name === "actions") {
-            return <ProjectActionsHandler project={project} dashboard={this.props.dashboard} />
-        } else if (name === "messages") {
-            return <ProjectMessagesHandler project={project} dashboard={this.props.dashboard} clearProjectMessageCounter={this.props.clearProjectMessageCounter}/>
-        }
-    }
-});
-
 
 var NamespaceRow = React.createClass({
     render: function () {
@@ -565,9 +515,34 @@ var NamespaceRow = React.createClass({
         var optionsJson = prettifyJson(options);
         return (
             <div>
-                <h4>{this.props.namespace.name}:</h4>
+                <h5>{this.props.namespace.name}:</h5>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
             </div>
+        )
+    }
+});
+
+var NamespaceTable = React.createClass({
+    render: function () {
+        var namespaces = this.props.namespaces;
+        return (
+            <div>
+                {namespaces.map(function (namespace, index) {
+                    return (
+                        <NamespaceRow key={index} namespace={namespace} />
+                    )
+                })}
+            </div>
+        )
+    }
+});
+
+var NamespacesNotConfigured = React.createClass({
+    render: function () {
+        return (
+            <pre>
+                Namespaces not configured
+            </pre>
         )
     }
 });
@@ -582,55 +557,74 @@ var NotFoundHandler = React.createClass({
     }
 });
 
-var ProjectInfoHandler = React.createClass({
+var OptionsHandler = React.createClass({
     mixins: [Router.State],
+    getInitialState: function () {
+        return {
+            secretHidden: true
+        }
+    },
+    toggleSecret: function() {
+        var secretHidden = this.state.secretHidden;
+        if (secretHidden) {
+            this.setState({secretHidden: !secretHidden});
+        }
+    },
     render: function () {
-        var options = $.extend({}, this.props.project);
-        delete options["namespaces"];
-        delete options["name"];
-        delete options["secret"];
+        var options = this.props.dashboard.channelOptions || {};
         var optionsJson = prettifyJson(options);
-        var namespaces = this.props.project.namespaces || [];
+        var namespaces = this.props.dashboard.namespaces || [];
+        var cx = Addons.addons.classSet;
+        var secretClasses = cx({
+            "secret-hidden": this.state.secretHidden
+        });
+        var secretText;
+        if (this.state.secretHidden) {
+            secretText = "click to see secret";
+        } else {
+            secretText = this.props.dashboard.secret;
+        }
+        var connLifetimeText;
+        if (this.props.dashboard.connectionLifetime == 0) {
+            connLifetimeText = "Client connections do not expire (connection_lifetime=0)";
+        } else {
+            connLifetimeText = "Client must refresh its connection every " + this.props.dashboard.connectionLifetime + " seconds";
+        }
+        var ns;
+        if (namespaces.length > 0) {
+            ns = <NamespaceTable namespaces={namespaces} />
+        } else {
+            ns = <NamespacesNotConfigured />
+        }
         return (
             <div className="content">
-                <h2>Project "{this.props.project.name}"</h2>
-                <table className="table table-bordered table-credentials">
-                    <tr>
-                        <th>Project key</th>
-                        <td>{this.props.project.name}</td>
-                    </tr>
-                    <tr>
-                        <th>Project secret</th>
-                        <td>{this.props.project.secret}</td>
-                    </tr>
-                </table>
-                <h3>Options</h3>
+                <p className="content-help">Various important configuration options here</p>
+                <h4>Secret</h4>
+                <pre className={secretClasses} onClick={this.toggleSecret}>{secretText}</pre>
+                <h4>Channel options</h4>
                 <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
-                <h3>Namespaces</h3>
-                {namespaces.map(function (namespace, index) {
-                    return (
-                        <NamespaceRow key={index} namespace={namespace} />
-                    )
-                })}
+                <h4>Namespaces</h4>
+                {ns}
+                <h4>Connection Lifetime</h4>
+                <pre>{connLifetimeText}</pre>
             </div>
         )
     }
 });
 
-var ProjectMessagesHandler = React.createClass({
+var MessagesHandler = React.createClass({
     mixins: [Router.State],
     componentDidMount: function () {
-        this.props.clearProjectMessageCounter(this.props.project.name);
+        this.props.clearMessageCounter();
     },
     render: function () {
-        var projectKey = this.props.project.name;
-        var messages = this.props.dashboard.messages[projectKey];
+        var messages = this.props.dashboard.messages;
         if (!messages) {
             messages = [];
         }
         return (
             <div className="content">
-                <h2>Project "{this.props.project.name}"</h2>
+                <p className="content-help">Waiting for messages from channels with "watch" option enabled...</p>
                 {messages.map(function (message, index) {
                     return (
                         <Message key={index} message={message} />
@@ -641,19 +635,12 @@ var ProjectMessagesHandler = React.createClass({
     }
 });
 
-var ProjectActionsHandler = React.createClass({
+var ActionsHandler = React.createClass({
     mixins: [Router.State],
     editor: null,
     getInitialState: function () {
         return {
             "response": null
-        }
-    },
-    componentWillReceiveProps: function (nextProps) {
-        if (this.props.project.name != nextProps.project.name) {
-            this.setState({response: null});
-            this.hideError();
-            this.hideSuccess();
         }
     },
     handleMethodChange: function () {
@@ -664,7 +651,8 @@ var ProjectActionsHandler = React.createClass({
             "history": ["channel"],
             "unsubscribe": ["channel", "user"],
             "disconnect": ["user"],
-            "channels": []
+            "channels": [],
+            "stats": []
         };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
@@ -740,9 +728,8 @@ var ProjectActionsHandler = React.createClass({
     render: function () {
         return (
             <div className="content">
-                <h2>Project "{this.getParams()["projectKey"]}"</h2>
+                <p className="content-help">Execute command on server</p>
                 <form ref="form" role="form" method="POST" action="" onSubmit={this.handleSubmit}>
-                    <input type="hidden" name="project" value={this.getParams()["projectKey"]} />
                     <div className="form-group">
                         <label htmlFor="method">Method</label>
                         <select className="form-control" ref="method" name="method" id="method" onChange={this.handleMethodChange}>
@@ -752,6 +739,7 @@ var ProjectActionsHandler = React.createClass({
                             <option value="unsubscribe">unsubscribe</option>
                             <option value="disconnect">disconnect</option>
                             <option value="channels">channels</option>
+                            <option value="stats">stats</option>
                         </select>
                     </div>
                     <div className="form-group">
@@ -804,10 +792,10 @@ var Message = React.createClass({
 
 var routes = (
     <Route handler={App}>
-        <DefaultRoute name="info" handler={InfoHandler} />
-        <Route name="project" path="/project/:projectKey" handler={ProjectHandler} />
-        <Route name="messages" path="/project/:projectKey/messages" handler={ProjectHandler} />
-        <Route name="actions" path="/project/:projectKey/actions" handler={ProjectHandler} />
+        <DefaultRoute name="status" handler={StatusHandler} />
+        <Route name="options" path="/options/" handler={OptionsHandler} />
+        <Route name="messages" path="/messages/" handler={MessagesHandler} />
+        <Route name="actions" path="/actions/" handler={ActionsHandler} />
         <NotFoundRoute name="404" handler={NotFoundHandler} />
     </Route>
 );
