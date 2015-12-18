@@ -208,6 +208,7 @@ var Dashboard = React.createClass({
                 secret: data.secret,
                 connectionLifetime: data.connection_lifetime
             });
+            this.connectWs();
         }.bind(this), "json").error(function (jqXHR) {
             if (jqXHR.status === 401) {
                 this.props.handleLogout();
@@ -220,7 +221,6 @@ var Dashboard = React.createClass({
     },
     componentDidMount: function () {
         this.loadInfo();
-        this.connectWs();
     },
     componentWillUnmount: function () {
         if (conn) {
@@ -258,6 +258,9 @@ var Login = React.createClass({
         return {
             'focus': false
         }
+    },
+    componentDidMount: function () {
+        this.props.handleLogin("");
     },
     handleSubmit: function (e) {
         e.preventDefault();
