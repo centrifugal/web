@@ -70,10 +70,10 @@ var App = React.createClass({
     },
     handleLogin: function (password, auto) {
         var autoLogin = auto || false;
-        if (autoLogin) {
-            console.log("Logged in automatically.");
-        }
         $.post(globalAuthUrl, {password: password}, "json").success(function (data) {
+            if (autoLogin) {
+                console.log("Logged in automatically.");
+            }
             localStorage.setItem("token", data.token);
             var insecure = data.token === "insecure";
             if (insecure) {
