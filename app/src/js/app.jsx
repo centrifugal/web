@@ -52,31 +52,47 @@ var App = React.createClass({
     mixins: [Router.State],
     getInitialState: function () {
         return {
-            isAuthenticated: false
+            isAuthenticated: false,
+            insecure: false
         }
     },
     componentWillMount: function () {
+        var state = {};
         var token = localStorage.getItem("token");
         if (token) {
-            this.setState({isAuthenticated: true});
+            state["isAuthenticated"] = true;
         }
+        var insecure = localStorage.getItem("insecure");
+        if (insecure) {
+            state["insecure"] = true;
+        }
+        this.setState(state);
     },
-    handleLogin: function (password) {
+    handleLogin: function (password, auto) {
+        var autoLogin = auto || false;
         $.post(globalAuthUrl, {password: password}, "json").success(function (data) {
+            if (autoLogin) {
+                console.log("Logged in automatically.");
+            }
             localStorage.setItem("token", data.token);
-            this.setState({isAuthenticated: true});
+            var insecure = data.token === "insecure";
+            if (insecure) {
+                localStorage.setItem("insecure", true);
+            }
+            this.setState({isAuthenticated: true, insecure: insecure});
         }.bind(this)).error(function () {
             $.noop();
         });
     },
     handleLogout: function () {
         delete localStorage.token;
-        this.setState({isAuthenticated: false});
+        delete localStorage.insecure;
+        this.setState({isAuthenticated: false, insecure: false});
     },
     render: function () {
         if (this.state.isAuthenticated) {
             return (
-                <Dashboard handleLogout={this.handleLogout} handleLogout={this.handleLogout} {...this.props} />
+                <Dashboard handleLogout={this.handleLogout} handleLogout={this.handleLogout} insecure={this.state.insecure} {...this.props} />
             )
         } else {
             return (
@@ -236,7 +252,7 @@ var Dashboard = React.createClass({
     render: function () {
         return (
             <div>
-                <Nav handleLogout={this.props.handleLogout} />
+                <Nav handleLogout={this.props.handleLogout} insecure={this.props.insecure} />
                 <div className="wrapper">
                     <Sidebar messageCounter={this.state.messageCounter} />
                     <div className="col-lg-10 col-md-10 col-sm-12 col-xs-12">
@@ -258,6 +274,10 @@ var Login = React.createClass({
         return {
             'focus': false
         }
+    },
+    componentDidMount: function () {
+        // try to login with empty password – maybe insecure_web option enabled in Centrifugo.
+        this.props.handleLogin("", true);
     },
     handleSubmit: function (e) {
         e.preventDefault();
@@ -307,6 +327,8 @@ var Nav = React.createClass({
         this.props.handleLogout();
     },
     render: function () {
+        var cx = Addons.addons.classSet;
+        var logoutClasses = cx({'hidden': this.props.insecure});
         return (
             <nav className="navbar navbar-inverse" role="navigation">
                 <div className="navbar-header">
@@ -334,7 +356,7 @@ var Nav = React.createClass({
                                 Source code
                             </a>
                         </li>
-                        <li>
+                        <li className={logoutClasses}>
                             <a href="#" onClick={this.handleLogout}>Logout</a>
                         </li>
                     </ul>
