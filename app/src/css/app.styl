@@ -178,89 +178,65 @@ body, pre {
     vertical-align: middle;
 }
 
-@keyframes rotate-logo {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-webkit-keyframes rotate-logo {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-moz-keyframes rotate-logo {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-ms-keyframes rotate-logo {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes rotate-logo-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-webkit-keyframes rotate-logo-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-moz-keyframes rotate-logo-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-@-ms-keyframes rotate-logo-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .login .login-logo {
-    background-image: url("../images/logo-login.svg");
-    -moz-animation: rotate-logo 0.3s linear infinite;
-    -ms-animation: rotate-logo 0.3s linear infinite;
-    -o-animation: rotate-logo 0.3s linear infinite;
-    -webkit-animation: rotate-logo 0.3s linear infinite;
-    animation: rotate-logo 0.3s linear infinite;   
     height: 110px;
     width: 110px;
     margin: 0 auto;
 }
-.login.login-focus .login-logo {
-    -moz-animation: rotate-logo-slow 2s linear infinite;
-    -ms-animation: rotate-logo-slow 2s linear infinite;
-    -o-animation: rotate-logo-slow 2s linear infinite;
-    -webkit-animation: rotate-logo-slow 2s linear infinite;
-    animation: rotate-logo-slow 2s linear infinite;
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+@-moz-keyframes spin {
+    0% { -moz-transform: rotate(0deg); }
+    100% { -moz-transform: rotate(360deg); }
+}
+@-webkit-keyframes spin {
+    0% {-webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+@-o-keyframes spin {
+    0% { -o-transform: rotate(0deg); }
+    100% { -o-transform: rotate(360deg); }
+}
+.spin {
+    height: 110px;
+    width: 110px;
+    animation: spin 0.5s linear 0s infinite forwards;
+    -moz-animation: 0.5s linear 0s forwards none infinite spin;
+    -webkit-animation: spin 0.5s linear 0s infinite forwards;
+    -o-animation: spin 0.5s linear 0s infinite forwards;
+    -webkit-animation-play-state: running;
+    -o-animation-play-state: running;
+    -moz-animation-play-state: running;
+    animation-play-state: running;
+}
+.login .login-logo-outer {
+    background-image: url("../images/logo-login-outer.svg");
+    animation: spin 2s linear 0s infinite normal;
+    -moz-animation: 2s linear 0s normal none infinite spin;
+    -webkit-animation: spin 2s linear 0s infinite normal;
+    -o-animation: spin 2s linear 0s infinite normal;
+    height: 110px;
+    width: 110px;
+    position: absolute;
+}
+.login .login-logo-inner {
+    background-image: url("../images/logo-login-inner.svg");
+    animation: spin 4s linear 0s infinite normal;
+    -moz-animation: 4s linear 0s normal none infinite spin;
+    -webkit-animation: spin 4s linear 0s infinite normal;
+    -o-animation: spin 4s linear 0s infinite normal;
+    height: 110px;
+    width: 110px;
+    position: absolute;
+}
+.login.login-focus .spin {
+    -webkit-animation-play-state: paused;
+    -o-animation-play-state: paused;
+    -moz-animation-play-state: paused;
+    animation-play-state: paused;
 }
 
 .login .login-heading {

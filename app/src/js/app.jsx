@@ -303,7 +303,12 @@ var Login = React.createClass({
                     <div className="container">
                         <div className="row">
                             <div className="col-md-8 col-md-offset-2">
-                                <div className="login-logo"></div>
+                                <div className="login-logo">
+                                    <div className="spin">
+                                        <div className="login-logo-outer"></div>
+                                        <div className="login-logo-inner"></div>
+                                    </div>
+                                </div>
                                 <h1 className="login-heading">Centrifugal</h1>
                                 <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
