@@ -137,7 +137,13 @@ var Dashboard = React.createClass({
             messageCounter: 0
         }
     },
-    handleAuthBody: function (body) {
+    handleConnect: function (data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            this.props.handleLogout();
+            return
+        }
+        var body = data.body;
         if (body === true) {
             this.setState({isConnected: true});
             pingInterval = setInterval(function() {
@@ -150,8 +156,12 @@ var Dashboard = React.createClass({
             this.props.handleLogout();
         }
     },
-    handleMessageBody: function (body) {
-        var message = body.message;
+    handleMessage: function (data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return
+        }
+        var message = data.body;
         var currentMessages = this.state.messages.slice();
         var d = new Date();
         message['time'] = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
@@ -166,6 +176,18 @@ var Dashboard = React.createClass({
             this.setState({messageCounter: currentCounter + 1});
         }
     },
+    dispatchMessage: function(data) {
+        var method = data.method;
+        if (method === "connect") {
+            this.handleConnect(data);
+        } else if (method === "message") {
+            this.handleMessage(data);
+        } else if (method === "ping") {
+            $.noop();
+        } else {
+            console.log("unknown method " + method);
+        }
+    },
     connectWs: function () {
         var protocol = window.location.protocol;
         var isSecure = protocol === "https:";
@@ -173,24 +195,26 @@ var Dashboard = React.createClass({
         conn = new WebSocket(websocketProtocol + window.location.host + globalSocketUrl);
         conn.onopen = function () {
             conn.send(JSON.stringify({
-                "method": "auth",
+                "method": "connect",
                 "params": {
-                    "token": localStorage.getItem("token")
+                    "token": localStorage.getItem("token"),
+                    "watch": true
                 }
             }));
         }.bind(this);
         conn.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            var method = data.method;
-            var body = data.body;
-            if (method === "auth") {
-                this.handleAuthBody(body);
-            } else if (method === "message") {
-                this.handleMessageBody(body);
-            } else if (method === "ping") {
-                $.noop();
-            } else {
-                console.log("unknown method " + method);
+            if (Object.prototype.toString.call(data) === Object.prototype.toString.call([])) {
+                // array of response objects received
+                for (var i in data) {
+                    if (data.hasOwnProperty(i)) {
+                        var msg = data[i];
+                        this.dispatchMessage(msg);
+                    }
+                }
+            } else if (Object.prototype.toString.call(data) === Object.prototype.toString.call({})) {
+                // one response object received
+                this.dispatchMessage(data);
             }
         }.bind(this);
         conn.onerror = function () {
@@ -309,7 +333,7 @@ var Login = React.createClass({
                                         <div className="login-logo-inner"></div>
                                     </div>
                                 </div>
-                                <h1 className="login-heading">Centrifugal</h1>
+                                <h1 className="login-heading">Centrifugo</h1>
                                 <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
                                     <div className="form-group">
@@ -346,7 +370,7 @@ var Nav = React.createClass({
                     <Link to="status" className="navbar-brand">
                         <span className="navbar-logo">
                         </span>
-                        Centrifugal web
+                        Centrifugo web
                     </Link>
                 </div>
                 <div className="collapse navbar-collapse navbar-ex8-collapse">
