@@ -120,7 +120,7 @@ var App = React.createClass({displayName: "App",
 
 var conn;
 var reconnectTimeout;
-var infoLoadTimeout;
+var stateLoadTimeout;
 var pingInterval;
 var maxMessageAmount = 50;
 
@@ -153,6 +153,24 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             messageCounter: 0
         }
     },
+    getServerState: function() {
+        if (!conn) {
+            return;
+        }
+        conn.send(JSON.stringify([
+            {
+                "method": "stats",
+                "params": {}
+            },
+            {
+                "method": "info",
+                "params": {}
+            }
+        ]));
+        stateLoadTimeout = setTimeout(function(){
+            this.getServerState();
+        }.bind(this), 10000);
+    },
     handleConnect: function (data) {
         if ("error" in data && data.error) {
             console.log(data.error);
@@ -168,14 +186,43 @@ var Dashboard = React.createClass({displayName: "Dashboard",
                     "params": {}
                 }));
             }.bind(this), 25000);
+            // successfully connected, time to ask for server state
+            this.getServerState();
         } else {
             this.props.handleLogout();
         }
     },
+    handleStats: function(data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return;
+        }
+        var stats = data.body.data;
+        this.setState({
+            nodeCount: Object.keys(stats.nodes).length,
+            nodes: stats.nodes
+        });
+    },
+    handleInfo: function(data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return;
+        }
+        var info = data.body;
+        this.setState({
+            version: info.config.version,
+            channelOptions: info.config.channel_options,
+            namespaces: info.config.namespaces,
+            engine: info.engine,
+            nodeName: info.config.name,
+            secret: info.config.secret,
+            connectionLifetime: info.config.connection_lifetime
+        });
+    },
     handleMessage: function (data) {
         if ("error" in data && data.error) {
             console.log(data.error);
-            return
+            return;
         }
         var message = data.body;
         var currentMessages = this.state.messages.slice();
@@ -198,10 +245,14 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             this.handleConnect(data);
         } else if (method === "message") {
             this.handleMessage(data);
+        } else if (method === "stats") {
+            this.handleStats(data);
+        } else if (method === "info") {
+            this.handleInfo(data);
         } else if (method === "ping") {
             $.noop();
         } else {
-            console.log("unknown method " + method);
+            console.log("Got message with unknown method " + method);
         }
     },
     connectWs: function () {
@@ -246,11 +297,15 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             if (pingInterval) {
                 clearInterval(pingInterval);
             }
+            if (stateLoadTimeout) {
+                clearTimeout(stateLoadTimeout);
+            }
         }.bind(this);
     },
     clearMessageCounter: function () {
         this.setState({messageCounter: 0});
     },
+    /*
     loadInfo: function() {
         $.get(globalInfoUrl, {}, function (data) {
             this.setState({
@@ -274,19 +329,21 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             this.loadInfo();
         }.bind(this), 10000);
     },
+    */
     componentDidMount: function () {
-        this.loadInfo();
+        //this.loadInfo();
         this.connectWs();
     },
     componentWillUnmount: function () {
         if (conn) {
             conn.close();
+            conn = null;
         }
         if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
         }
-        if (infoLoadTimeout) {
-            clearTimeout(infoLoadTimeout)
+        if (stateLoadTimeout) {
+            clearTimeout(stateLoadTimeout)
         }
     },
     render: function () {
@@ -386,7 +443,7 @@ var Nav = React.createClass({displayName: "Nav",
                     React.createElement(Link, {to: "status", className: "navbar-brand"}, 
                         React.createElement("span", {className: "navbar-logo"}
                         ), 
-                        "Centrifugo web"
+                        "Centrifugo"
                     )
                 ), 
                 React.createElement("div", {className: "collapse navbar-collapse navbar-ex8-collapse"}, 
@@ -523,7 +580,7 @@ var StatusHandler = React.createClass({displayName: "StatusHandler",
                     React.createElement("span", {className: "stat-value"}, this.props.dashboard.engine)
                 ), 
                 React.createElement("div", {className: "stat-row"}, 
-                    React.createElement("span", {className: "text-muted stat-key"}, "Current node:"), 
+                    React.createElement("span", {className: "text-muted stat-key"}, "Connected to node:"), 
                 " ", 
                     React.createElement("span", {className: "stat-value", id: "current-node"}, this.props.dashboard.nodeName)
                 ), 
