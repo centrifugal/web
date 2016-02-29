@@ -31,8 +31,6 @@ require('brace/theme/monokai');
 var globalUrlPrefix;
 var globalAuthUrl;
 var globalSocketUrl;
-var globalInfoUrl;
-var globalActionUrl;
 
 $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
     var token = localStorage.getItem("token");
@@ -150,7 +148,10 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             apiEndpoint: apiEndpoint,
             nodes: {},
             messages: [],
-            messageCounter: 0
+            messageCounter: 0,
+            actionRequest: null,
+            actionResponse: null,
+            actionLoading: false
         }
     },
     getServerState: function() {
@@ -239,6 +240,17 @@ var Dashboard = React.createClass({displayName: "Dashboard",
             this.setState({messageCounter: currentCounter + 1});
         }
     },
+    sendAction: function(method, params) {
+        if (!conn) {
+            return;
+        }
+        cmd = {
+            method: method,
+            params: params
+        };
+        conn.send(JSON.stringify(cmd));
+        this.setState({actionRequest: prettifyJson(cmd), actionLoading: true});
+    },
     dispatchMessage: function(data) {
         var method = data.method;
         if (method === "connect") {
@@ -305,33 +317,7 @@ var Dashboard = React.createClass({displayName: "Dashboard",
     clearMessageCounter: function () {
         this.setState({messageCounter: 0});
     },
-    /*
-    loadInfo: function() {
-        $.get(globalInfoUrl, {}, function (data) {
-            this.setState({
-                version: data.version,
-                channelOptions: data.channel_options,
-                namespaces: data.namespaces,
-                engine: data.engine,
-                nodeName: data.node_name,
-                nodeCount: Object.keys(data.nodes).length,
-                nodes: data.nodes,
-                secret: data.secret,
-                connectionLifetime: data.connection_lifetime
-            });
-        }.bind(this), "json").error(function (jqXHR) {
-            if (jqXHR.status === 401) {
-                this.props.handleLogout();
-            }
-        }.bind(this));
-
-        infoLoadTimeout = setTimeout(function(){
-            this.loadInfo();
-        }.bind(this), 10000);
-    },
-    */
     componentDidMount: function () {
-        //this.loadInfo();
         this.connectWs();
     },
     componentWillUnmount: function () {
@@ -357,6 +343,7 @@ var Dashboard = React.createClass({displayName: "Dashboard",
                         React.createElement(RouteHandler, React.__spread({
                             dashboard: this.state, 
                             handleLogout: this.props.handleLogout, 
+                            sendAction: this.sendAction, 
                             clearMessageCounter: this.clearMessageCounter}, 
                         this.props))
                     )
@@ -454,7 +441,7 @@ var Nav = React.createClass({displayName: "Nav",
                             )
                         ), 
                         React.createElement("li", null, 
-                            React.createElement("a", {href: "https://github.com/centrifugal", target: "_blank"}, 
+                            React.createElement("a", {href: "https://github.com/centrifugal/centrifugo", target: "_blank"}, 
                                 "Source code"
                             )
                         ), 
@@ -762,33 +749,28 @@ var MessagesHandler = React.createClass({displayName: "MessagesHandler",
 var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     mixins: [Router.State],
     editor: null,
-    getInitialState: function () {
-        return {
-            "response": null
-        }
+    fields: ["channel", "data", "user"],
+    methodFields: {
+        "publish": ["channel", "data"],
+        "presence": ["channel"],
+        "history": ["channel"],
+        "unsubscribe": ["channel", "user"],
+        "disconnect": ["user"],
+        "channels": [],
+        "stats": []
     },
     handleMethodChange: function () {
-        var fields = ["channel", "data", "user"];
-        var methodFields = {
-            "publish": ["channel", "data"],
-            "presence": ["channel"],
-            "history": ["channel"],
-            "unsubscribe": ["channel", "user"],
-            "disconnect": ["user"],
-            "channels": [],
-            "stats": []
-        };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
             return;
         }
-        var fieldsToShow = methodFields[method];
+        var fieldsToShow = this.methodFields[method];
         for (var i in fieldsToShow) {
             var field = $('#' + fieldsToShow[i]);
             field.attr('disabled', false).parents('.form-group:first').show();
         }
-        for (var k in fields) {
-            var field_name = fields[k];
+        for (var k in this.fields) {
+            var field_name = this.fields[k];
             if (fieldsToShow.indexOf(field_name) === -1) {
                 $('#' + field_name).attr('disabled', true).parents('.form-group:first').hide();
             }
@@ -813,7 +795,7 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     },
     showError: function(text) {
         this.hideSuccess();
-        this.setState({response: null});
+        //this.setState({response: null});
         var error = $(this.refs.error.getDOMNode());
         error.stop().hide().removeClass("hidden").text(text).fadeIn();
     },
@@ -824,11 +806,17 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     },
     handleSubmit: function (e) {
         e.preventDefault();
-        var form = $(this.refs.form.getDOMNode());
-        if ($(this.refs.method.getDOMNode()).val() === "publish") {
-            var data = this.editor.getSession().getValue();
+        if (!conn) {
+            this.showError("Can't send in disconnected state");
+            return;
+        }
+        var methodElem = $(this.refs.method.getDOMNode());
+        var method = methodElem.val();
+        var publishData;
+        if (methodElem.val() === "publish") {
+            publishData = this.editor.getSession().getValue();
             try {
-                var json = JSON.stringify(JSON.parse(data));
+                var json = JSON.stringify(JSON.parse(publishData));
             } catch (e) {
                 this.showError("malformed JSON");
                 return;
@@ -837,19 +825,23 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
         $(this.refs.data.getDOMNode()).val(json);
         var submitButton = $(this.refs.submit.getDOMNode());
         submitButton.attr('disabled', true);
-        $.post(globalActionUrl, form.serialize(), function (data) {
-            var json = prettifyJson(data);
-            this.setState({response: json});
-            submitButton.attr('disabled', false);
-            this.showSuccess();
-        }.bind(this), "json").error(function (jqXHR) {
-            if (jqXHR.status === 401) {
-                this.props.handleLogout();
-            }
-            this.showError("Error");
-        }.bind(this));
+        var fieldsForParams = this.methodFields[method];
+        var params = {};
+        for (var i in fieldsForParams) {
+            var field = $('#' + fieldsForParams[i]);
+            params[fieldsForParams[i]] = field.val();
+        }
+        if (method === "publish") {
+            // publish is somewhat special
+            params["data"] = JSON.parse(publishData);
+        }
+        this.hideError();
+        this.hideSuccess();
+        this.props.sendAction(method, params);
     },
     render: function () {
+        var cx = Addons.addons.classSet;
+        var loaderClasses = cx({'hidden': !this.props.dashboard["actionLoading"]});
         return (
             React.createElement("div", {className: "content"}, 
                 React.createElement("p", {className: "content-help"}, "Execute command on server"), 
@@ -879,12 +871,29 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
                         React.createElement("div", {id: "data-editor"}), 
                         React.createElement("textarea", {ref: "data", className: "hidden", id: "data", name: "data"})
                     ), 
-                    React.createElement("button", {type: "submit", ref: "submit", className: "btn btn-primary"}, "Submit"), 
+                    React.createElement("button", {type: "submit", ref: "submit", disabled: this.props.dashboard.actionLoading, className: "btn btn-primary"}, "Submit"), 
                     React.createElement("span", {ref: "error", className: "box box-error hidden"}, "Error"), 
                     React.createElement("span", {ref: "success", className: "box box-success hidden"}, "Successfully sent")
                 ), 
+                React.createElement("div", {className: "action-request"}, 
+                    React.createElement("div", {className: "action-label-container"}, 
+                        React.createElement("span", {className: "action-label"}, "Request:")
+                    ), 
+                    React.createElement("pre", {ref: "request", dangerouslySetInnerHTML: {"__html": this.props.dashboard.actionRequest}})
+                ), 
                 React.createElement("div", {className: "action-response"}, 
-                    React.createElement("pre", {ref: "response", dangerouslySetInnerHTML: {"__html": this.state.response}})
+                    React.createElement("div", {className: "action-label-container"}, 
+                        React.createElement("span", {className: "action-label"}, "Response:"), 
+                        React.createElement("span", {className: loaderClasses}, 
+                            React.createElement("div", {className: "loading"}, 
+                              React.createElement("div", {className: "loading-bar"}), 
+                              React.createElement("div", {className: "loading-bar"}), 
+                              React.createElement("div", {className: "loading-bar"}), 
+                              React.createElement("div", {className: "loading-bar"})
+                            )
+                        )
+                    ), 
+                    React.createElement("pre", {ref: "response", dangerouslySetInnerHTML: {"__html": this.props.dashboard.actionResponse}})
                 )
             )
         )
@@ -930,8 +939,6 @@ module.exports = function () {
         var prefix = app.dataset.prefix || "/";
         globalUrlPrefix = prefix;
         globalAuthUrl = prefix + "auth/";
-        globalInfoUrl = prefix + "info/";
-        globalActionUrl = prefix + "action/";
         globalSocketUrl = prefix + "socket";
         React.render(React.createElement(Handler, {query: state.query}), app);
     });
