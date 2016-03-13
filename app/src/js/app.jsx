@@ -133,7 +133,7 @@ var Dashboard = React.createClass({
         }
     },
     getServerState: function() {
-        if (!conn) {
+        if (!this.state.isConnected) {
             return;
         }
         conn.send(JSON.stringify([
@@ -219,7 +219,7 @@ var Dashboard = React.createClass({
         }
     },
     sendAction: function(method, params) {
-        if (!conn) {
+        if (!this.state.isConnected) {
             return;
         }
         var uid = (++lastUID).toString();
@@ -813,7 +813,7 @@ var ActionsHandler = React.createClass({
     },
     handleSubmit: function (e) {
         e.preventDefault();
-        if (!conn) {
+        if (!this.props.dashboard.isConnected) {
             this.showError("Can't send in disconnected state");
             return;
         }
