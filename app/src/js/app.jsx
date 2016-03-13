@@ -16,13 +16,6 @@ var globalUrlPrefix;
 var globalAuthUrl;
 var globalSocketUrl;
 
-$.ajaxPrefilter(function (options, originalOptions, jqXHR) {
-    var token = localStorage.getItem("token");
-    if (token) {
-        jqXHR.setRequestHeader('Authorization', "Token " + localStorage.getItem("token"));
-    }
-});
-
 function prettifyJson(json) {
     return syntaxHighlight(JSON.stringify(json, undefined, 4));
 }
@@ -94,7 +87,7 @@ var App = React.createClass({
             )
         } else {
             return (
-                <Login handleLogin={this.handleLogin} {...this.props}></Login>
+                <Login handleLogin={this.handleLogin} {...this.props} />
             )
         }
     }
@@ -105,6 +98,8 @@ var reconnectTimeout;
 var stateLoadTimeout;
 var pingInterval;
 var maxMessageAmount = 50;
+var lastUID = 0;
+var lastActionUID;
 
 var Dashboard = React.createClass({
     mixins: [Router.State],
@@ -134,8 +129,7 @@ var Dashboard = React.createClass({
             messages: [],
             messageCounter: 0,
             actionRequest: null,
-            actionResponse: null,
-            actionLoading: false
+            actionResponse: null
         }
     },
     getServerState: function() {
@@ -154,7 +148,7 @@ var Dashboard = React.createClass({
         ]));
         stateLoadTimeout = setTimeout(function(){
             this.getServerState();
-        }.bind(this), 10000);
+        }.bind(this), 5000);
     },
     handleConnect: function (data) {
         if ("error" in data && data.error) {
@@ -228,15 +222,25 @@ var Dashboard = React.createClass({
         if (!conn) {
             return;
         }
+        var uid = (++lastUID).toString();
+        lastActionUID = uid;
         cmd = {
+            uid: uid,
             method: method,
             params: params
         };
         conn.send(JSON.stringify(cmd));
-        this.setState({actionRequest: prettifyJson(cmd), actionLoading: true});
+        this.setState({actionRequest: cmd});
     },
     dispatchMessage: function(data) {
         var method = data.method;
+        if (data.uid && data.uid === lastActionUID) {
+            // At moment only commands that were sent from Actions tab contain unique
+            // id in request, so if we got response with uid set then we consider this
+            // response as action response.
+            this.setState({actionResponse: data});
+            return;
+        }
         if (method === "connect") {
             this.handleConnect(data);
         } else if (method === "message") {
@@ -760,6 +764,11 @@ var ActionsHandler = React.createClass({
             }
         }
     },
+    getInitialState: function() {
+        return {
+            loading: false
+        }
+    },
     componentDidMount: function () {
         this.editor = ace.edit('data-editor');
         this.editor.getSession().setMode('ace/mode/json');
@@ -769,24 +778,38 @@ var ActionsHandler = React.createClass({
         this.editor.getSession().setUseWrapMode(true);
         this.handleMethodChange();
     },
+    componentWillReceiveProps: function(nextProps) {
+        if (nextProps.dashboard.actionResponse && this.state.loading) {
+            this.setState({loading: false});
+            if (nextProps.dashboard.actionResponse.error) {
+                this.showError(nextProps.dashboard.actionResponse.error);
+            } else {
+                this.showSuccess();
+            }
+        }
+    },
     hideError: function() {
         var error = $(this.refs.error.getDOMNode());
-        error.hide();
+        error.addClass("hidden");
     },
     hideSuccess: function() {
         var success = $(this.refs.success.getDOMNode());
-        success.hide();
+        success.addClass("hidden");
     },
     showError: function(text) {
-        this.hideSuccess();
-        //this.setState({response: null});
         var error = $(this.refs.error.getDOMNode());
-        error.stop().hide().removeClass("hidden").text(text).fadeIn();
+        error.text("Error: " + text);
+        if (error.hasClass("hidden")) {
+            this.hideSuccess();
+            error.stop().hide().removeClass("hidden").fadeIn();
+        }
     },
     showSuccess: function() {
-        this.hideError();
         var success = $(this.refs.success.getDOMNode());
-        success.stop().hide().removeClass('hidden').fadeIn();
+        if (success.hasClass("hidden")) {
+            this.hideError();
+            success.stop().hide().removeClass('hidden').fadeIn();
+        }
     },
     handleSubmit: function (e) {
         e.preventDefault();
@@ -822,10 +845,15 @@ var ActionsHandler = React.createClass({
         this.hideError();
         this.hideSuccess();
         this.props.sendAction(method, params);
+        this.setState({loading: true});
     },
     render: function () {
         var cx = Addons.addons.classSet;
-        var loaderClasses = cx({'hidden': !this.props.dashboard["actionLoading"]});
+        var loaderClasses = cx({'hidden': !this.state.loading});
+        var requestData = this.props.dashboard.actionRequest;
+        var responseData = this.props.dashboard.actionResponse;
+        var request = requestData?prettifyJson(requestData):"";
+        var response = responseData?prettifyJson(responseData):"";
         return (
             <div className="content">
                 <p className="content-help">Execute command on server</p>
@@ -855,19 +883,19 @@ var ActionsHandler = React.createClass({
                         <div id="data-editor"></div>
                         <textarea ref="data" className="hidden" id="data" name="data"></textarea>
                     </div>
-                    <button type="submit" ref="submit" disabled={this.props.dashboard.actionLoading} className="btn btn-primary">Submit</button>
+                    <button type="submit" ref="submit" disabled={this.state.loading} className="btn btn-primary">Submit</button>
                     <span ref="error" className="box box-error hidden">Error</span>
-                    <span ref="success" className="box box-success hidden">Successfully sent</span>
+                    <span ref="success" className="box box-success hidden">Success</span>
                 </form>
                 <div className="action-request">
                     <div className="action-label-container">
-                        <span className="action-label">Request:</span>
+                        <span className="action-label">Last request:</span>
                     </div>
-                    <pre ref="request" dangerouslySetInnerHTML={{"__html": this.props.dashboard.actionRequest}} />
+                    <pre ref="request" dangerouslySetInnerHTML={{"__html": request}} />
                 </div>
                 <div className="action-response">
                     <div className="action-label-container">
-                        <span className="action-label">Response:</span>
+                        <span className="action-label">Last response:</span>
                         <span className={loaderClasses}>
                             <div className="loading">
                               <div className="loading-bar"></div>
@@ -877,7 +905,7 @@ var ActionsHandler = React.createClass({
                             </div>
                         </span>
                     </div>
-                    <pre ref="response" dangerouslySetInnerHTML={{"__html": this.props.dashboard.actionResponse}} />
+                    <pre ref="response" dangerouslySetInnerHTML={{"__html": response}} />
                 </div>
             </div>
         )
