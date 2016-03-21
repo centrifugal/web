@@ -304,7 +304,11 @@ var Dashboard = React.createClass({displayName: "Dashboard",
         conn.onerror = function () {
             this.setState({isConnected: false});
         }.bind(this);
-        conn.onclose = function () {
+        conn.onclose = function (ev) {
+            if (ev.reason == "unauthorized") {
+                this.props.handleLogout();
+                return;
+            }
             if (this.isMounted()) {
                 this.setState({isConnected: false});
                 reconnectTimeout = setTimeout(function () {
