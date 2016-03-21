@@ -231,6 +231,7 @@ var Dashboard = React.createClass({
         };
         conn.send(JSON.stringify(cmd));
         this.setState({actionRequest: cmd});
+        return uid;
     },
     dispatchMessage: function(data) {
         var method = data.method;
@@ -737,9 +738,10 @@ var MessagesHandler = React.createClass({
 var ActionsHandler = React.createClass({
     mixins: [Router.State],
     editor: null,
-    fields: ["channel", "data", "user"],
+    fields: ["channel", "channels", "data", "user"],
     methodFields: {
         "publish": ["channel", "data"],
+        "broadcast": ["channels", "data"],
         "presence": ["channel"],
         "history": ["channel"],
         "unsubscribe": ["channel", "user"],
@@ -766,7 +768,8 @@ var ActionsHandler = React.createClass({
     },
     getInitialState: function() {
         return {
-            loading: false
+            loading: false,
+            uid: ""
         }
     },
     componentDidMount: function () {
@@ -779,8 +782,8 @@ var ActionsHandler = React.createClass({
         this.handleMethodChange();
     },
     componentWillReceiveProps: function(nextProps) {
-        if (nextProps.dashboard.actionResponse && this.state.loading) {
-            this.setState({loading: false});
+        if (nextProps.dashboard.actionResponse && this.state.loading && this.state.uid === nextProps.dashboard.actionResponse.uid ) {
+            this.setState({loading: false, uid: ""});
             if (nextProps.dashboard.actionResponse.error) {
                 this.showError(nextProps.dashboard.actionResponse.error);
             } else {
@@ -820,7 +823,7 @@ var ActionsHandler = React.createClass({
         var methodElem = $(this.refs.method.getDOMNode());
         var method = methodElem.val();
         var publishData;
-        if (methodElem.val() === "publish") {
+        if (methodElem.val() === "publish" || methodElem.val() === "broadcast") {
             publishData = this.editor.getSession().getValue();
             try {
                 var json = JSON.stringify(JSON.parse(publishData));
@@ -838,14 +841,18 @@ var ActionsHandler = React.createClass({
             var field = $('#' + fieldsForParams[i]);
             params[fieldsForParams[i]] = field.val();
         }
-        if (method === "publish") {
-            // publish is somewhat special
+        if (method === "publish" || method === "broadcast") {
+            // publish and broadcast are somewhat special as they have raw JSON in data.
             params["data"] = JSON.parse(publishData);
+        }
+        if (method === "broadcast") {
+            // convert space separated channels to array of channels.
+            params["channels"] = $("#channels").val().split(" ");
         }
         this.hideError();
         this.hideSuccess();
-        this.props.sendAction(method, params);
-        this.setState({loading: true});
+        var uid = this.props.sendAction(method, params);
+        this.setState({loading: true, uid: uid});
     },
     render: function () {
         var cx = Addons.addons.classSet;
@@ -862,6 +869,7 @@ var ActionsHandler = React.createClass({
                         <label htmlFor="method">Method</label>
                         <select className="form-control" ref="method" name="method" id="method" onChange={this.handleMethodChange}>
                             <option value="publish">publish</option>
+                            <option value="broadcast">broadcast</option>
                             <option value="presence">presence</option>
                             <option value="history">history</option>
                             <option value="unsubscribe">unsubscribe</option>
@@ -873,6 +881,10 @@ var ActionsHandler = React.createClass({
                     <div className="form-group">
                         <label htmlFor="channel">Channel</label>
                         <input type="text" className="form-control" name="channel" id="channel" />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="channels">Channels (SPACE separated)</label>
+                        <input type="text" className="form-control" name="channels" id="channels" />
                     </div>
                     <div className="form-group">
                         <label htmlFor="user">User ID</label>

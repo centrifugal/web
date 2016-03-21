@@ -247,6 +247,7 @@ var Dashboard = React.createClass({displayName: "Dashboard",
         };
         conn.send(JSON.stringify(cmd));
         this.setState({actionRequest: cmd});
+        return uid;
     },
     dispatchMessage: function(data) {
         var method = data.method;
@@ -753,9 +754,10 @@ var MessagesHandler = React.createClass({displayName: "MessagesHandler",
 var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     mixins: [Router.State],
     editor: null,
-    fields: ["channel", "data", "user"],
+    fields: ["channel", "channels", "data", "user"],
     methodFields: {
         "publish": ["channel", "data"],
+        "broadcast": ["channels", "data"],
         "presence": ["channel"],
         "history": ["channel"],
         "unsubscribe": ["channel", "user"],
@@ -782,7 +784,8 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
     },
     getInitialState: function() {
         return {
-            loading: false
+            loading: false,
+            uid: ""
         }
     },
     componentDidMount: function () {
@@ -795,8 +798,8 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
         this.handleMethodChange();
     },
     componentWillReceiveProps: function(nextProps) {
-        if (nextProps.dashboard.actionResponse && this.state.loading) {
-            this.setState({loading: false});
+        if (nextProps.dashboard.actionResponse && this.state.loading && this.state.uid === nextProps.dashboard.actionResponse.uid ) {
+            this.setState({loading: false, uid: ""});
             if (nextProps.dashboard.actionResponse.error) {
                 this.showError(nextProps.dashboard.actionResponse.error);
             } else {
@@ -836,7 +839,7 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
         var methodElem = $(this.refs.method.getDOMNode());
         var method = methodElem.val();
         var publishData;
-        if (methodElem.val() === "publish") {
+        if (methodElem.val() === "publish" || methodElem.val() === "broadcast") {
             publishData = this.editor.getSession().getValue();
             try {
                 var json = JSON.stringify(JSON.parse(publishData));
@@ -854,14 +857,18 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
             var field = $('#' + fieldsForParams[i]);
             params[fieldsForParams[i]] = field.val();
         }
-        if (method === "publish") {
-            // publish is somewhat special
+        if (method === "publish" || method === "broadcast") {
+            // publish and broadcast are somewhat special as they have raw JSON in data.
             params["data"] = JSON.parse(publishData);
+        }
+        if (method === "broadcast") {
+            // convert space separated channels to array of channels.
+            params["channels"] = $("#channels").val().split(" ");
         }
         this.hideError();
         this.hideSuccess();
-        this.props.sendAction(method, params);
-        this.setState({loading: true});
+        var uid = this.props.sendAction(method, params);
+        this.setState({loading: true, uid: uid});
     },
     render: function () {
         var cx = Addons.addons.classSet;
@@ -878,6 +885,7 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
                         React.createElement("label", {htmlFor: "method"}, "Method"), 
                         React.createElement("select", {className: "form-control", ref: "method", name: "method", id: "method", onChange: this.handleMethodChange}, 
                             React.createElement("option", {value: "publish"}, "publish"), 
+                            React.createElement("option", {value: "broadcast"}, "broadcast"), 
                             React.createElement("option", {value: "presence"}, "presence"), 
                             React.createElement("option", {value: "history"}, "history"), 
                             React.createElement("option", {value: "unsubscribe"}, "unsubscribe"), 
@@ -889,6 +897,10 @@ var ActionsHandler = React.createClass({displayName: "ActionsHandler",
                     React.createElement("div", {className: "form-group"}, 
                         React.createElement("label", {htmlFor: "channel"}, "Channel"), 
                         React.createElement("input", {type: "text", className: "form-control", name: "channel", id: "channel"})
+                    ), 
+                    React.createElement("div", {className: "form-group"}, 
+                        React.createElement("label", {htmlFor: "channels"}, "Channels (SPACE separated)"), 
+                        React.createElement("input", {type: "text", className: "form-control", name: "channels", id: "channels"})
                     ), 
                     React.createElement("div", {className: "form-group"}, 
                         React.createElement("label", {htmlFor: "user"}, "User ID"), 
