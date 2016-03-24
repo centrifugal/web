@@ -592,7 +592,12 @@ var StatusHandler = React.createClass({displayName: "StatusHandler",
                                 React.createElement("th", {title: "node name"}, "Node name"), 
                                 React.createElement("th", {title: "total active channels"}, "Channels"), 
                                 React.createElement("th", {title: "total connected clients"}, "Clients"), 
-                                React.createElement("th", {title: "total unique clients"}, "Unique Clients")
+                                React.createElement("th", {title: "total unique clients"}, "Unique Clients"), 
+                                React.createElement("th", {title: "num msg published snapshot"}, "Published"), 
+                                React.createElement("th", {title: "num msg queued snapshot"}, "Queued"), 
+                                React.createElement("th", {title: "num msg sent snapshot"}, "Sent"), 
+                                React.createElement("th", {title: "Memory sys usage snapshot"}, "Mem"), 
+                                React.createElement("th", {title: "CPU usage snapshot"}, "CPU")
                             )
                         ), 
                         React.createElement("tbody", {id: "node-info"}, 
@@ -615,14 +620,34 @@ var NodeRowLoader = React.createClass({displayName: "NodeRowLoader",
     }
 });
 
+function humanBytes(bytes) {
+    var thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB','MB','GB','TB','PB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
+}
+
 var NodeRow = React.createClass({displayName: "NodeRow",
     render: function () {
+        console.log(this.props.node);
         return (
             React.createElement("tr", null, 
                 React.createElement("td", null, this.props.node.name), 
                 React.createElement("td", null, this.props.node.num_channels), 
                 React.createElement("td", null, this.props.node.num_clients), 
-                React.createElement("td", null, this.props.node.num_unique_clients)
+                React.createElement("td", null, this.props.node.num_unique_clients), 
+                React.createElement("td", null, this.props.node.num_msg_published), 
+                React.createElement("td", null, this.props.node.num_msg_queued), 
+                React.createElement("td", null, this.props.node.num_msg_sent), 
+                React.createElement("td", null, humanBytes(this.props.node.memory_sys)), 
+                React.createElement("td", null, this.props.node.cpu_usage, "%")
             )
         )
     }

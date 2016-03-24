@@ -577,6 +577,11 @@ var StatusHandler = React.createClass({
                                 <th title="total active channels">Channels</th>
                                 <th title="total connected clients">Clients</th>
                                 <th title="total unique clients">Unique Clients</th>
+                                <th title="num msg published snapshot">Published</th>
+                                <th title="num msg queued snapshot">Queued</th>
+                                <th title="num msg sent snapshot">Sent</th>
+                                <th title="Memory sys usage snapshot">Mem</th>
+                                <th title="CPU usage snapshot">CPU</th>
                             </tr>
                         </thead>
                         <tbody id="node-info">
@@ -599,14 +604,34 @@ var NodeRowLoader = React.createClass({
     }
 });
 
+function humanBytes(bytes) {
+    var thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB','MB','GB','TB','PB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
+}
+
 var NodeRow = React.createClass({
     render: function () {
+        console.log(this.props.node);
         return (
             <tr>
                 <td>{this.props.node.name}</td>
                 <td>{this.props.node.num_channels}</td>
                 <td>{this.props.node.num_clients}</td>
                 <td>{this.props.node.num_unique_clients}</td>
+                <td>{this.props.node.num_msg_published}</td>
+                <td>{this.props.node.num_msg_queued}</td>
+                <td>{this.props.node.num_msg_sent}</td>
+                <td>{humanBytes(this.props.node.memory_sys)}</td>
+                <td>{this.props.node.cpu_usage}%</td>
             </tr>
         )
     }
