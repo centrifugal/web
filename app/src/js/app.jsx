@@ -15,15 +15,6 @@ require('brace/theme/monokai');
 var globalUrlPrefix;
 var globalAuthUrl;
 var globalSocketUrl;
-var globalInfoUrl;
-var globalActionUrl;
-
-$.ajaxPrefilter(function (options, originalOptions, jqXHR) {
-    var token = localStorage.getItem("token");
-    if (token) {
-        jqXHR.setRequestHeader('Authorization', "Token " + localStorage.getItem("token"));
-    }
-});
 
 function prettifyJson(json) {
     return syntaxHighlight(JSON.stringify(json, undefined, 4));
@@ -96,7 +87,7 @@ var App = React.createClass({
             )
         } else {
             return (
-                <Login handleLogin={this.handleLogin} {...this.props}></Login>
+                <Login handleLogin={this.handleLogin} {...this.props} />
             )
         }
     }
@@ -104,9 +95,11 @@ var App = React.createClass({
 
 var conn;
 var reconnectTimeout;
-var infoLoadTimeout;
+var stateLoadTimeout;
 var pingInterval;
 var maxMessageAmount = 50;
+var lastUID = 0;
+var lastActionUID;
 
 var Dashboard = React.createClass({
     mixins: [Router.State],
@@ -134,10 +127,36 @@ var Dashboard = React.createClass({
             apiEndpoint: apiEndpoint,
             nodes: {},
             messages: [],
-            messageCounter: 0
+            messageCounter: 0,
+            actionRequest: null,
+            actionResponse: null
         }
     },
-    handleAuthBody: function (body) {
+    getServerState: function() {
+        if (!this.state.isConnected) {
+            return;
+        }
+        conn.send(JSON.stringify([
+            {
+                "method": "stats",
+                "params": {}
+            },
+            {
+                "method": "info",
+                "params": {}
+            }
+        ]));
+        stateLoadTimeout = setTimeout(function(){
+            this.getServerState();
+        }.bind(this), 5000);
+    },
+    handleConnect: function (data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            this.props.handleLogout();
+            return
+        }
+        var body = data.body;
         if (body === true) {
             this.setState({isConnected: true});
             pingInterval = setInterval(function() {
@@ -146,12 +165,45 @@ var Dashboard = React.createClass({
                     "params": {}
                 }));
             }.bind(this), 25000);
+            // successfully connected, time to ask for server state
+            this.getServerState();
         } else {
             this.props.handleLogout();
         }
     },
-    handleMessageBody: function (body) {
-        var message = body.message;
+    handleStats: function(data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return;
+        }
+        var stats = data.body.data;
+        this.setState({
+            nodeCount: Object.keys(stats.nodes).length,
+            nodes: stats.nodes
+        });
+    },
+    handleInfo: function(data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return;
+        }
+        var info = data.body;
+        this.setState({
+            version: info.config.version,
+            channelOptions: info.config.channel_options,
+            namespaces: info.config.namespaces,
+            engine: info.engine,
+            nodeName: info.config.name,
+            secret: info.config.secret,
+            connectionLifetime: info.config.connection_lifetime
+        });
+    },
+    handleMessage: function (data) {
+        if ("error" in data && data.error) {
+            console.log(data.error);
+            return;
+        }
+        var message = data.body;
         var currentMessages = this.state.messages.slice();
         var d = new Date();
         message['time'] = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
@@ -166,6 +218,44 @@ var Dashboard = React.createClass({
             this.setState({messageCounter: currentCounter + 1});
         }
     },
+    sendAction: function(method, params) {
+        if (!this.state.isConnected) {
+            return;
+        }
+        var uid = (++lastUID).toString();
+        lastActionUID = uid;
+        cmd = {
+            uid: uid,
+            method: method,
+            params: params
+        };
+        conn.send(JSON.stringify(cmd));
+        this.setState({actionRequest: cmd});
+        return uid;
+    },
+    dispatchMessage: function(data) {
+        var method = data.method;
+        if (data.uid && data.uid === lastActionUID) {
+            // At moment only commands that were sent from Actions tab contain unique
+            // id in request, so if we got response with uid set then we consider this
+            // response as action response.
+            this.setState({actionResponse: data});
+            return;
+        }
+        if (method === "connect") {
+            this.handleConnect(data);
+        } else if (method === "message") {
+            this.handleMessage(data);
+        } else if (method === "stats") {
+            this.handleStats(data);
+        } else if (method === "info") {
+            this.handleInfo(data);
+        } else if (method === "ping") {
+            $.noop();
+        } else {
+            console.log("Got message with unknown method " + method);
+        }
+    },
     connectWs: function () {
         var protocol = window.location.protocol;
         var isSecure = protocol === "https:";
@@ -173,30 +263,36 @@ var Dashboard = React.createClass({
         conn = new WebSocket(websocketProtocol + window.location.host + globalSocketUrl);
         conn.onopen = function () {
             conn.send(JSON.stringify({
-                "method": "auth",
+                "method": "connect",
                 "params": {
-                    "token": localStorage.getItem("token")
+                    "token": localStorage.getItem("token"),
+                    "watch": true
                 }
             }));
         }.bind(this);
         conn.onmessage = function (event) {
             var data = JSON.parse(event.data);
-            var method = data.method;
-            var body = data.body;
-            if (method === "auth") {
-                this.handleAuthBody(body);
-            } else if (method === "message") {
-                this.handleMessageBody(body);
-            } else if (method === "ping") {
-                $.noop();
-            } else {
-                console.log("unknown method " + method);
+            if (Object.prototype.toString.call(data) === Object.prototype.toString.call([])) {
+                // array of response objects received
+                for (var i in data) {
+                    if (data.hasOwnProperty(i)) {
+                        var msg = data[i];
+                        this.dispatchMessage(msg);
+                    }
+                }
+            } else if (Object.prototype.toString.call(data) === Object.prototype.toString.call({})) {
+                // one response object received
+                this.dispatchMessage(data);
             }
         }.bind(this);
         conn.onerror = function () {
             this.setState({isConnected: false});
         }.bind(this);
-        conn.onclose = function () {
+        conn.onclose = function (ev) {
+            if (ev.reason == "unauthorized") {
+                this.props.handleLogout();
+                return;
+            }
             if (this.isMounted()) {
                 this.setState({isConnected: false});
                 reconnectTimeout = setTimeout(function () {
@@ -206,47 +302,27 @@ var Dashboard = React.createClass({
             if (pingInterval) {
                 clearInterval(pingInterval);
             }
+            if (stateLoadTimeout) {
+                clearTimeout(stateLoadTimeout);
+            }
         }.bind(this);
     },
     clearMessageCounter: function () {
         this.setState({messageCounter: 0});
     },
-    loadInfo: function() {
-        $.get(globalInfoUrl, {}, function (data) {
-            this.setState({
-                version: data.version,
-                channelOptions: data.channel_options,
-                namespaces: data.namespaces,
-                engine: data.engine,
-                nodeName: data.node_name,
-                nodeCount: Object.keys(data.nodes).length,
-                nodes: data.nodes,
-                secret: data.secret,
-                connectionLifetime: data.connection_lifetime
-            });
-        }.bind(this), "json").error(function (jqXHR) {
-            if (jqXHR.status === 401) {
-                this.props.handleLogout();
-            }
-        }.bind(this));
-
-        infoLoadTimeout = setTimeout(function(){
-            this.loadInfo();
-        }.bind(this), 10000);
-    },
     componentDidMount: function () {
-        this.loadInfo();
         this.connectWs();
     },
     componentWillUnmount: function () {
         if (conn) {
             conn.close();
+            conn = null;
         }
         if (reconnectTimeout) {
             clearTimeout(reconnectTimeout);
         }
-        if (infoLoadTimeout) {
-            clearTimeout(infoLoadTimeout)
+        if (stateLoadTimeout) {
+            clearTimeout(stateLoadTimeout)
         }
     },
     render: function () {
@@ -260,6 +336,7 @@ var Dashboard = React.createClass({
                         <RouteHandler
                             dashboard={this.state}
                             handleLogout={this.props.handleLogout}
+                            sendAction={this.sendAction}
                             clearMessageCounter={this.clearMessageCounter}
                         {...this.props} />
                     </div>
@@ -309,7 +386,7 @@ var Login = React.createClass({
                                         <div className="login-logo-inner"></div>
                                     </div>
                                 </div>
-                                <h1 className="login-heading">Centrifugal</h1>
+                                <h1 className="login-heading">Centrifugo</h1>
                                 <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
                                     <div className="form-group">
@@ -346,7 +423,7 @@ var Nav = React.createClass({
                     <Link to="status" className="navbar-brand">
                         <span className="navbar-logo">
                         </span>
-                        Centrifugal web
+                        Centrifugo
                     </Link>
                 </div>
                 <div className="collapse navbar-collapse navbar-ex8-collapse">
@@ -357,7 +434,7 @@ var Nav = React.createClass({
                             </a>
                         </li>
                         <li>
-                            <a href="https://github.com/centrifugal" target="_blank">
+                            <a href="https://github.com/centrifugal/centrifugo" target="_blank">
                                 Source code
                             </a>
                         </li>
@@ -483,7 +560,7 @@ var StatusHandler = React.createClass({
                     <span className="stat-value">{this.props.dashboard.engine}</span>
                 </div>
                 <div className="stat-row">
-                    <span className="text-muted stat-key">Current node:</span>
+                    <span className="text-muted stat-key">Connected to node:</span>
                 &nbsp;
                     <span className="stat-value" id="current-node">{this.props.dashboard.nodeName}</span>
                 </div>
@@ -500,6 +577,11 @@ var StatusHandler = React.createClass({
                                 <th title="total active channels">Channels</th>
                                 <th title="total connected clients">Clients</th>
                                 <th title="total unique clients">Unique Clients</th>
+                                <th title="num msg published snapshot">Published</th>
+                                <th title="num msg queued snapshot">Queued</th>
+                                <th title="num msg sent snapshot">Sent</th>
+                                <th title="Memory sys usage snapshot">Mem</th>
+                                <th title="CPU usage snapshot">CPU</th>
                             </tr>
                         </thead>
                         <tbody id="node-info">
@@ -522,14 +604,34 @@ var NodeRowLoader = React.createClass({
     }
 });
 
+function humanBytes(bytes) {
+    var thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB','MB','GB','TB','PB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
+}
+
 var NodeRow = React.createClass({
     render: function () {
+        console.log(this.props.node);
         return (
             <tr>
                 <td>{this.props.node.name}</td>
                 <td>{this.props.node.num_channels}</td>
                 <td>{this.props.node.num_clients}</td>
                 <td>{this.props.node.num_unique_clients}</td>
+                <td>{this.props.node.num_msg_published}</td>
+                <td>{this.props.node.num_msg_queued}</td>
+                <td>{this.props.node.num_msg_sent}</td>
+                <td>{humanBytes(this.props.node.memory_sys)}</td>
+                <td>{this.props.node.cpu_usage}%</td>
             </tr>
         )
     }
@@ -665,36 +767,38 @@ var MessagesHandler = React.createClass({
 var ActionsHandler = React.createClass({
     mixins: [Router.State],
     editor: null,
-    getInitialState: function () {
-        return {
-            "response": null
-        }
+    fields: ["channel", "channels", "data", "user"],
+    methodFields: {
+        "publish": ["channel", "data"],
+        "broadcast": ["channels", "data"],
+        "presence": ["channel"],
+        "history": ["channel"],
+        "unsubscribe": ["channel", "user"],
+        "disconnect": ["user"],
+        "channels": [],
+        "stats": []
     },
     handleMethodChange: function () {
-        var fields = ["channel", "data", "user"];
-        var methodFields = {
-            "publish": ["channel", "data"],
-            "presence": ["channel"],
-            "history": ["channel"],
-            "unsubscribe": ["channel", "user"],
-            "disconnect": ["user"],
-            "channels": [],
-            "stats": []
-        };
         var method = $(this.refs.method.getDOMNode()).val();
         if (!method) {
             return;
         }
-        var fieldsToShow = methodFields[method];
+        var fieldsToShow = this.methodFields[method];
         for (var i in fieldsToShow) {
             var field = $('#' + fieldsToShow[i]);
             field.attr('disabled', false).parents('.form-group:first').show();
         }
-        for (var k in fields) {
-            var field_name = fields[k];
+        for (var k in this.fields) {
+            var field_name = this.fields[k];
             if (fieldsToShow.indexOf(field_name) === -1) {
                 $('#' + field_name).attr('disabled', true).parents('.form-group:first').hide();
             }
+        }
+    },
+    getInitialState: function() {
+        return {
+            loading: false,
+            uid: ""
         }
     },
     componentDidMount: function () {
@@ -706,32 +810,52 @@ var ActionsHandler = React.createClass({
         this.editor.getSession().setUseWrapMode(true);
         this.handleMethodChange();
     },
+    componentWillReceiveProps: function(nextProps) {
+        if (nextProps.dashboard.actionResponse && this.state.loading && this.state.uid === nextProps.dashboard.actionResponse.uid ) {
+            this.setState({loading: false, uid: ""});
+            if (nextProps.dashboard.actionResponse.error) {
+                this.showError(nextProps.dashboard.actionResponse.error);
+            } else {
+                this.showSuccess();
+            }
+        }
+    },
     hideError: function() {
         var error = $(this.refs.error.getDOMNode());
-        error.hide();
+        error.addClass("hidden");
     },
     hideSuccess: function() {
         var success = $(this.refs.success.getDOMNode());
-        success.hide();
+        success.addClass("hidden");
     },
     showError: function(text) {
-        this.hideSuccess();
-        this.setState({response: null});
         var error = $(this.refs.error.getDOMNode());
-        error.stop().hide().removeClass("hidden").text(text).fadeIn();
+        error.text("Error: " + text);
+        if (error.hasClass("hidden")) {
+            this.hideSuccess();
+            error.stop().hide().removeClass("hidden").fadeIn();
+        }
     },
     showSuccess: function() {
-        this.hideError();
         var success = $(this.refs.success.getDOMNode());
-        success.stop().hide().removeClass('hidden').fadeIn();
+        if (success.hasClass("hidden")) {
+            this.hideError();
+            success.stop().hide().removeClass('hidden').fadeIn();
+        }
     },
     handleSubmit: function (e) {
         e.preventDefault();
-        var form = $(this.refs.form.getDOMNode());
-        if ($(this.refs.method.getDOMNode()).val() === "publish") {
-            var data = this.editor.getSession().getValue();
+        if (!this.props.dashboard.isConnected) {
+            this.showError("Can't send in disconnected state");
+            return;
+        }
+        var methodElem = $(this.refs.method.getDOMNode());
+        var method = methodElem.val();
+        var publishData;
+        if (methodElem.val() === "publish" || methodElem.val() === "broadcast") {
+            publishData = this.editor.getSession().getValue();
             try {
-                var json = JSON.stringify(JSON.parse(data));
+                var json = JSON.stringify(JSON.parse(publishData));
             } catch (e) {
                 this.showError("malformed JSON");
                 return;
@@ -740,19 +864,32 @@ var ActionsHandler = React.createClass({
         $(this.refs.data.getDOMNode()).val(json);
         var submitButton = $(this.refs.submit.getDOMNode());
         submitButton.attr('disabled', true);
-        $.post(globalActionUrl, form.serialize(), function (data) {
-            var json = prettifyJson(data);
-            this.setState({response: json});
-            submitButton.attr('disabled', false);
-            this.showSuccess();
-        }.bind(this), "json").error(function (jqXHR) {
-            if (jqXHR.status === 401) {
-                this.props.handleLogout();
-            }
-            this.showError("Error");
-        }.bind(this));
+        var fieldsForParams = this.methodFields[method];
+        var params = {};
+        for (var i in fieldsForParams) {
+            var field = $('#' + fieldsForParams[i]);
+            params[fieldsForParams[i]] = field.val();
+        }
+        if (method === "publish" || method === "broadcast") {
+            // publish and broadcast are somewhat special as they have raw JSON in data.
+            params["data"] = JSON.parse(publishData);
+        }
+        if (method === "broadcast") {
+            // convert space separated channels to array of channels.
+            params["channels"] = $("#channels").val().split(" ");
+        }
+        this.hideError();
+        this.hideSuccess();
+        var uid = this.props.sendAction(method, params);
+        this.setState({loading: true, uid: uid});
     },
     render: function () {
+        var cx = Addons.addons.classSet;
+        var loaderClasses = cx({'hidden': !this.state.loading});
+        var requestData = this.props.dashboard.actionRequest;
+        var responseData = this.props.dashboard.actionResponse;
+        var request = requestData?prettifyJson(requestData):"";
+        var response = responseData?prettifyJson(responseData):"";
         return (
             <div className="content">
                 <p className="content-help">Execute command on server</p>
@@ -761,6 +898,7 @@ var ActionsHandler = React.createClass({
                         <label htmlFor="method">Method</label>
                         <select className="form-control" ref="method" name="method" id="method" onChange={this.handleMethodChange}>
                             <option value="publish">publish</option>
+                            <option value="broadcast">broadcast</option>
                             <option value="presence">presence</option>
                             <option value="history">history</option>
                             <option value="unsubscribe">unsubscribe</option>
@@ -774,6 +912,10 @@ var ActionsHandler = React.createClass({
                         <input type="text" className="form-control" name="channel" id="channel" />
                     </div>
                     <div className="form-group">
+                        <label htmlFor="channels">Channels (SPACE separated)</label>
+                        <input type="text" className="form-control" name="channels" id="channels" />
+                    </div>
+                    <div className="form-group">
                         <label htmlFor="user">User ID</label>
                         <input type="text" className="form-control" name="user" id="user" />
                     </div>
@@ -782,12 +924,29 @@ var ActionsHandler = React.createClass({
                         <div id="data-editor"></div>
                         <textarea ref="data" className="hidden" id="data" name="data"></textarea>
                     </div>
-                    <button type="submit" ref="submit" className="btn btn-primary">Submit</button>
+                    <button type="submit" ref="submit" disabled={this.state.loading} className="btn btn-primary">Submit</button>
                     <span ref="error" className="box box-error hidden">Error</span>
-                    <span ref="success" className="box box-success hidden">Successfully sent</span>
+                    <span ref="success" className="box box-success hidden">Success</span>
                 </form>
+                <div className="action-request">
+                    <div className="action-label-container">
+                        <span className="action-label">Last request:</span>
+                    </div>
+                    <pre ref="request" dangerouslySetInnerHTML={{"__html": request}} />
+                </div>
                 <div className="action-response">
-                    <pre ref="response" dangerouslySetInnerHTML={{"__html": this.state.response}} />
+                    <div className="action-label-container">
+                        <span className="action-label">Last response:</span>
+                        <span className={loaderClasses}>
+                            <div className="loading">
+                              <div className="loading-bar"></div>
+                              <div className="loading-bar"></div>
+                              <div className="loading-bar"></div>
+                              <div className="loading-bar"></div>
+                            </div>
+                        </span>
+                    </div>
+                    <pre ref="response" dangerouslySetInnerHTML={{"__html": response}} />
                 </div>
             </div>
         )
@@ -833,8 +992,6 @@ module.exports = function () {
         var prefix = app.dataset.prefix || "/";
         globalUrlPrefix = prefix;
         globalAuthUrl = prefix + "auth/";
-        globalInfoUrl = prefix + "info/";
-        globalActionUrl = prefix + "action/";
         globalSocketUrl = prefix + "socket";
         React.render(<Handler query={state.query} />, app);
     });
