@@ -129,7 +129,8 @@ var Dashboard = React.createClass({
             messages: [],
             messageCounter: 0,
             actionRequest: null,
-            actionResponse: null
+            actionResponse: null,
+            renderMessages: true
         }
     },
     getServerState: function() {
@@ -201,6 +202,9 @@ var Dashboard = React.createClass({
     handleMessage: function (data) {
         if ("error" in data && data.error) {
             console.log(data.error);
+            return;
+        }
+        if (!this.state.renderMessages) {
             return;
         }
         var message = data.body;
@@ -310,6 +314,9 @@ var Dashboard = React.createClass({
     clearMessageCounter: function () {
         this.setState({messageCounter: 0});
     },
+    toggleMessagesRender: function() {
+        this.setState({renderMessages: !this.state.renderMessages});
+    },
     componentDidMount: function () {
         this.connectWs();
     },
@@ -338,6 +345,7 @@ var Dashboard = React.createClass({
                             handleLogout={this.props.handleLogout}
                             sendAction={this.sendAction}
                             clearMessageCounter={this.clearMessageCounter}
+                            toggleMessagesRender={this.toggleMessagesRender}
                         {...this.props} />
                     </div>
                 </div>
@@ -746,6 +754,9 @@ var MessagesHandler = React.createClass({
     componentDidMount: function () {
         this.props.clearMessageCounter();
     },
+    handleChange: function(event) {
+        this.props.toggleMessagesRender();
+    },
     render: function () {
         var messages = this.props.dashboard.messages;
         if (!messages) {
@@ -753,7 +764,10 @@ var MessagesHandler = React.createClass({
         }
         return (
             <div className="content">
-                <p className="content-help">Waiting for messages from channels with "watch" option enabled...</p>
+                <p className="content-help">
+                    Waiting for messages from channels with "watch" option enabled,
+                    stop rendering: <input type="checkbox" onChange={this.handleChange} checked={!this.props.dashboard.renderMessages} title="While checked new messages won't be rendered in this tab" />
+                </p>
                 {messages.map(function (message, index) {
                     return (
                         <Message key={index} message={message} />
