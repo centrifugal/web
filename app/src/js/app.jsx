@@ -81,7 +81,7 @@ var App = React.createClass({
     render: function () {
         if (this.state.isAuthenticated) {
             return (
-                <Dashboard handleLogout={this.handleLogout} handleLogout={this.handleLogout} insecure={this.state.insecure} {...this.props} />
+                <Dashboard handleLogout={this.handleLogout} insecure={this.state.insecure} {...this.props} />
             )
         } else {
             return (
