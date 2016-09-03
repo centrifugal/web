@@ -13,8 +13,6 @@ require('brace/mode/json');
 require('brace/theme/monokai');
 
 var globalUrlPrefix;
-var globalAuthUrl;
-var globalSocketUrl;
 
 function prettifyJson(json) {
     return syntaxHighlight(JSON.stringify(json, undefined, 4));
@@ -61,7 +59,7 @@ var App = React.createClass({
     },
     handleLogin: function (password, auto) {
         var autoLogin = auto || false;
-        $.post(globalAuthUrl, {password: password}, "json").success(function (data) {
+        $.post(globalUrlPrefix + "auth/", {password: password}, "json").success(function (data) {
             if (autoLogin) {
                 console.log("Logged in automatically.");
             }
@@ -264,7 +262,7 @@ var Dashboard = React.createClass({
         var protocol = window.location.protocol;
         var isSecure = protocol === "https:";
         var websocketProtocol = isSecure ? "wss://" : "ws://";
-        conn = new WebSocket(websocketProtocol + window.location.host + globalSocketUrl);
+        conn = new WebSocket(websocketProtocol + window.location.host + globalUrlPrefix + "socket");
         conn.onopen = function () {
             conn.send(JSON.stringify({
                 "method": "connect",
@@ -1003,10 +1001,7 @@ var routes = (
 module.exports = function () {
     Router.run(routes, function (Handler, state) {
         var app = document.getElementById("app");
-        var prefix = app.dataset.prefix || "/";
-        globalUrlPrefix = prefix;
-        globalAuthUrl = prefix + "auth/";
-        globalSocketUrl = prefix + "socket";
+        globalUrlPrefix = window.location.pathname;
         React.render(<Handler query={state.query} />, app);
     });
 };
