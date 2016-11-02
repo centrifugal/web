@@ -186,9 +186,9 @@ var Dashboard = React.createClass({
             console.log(data.error);
             return;
         }
-        var info = data.body;
+        var info = data.body.data;
         this.setState({
-            version: info.config.version,
+            version: info.version,
             channelOptions: info.config.channel_options,
             namespaces: info.config.namespaces,
             engine: info.engine,
@@ -604,7 +604,7 @@ var NodeRowLoader = React.createClass({
     render: function () {
         return (
             <tr>
-                <td colSpan="4">Waiting for information...</td>
+                <td colSpan="9">Waiting for information...</td>
             </tr>
         )
     }
@@ -626,18 +626,17 @@ function humanBytes(bytes) {
 
 var NodeRow = React.createClass({
     render: function () {
-        console.log(this.props.node);
         return (
             <tr>
                 <td>{this.props.node.name}</td>
-                <td>{this.props.node.num_channels}</td>
-                <td>{this.props.node.num_clients}</td>
-                <td>{this.props.node.num_unique_clients}</td>
-                <td>{this.props.node.num_msg_published}</td>
-                <td>{this.props.node.num_msg_queued}</td>
-                <td>{this.props.node.num_msg_sent}</td>
-                <td>{humanBytes(this.props.node.memory_sys)}</td>
-                <td>{this.props.node.cpu_usage}%</td>
+                <td>{this.props.node.metrics.num_channels}</td>
+                <td>{this.props.node.metrics.num_clients}</td>
+                <td>{this.props.node.metrics.num_unique_clients}</td>
+                <td>{this.props.node.metrics.node_num_client_msg_published}</td>
+                <td>{this.props.node.metrics.client_num_msg_queued}</td>
+                <td>{this.props.node.metrics.client_num_msg_sent}</td>
+                <td>{humanBytes(this.props.node.metrics.memory_sys)}</td>
+                <td>{this.props.node.metrics.cpu_usage}%</td>
             </tr>
         )
     }
