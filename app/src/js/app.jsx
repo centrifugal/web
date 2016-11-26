@@ -629,14 +629,14 @@ var NodeRow = React.createClass({
         return (
             <tr>
                 <td>{this.props.node.name}</td>
-                <td>{this.props.node.metrics.num_channels}</td>
-                <td>{this.props.node.metrics.num_clients}</td>
-                <td>{this.props.node.metrics.num_unique_clients}</td>
+                <td>{this.props.node.metrics.node_num_channels}</td>
+                <td>{this.props.node.metrics.node_num_clients}</td>
+                <td>{this.props.node.metrics.node_num_unique_clients}</td>
                 <td>{this.props.node.metrics.node_num_client_msg_published}</td>
                 <td>{this.props.node.metrics.client_num_msg_queued}</td>
                 <td>{this.props.node.metrics.client_num_msg_sent}</td>
-                <td>{humanBytes(this.props.node.metrics.memory_sys)}</td>
-                <td>{this.props.node.metrics.cpu_usage}%</td>
+                <td>{humanBytes(this.props.node.metrics.node_memory_sys)}</td>
+                <td>{this.props.node.metrics.node_cpu_usage}%</td>
             </tr>
         )
     }
