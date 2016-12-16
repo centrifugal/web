@@ -291,7 +291,14 @@ var Dashboard = React.createClass({
             this.setState({isConnected: false});
         }.bind(this);
         conn.onclose = function (ev) {
-            if (ev.reason == "unauthorized") {
+            var reason;
+            try {
+                var advice = JSON.parse(ev.reason);
+                reason = advice.reason;
+            } catch (e) {
+                reason = ev.reason;
+            }
+            if (reason == "unauthorized") {
                 this.props.handleLogout();
                 return;
             }
