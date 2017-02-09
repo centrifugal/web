@@ -863,6 +863,10 @@ var ActionsHandler = React.createClass({
             var field = $('#' + fieldsForParams[i]);
             params[fieldsForParams[i]] = field.val();
         }
+        if (method === "publish" && params["channel"] === "") {
+            this.showError("channel required");
+            return;
+        }
         if (method === "publish" || method === "broadcast") {
             // publish and broadcast are somewhat special as they have raw JSON in data.
             params["data"] = JSON.parse(publishData);
