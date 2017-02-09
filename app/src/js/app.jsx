@@ -102,13 +102,6 @@ var lastActionUID;
 var Dashboard = React.createClass({
     mixins: [Router.State],
     getInitialState: function () {
-        var protocol = window.location.protocol;
-        var isSecure = protocol === "https:";
-        var sockjsProtocol = isSecure ? "https://" : "http://";
-        var websocketProtocol = isSecure ? "wss://" : "ws://";
-        var sockjsEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'connection';
-        var wsEndpoint = websocketProtocol + window.location.host + globalUrlPrefix + 'connection/websocket';
-        var apiEndpoint = sockjsProtocol + window.location.host + globalUrlPrefix + 'api/';
         return {
             isConnected: false,
             channelOptions: [],
@@ -120,9 +113,6 @@ var Dashboard = React.createClass({
             engine: "",
             nodeName: "",
             nodeCount: "",
-            sockjsEndpoint: sockjsEndpoint,
-            wsEndpoint: wsEndpoint,
-            apiEndpoint: apiEndpoint,
             nodes: {},
             messages: [],
             messageCounter: 0,
@@ -551,21 +541,6 @@ var StatusHandler = React.createClass({
                     <span className="text-muted stat-key">Version:</span>
                 &nbsp;
                     <span className="stat-value">{this.props.dashboard.version}</span>
-                </div>
-                <div className="stat-row">
-                    <span className="text-muted stat-key">SockJS endpoint:</span>
-                &nbsp;
-                    <span className="stat-value">{this.props.dashboard.sockjsEndpoint}</span>
-                </div>
-                <div className="stat-row">
-                    <span className="text-muted stat-key">WebSocket endpoint:</span>
-                &nbsp;
-                    <span className="stat-value">{this.props.dashboard.wsEndpoint}</span>
-                </div>
-                <div className="stat-row">
-                    <span className="text-muted stat-key">HTTP API endpoint:</span>
-                &nbsp;
-                    <span className="stat-value">{this.props.dashboard.apiEndpoint}</span>
                 </div>
                 <div className="stat-row">
                     <span className="text-muted stat-key">Engine:</span>
