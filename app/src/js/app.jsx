@@ -37,6 +37,50 @@ function syntaxHighlight(json) {
     });
 }
 
+var pad = function (n) {
+    // http://stackoverflow.com/a/3313953/1288429
+    return ("0" + n).slice(-2);
+};
+
+function humanSeconds(seconds) {
+    var numyears = Math.floor(seconds / 31536000);
+    var numdays = Math.floor((seconds % 31536000) / 86400); 
+    var numhours = Math.floor(((seconds % 31536000) % 86400) / 3600);
+    var numminutes = Math.floor((((seconds % 31536000) % 86400) % 3600) / 60);
+    var numseconds = (((seconds % 31536000) % 86400) % 3600) % 60;
+    res = "";
+    if (numyears > 0) {
+        res += numyears + "y ";
+    }
+    if (numdays > 0) {
+        res += numdays + "d ";
+    }
+    if (numhours > 0) {
+        res += pad(numhours) + "h ";
+    }
+    if (numminutes > 0) {
+        res += pad(numminutes) + "m ";
+    }
+    if (numseconds > 0) {
+        res += pad(numseconds) + "s";
+    }
+    return res;
+}
+
+function humanBytes(bytes) {
+    var thresh = 1024;
+    if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+    var units = ['kB','MB','GB','TB','PB'];
+    var u = -1;
+    do {
+        bytes /= thresh;
+        ++u;
+    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+    return bytes.toFixed(1)+' '+units[u];
+}
+
 var App = React.createClass({
     mixins: [Router.State],
     getInitialState: function () {
@@ -59,10 +103,7 @@ var App = React.createClass({
     },
     handleLogin: function (password, auto) {
         var autoLogin = auto || false;
-        $.post(globalUrlPrefix + "auth/", {password: password}, "json").success(function (data) {
-            if (autoLogin) {
-                console.log("Logged in automatically.");
-            }
+        $.post(globalUrlPrefix + "admin/auth", {password: password}, "json").success(function (data) {
             localStorage.setItem("token", data.token);
             var insecure = data.token === "insecure";
             if (insecure) {
@@ -103,217 +144,72 @@ var Dashboard = React.createClass({
     mixins: [Router.State],
     getInitialState: function () {
         return {
-            isConnected: false,
-            channelOptions: [],
-            namespaces: [],
-            structureDict: {},
-            version: "",
-            secret: "",
-            connectionLifetime: 0,
             engine: "",
-            nodeName: "",
             nodeCount: "",
-            nodes: {},
-            messages: [],
-            messageCounter: 0,
+            nodes: [],
             actionRequest: null,
-            actionResponse: null,
-            renderMessages: true
+            actionResponse: null
         }
     },
-    getServerState: function() {
-        if (!this.state.isConnected) {
-            return;
-        }
-        conn.send(JSON.stringify([
-            {
-                "method": "stats",
-                "params": {}
-            },
-            {
-                "method": "info",
-                "params": {}
-            }
-        ]));
-        stateLoadTimeout = setTimeout(function(){
-            this.getServerState();
-        }.bind(this), 5000);
-    },
-    handleConnect: function (data) {
-        if ("error" in data && data.error) {
-            console.log(data.error);
-            this.props.handleLogout();
-            return
-        }
-        var body = data.body;
-        if (body === true) {
-            this.setState({isConnected: true});
-            pingInterval = setInterval(function() {
-                conn.send(JSON.stringify({
-                    "method": "ping",
-                    "params": {}
-                }));
-            }.bind(this), 25000);
-            // successfully connected, time to ask for server state
-            this.getServerState();
-        } else {
-            this.props.handleLogout();
-        }
-    },
-    handleStats: function(data) {
-        if ("error" in data && data.error) {
-            console.log(data.error);
-            return;
-        }
-        var stats = data.body.data;
+    handleInfo: function(info) {
         this.setState({
-            nodeCount: Object.keys(stats.nodes).length,
-            nodes: stats.nodes
-        });
-    },
-    handleInfo: function(data) {
-        if ("error" in data && data.error) {
-            console.log(data.error);
-            return;
-        }
-        var info = data.body.data;
-        this.setState({
-            version: info.version,
-            channelOptions: info.config.channel_options,
-            namespaces: info.config.namespaces,
             engine: info.engine,
-            nodeName: info.config.name,
-            secret: info.config.secret,
-            connectionLifetime: info.config.connection_lifetime
+            nodes: info.nodes,
+            nodeCount: Object.keys(info.nodes).length
         });
-    },
-    handleMessage: function (data) {
-        if ("error" in data && data.error) {
-            console.log(data.error);
-            return;
-        }
-        if (!this.state.renderMessages) {
-            return;
-        }
-        var message = data.body;
-        var currentMessages = this.state.messages.slice();
-        var d = new Date();
-        message['time'] = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-        currentMessages.unshift(message);
-        // splice array to keep max message amount
-        currentMessages = currentMessages.splice(0, maxMessageAmount);
-        this.setState({messages: currentMessages});
-        var name = this.getRoutes().reverse()[0].name;
-        var isMessagesOpen = name === "messages";
-        if (!isMessagesOpen) {
-            var currentCounter = this.state.messageCounter;
-            this.setState({messageCounter: currentCounter + 1});
-        }
     },
     sendAction: function(method, params) {
-        if (!this.state.isConnected) {
-            return;
-        }
         var uid = (++lastUID).toString();
         lastActionUID = uid;
+
         cmd = {
             uid: uid,
             method: method,
             params: params
         };
-        conn.send(JSON.stringify(cmd));
+
         this.setState({actionRequest: cmd});
+
+        var self = this;
+
+        $.ajax({
+            url: globalUrlPrefix + "admin/api",
+            type: 'post',
+            data: JSON.stringify(cmd),
+            headers: {
+                Authorization: "token " +  localStorage.getItem("token")
+            },
+            dataType: 'json',
+            success: function (data) {
+                self.setState({actionResponse: data, loading: false, uid: uid});
+            }
+        });
+
         return uid;
     },
-    dispatchMessage: function(data) {
-        var method = data.method;
-        if (data.uid && data.uid === lastActionUID) {
-            // At moment only commands that were sent from Actions tab contain unique
-            // id in request, so if we got response with uid set then we consider this
-            // response as action response.
-            this.setState({actionResponse: data});
-            return;
-        }
-        if (method === "connect") {
-            this.handleConnect(data);
-        } else if (method === "message") {
-            this.handleMessage(data);
-        } else if (method === "stats") {
-            this.handleStats(data);
-        } else if (method === "info") {
-            this.handleInfo(data);
-        } else if (method === "ping") {
-            $.noop();
-        } else {
-            console.log("Got message with unknown method " + method);
-        }
-    },
-    connectWs: function () {
-        var protocol = window.location.protocol;
-        var isSecure = protocol === "https:";
-        var websocketProtocol = isSecure ? "wss://" : "ws://";
-        conn = new WebSocket(websocketProtocol + window.location.host + globalUrlPrefix + "socket");
-        conn.onopen = function () {
-            conn.send(JSON.stringify({
-                "method": "connect",
-                "params": {
-                    "token": localStorage.getItem("token"),
-                    "watch": true
-                }
-            }));
-        }.bind(this);
-        conn.onmessage = function (event) {
-            var data = JSON.parse(event.data);
-            if (Object.prototype.toString.call(data) === Object.prototype.toString.call([])) {
-                // array of response objects received
-                for (var i in data) {
-                    if (data.hasOwnProperty(i)) {
-                        var msg = data[i];
-                        this.dispatchMessage(msg);
-                    }
-                }
-            } else if (Object.prototype.toString.call(data) === Object.prototype.toString.call({})) {
-                // one response object received
-                this.dispatchMessage(data);
+    askInfo: function() {
+        var self = this;
+        $.ajax({
+            url: globalUrlPrefix + "admin/api",
+            type: 'post',
+            data: JSON.stringify({
+                "method": "info",
+                "params": {}
+            }),
+            headers: {
+                Authorization: "token " +  localStorage.getItem("token")
+            },
+            dataType: 'json',
+            success: function (data) {
+                self.handleInfo(data.result);
+                setTimeout(function(){
+                    self.askInfo();
+                }, 10000);
             }
-        }.bind(this);
-        conn.onerror = function () {
-            this.setState({isConnected: false});
-        }.bind(this);
-        conn.onclose = function (ev) {
-            var reason;
-            try {
-                var advice = JSON.parse(ev.reason);
-                reason = advice.reason;
-            } catch (e) {
-                reason = ev.reason;
-            }
-            if (reason == "unauthorized") {
-                this.props.handleLogout();
-                return;
-            }
-            if (this.isMounted()) {
-                this.setState({isConnected: false});
-                reconnectTimeout = setTimeout(function () {
-                    this.connectWs();
-                }.bind(this), 3000);
-            }
-            if (pingInterval) {
-                clearInterval(pingInterval);
-            }
-            if (stateLoadTimeout) {
-                clearTimeout(stateLoadTimeout);
-            }
-        }.bind(this);
-    },
-    clearMessageCounter: function () {
-        this.setState({messageCounter: 0});
-    },
-    toggleMessagesRender: function() {
-        this.setState({renderMessages: !this.state.renderMessages});
+        });
     },
     componentDidMount: function () {
-        this.connectWs();
+        this.askInfo();
     },
     componentWillUnmount: function () {
         if (conn) {
@@ -334,7 +230,6 @@ var Dashboard = React.createClass({
                 <div className="wrapper">
                     <Sidebar messageCounter={this.state.messageCounter} />
                     <div className="col-lg-10 col-md-10 col-sm-12 col-xs-12">
-                        <ConnectionStatus isConnected={this.state.isConnected} />
                         <RouteHandler
                             dashboard={this.state}
                             handleLogout={this.props.handleLogout}
@@ -471,17 +366,6 @@ var Sidebar = React.createClass({
                             <i className="glyphicon glyphicon-equalizer"></i>&nbsp;Status
                         </Link>
                     </li>
-                    <li className={optionsClasses}>
-                        <Link to="options">
-                            <i className="glyphicon glyphicon-cog"></i>&nbsp;Options
-                        </Link>
-                    </li>
-                    <li className={messagesClasses}>
-                        <Link to="messages">
-                            <i className="glyphicon glyphicon-envelope"></i>&nbsp;Messages
-                            <span className="badge">{this.props.messageCounter > 0?this.props.messageCounter:""}</span>
-                        </Link>
-                    </li>
                     <li className={actionsClasses}>
                         <Link to="actions">
                             <i className="glyphicon glyphicon-fire"></i>&nbsp;Actions
@@ -493,28 +377,12 @@ var Sidebar = React.createClass({
     }
 });
 
-var ConnectionStatus = React.createClass({
-    getDefaultProps: function () {
-        return {
-            isConnected: false
-        }
-    },
-    render: function () {
-        if (this.props.isConnected) {
-            return (
-                <span className="pull-right connected label label-success" title='connected to Centrifuge'>
-                    connected
-                </span>
-            )
-        } else {
-            return (
-                <span className="pull-right not-connected label label-danger" title='disconnected from Centrifuge'>
-                    disconnected
-                </span>
-            )
-        }
-    }
-});
+function sortByKey(array, key) {
+    return array.sort(function(a, b) {
+        var x = a[key]; var y = b[key];
+        return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+    });
+}
 
 var StatusHandler = React.createClass({
     getInitialState: function () {
@@ -524,13 +392,11 @@ var StatusHandler = React.createClass({
     },
     render: function () {
         var nodeRows;
-        if (Object.keys(this.props.dashboard.nodes).length > 0) {
+        if (this.props.dashboard.nodes.length > 0) {
             nodeRows = [];
-            for (var uid in this.props.dashboard.nodes) {
-                if (this.props.dashboard.nodes.hasOwnProperty(uid)) {
-                    var node = this.props.dashboard.nodes[uid];
-                    nodeRows.push(<NodeRow node={node} key={uid} />);
-                }
+            for (var i in sortByKey(this.props.dashboard.nodes, "name")) {
+                var node = this.props.dashboard.nodes[i];
+                nodeRows.push(<NodeRow node={node} key={node.uid} />);
             }
         } else {
             nodeRows = <NodeRowLoader />;
@@ -538,19 +404,9 @@ var StatusHandler = React.createClass({
         return (
             <div className="content">
                 <div className="stat-row">
-                    <span className="text-muted stat-key">Version:</span>
-                &nbsp;
-                    <span className="stat-value">{this.props.dashboard.version}</span>
-                </div>
-                <div className="stat-row">
                     <span className="text-muted stat-key">Engine:</span>
                 &nbsp;
                     <span className="stat-value">{this.props.dashboard.engine}</span>
-                </div>
-                <div className="stat-row">
-                    <span className="text-muted stat-key">Connected to node:</span>
-                &nbsp;
-                    <span className="stat-value" id="current-node">{this.props.dashboard.nodeName}</span>
                 </div>
                 <div className="stat-row">
                     <span className="text-muted stat-key">Nodes running:</span>
@@ -562,14 +418,11 @@ var StatusHandler = React.createClass({
                         <thead className="cf">
                             <tr>
                                 <th title="node name">Node name</th>
+                                <th title="node name">Version</th>
+                                <th title="node name">Uptime</th>
                                 <th title="total active channels">Channels</th>
                                 <th title="total connected clients">Clients</th>
-                                <th title="total unique clients">Unique</th>
-                                <th title="num msg published snapshot">Published</th>
-                                <th title="num msg queued snapshot">Queued</th>
-                                <th title="num msg sent snapshot">Sent</th>
-                                <th title="Memory sys usage snapshot">Mem</th>
-                                <th title="CPU usage snapshot">CPU</th>
+                                <th title="total unique clients">Users</th>
                             </tr>
                         </thead>
                         <tbody id="node-info">
@@ -592,73 +445,17 @@ var NodeRowLoader = React.createClass({
     }
 });
 
-function humanBytes(bytes) {
-    var thresh = 1024;
-    if(Math.abs(bytes) < thresh) {
-        return bytes + ' B';
-    }
-    var units = ['kB','MB','GB','TB','PB'];
-    var u = -1;
-    do {
-        bytes /= thresh;
-        ++u;
-    } while(Math.abs(bytes) >= thresh && u < units.length - 1);
-    return bytes.toFixed(1)+' '+units[u];
-}
-
 var NodeRow = React.createClass({
     render: function () {
         return (
             <tr>
                 <td>{this.props.node.name}</td>
-                <td>{this.props.node.metrics.node_num_channels}</td>
-                <td>{this.props.node.metrics.node_num_clients}</td>
-                <td>{this.props.node.metrics.node_num_unique_clients}</td>
-                <td>{this.props.node.metrics.node_num_client_msg_published}</td>
-                <td>{this.props.node.metrics.client_num_msg_queued}</td>
-                <td>{this.props.node.metrics.client_num_msg_sent}</td>
-                <td>{humanBytes(this.props.node.metrics.node_memory_sys)}</td>
-                <td>{this.props.node.metrics.node_cpu_usage}%</td>
+                <td>{this.props.node.version}</td>
+                <td>{humanSeconds(this.props.node.uptime)}</td>
+                <td>{this.props.node.num_channels}</td>
+                <td>{this.props.node.num_clients}</td>
+                <td>{this.props.node.num_users}</td>
             </tr>
-        )
-    }
-});
-
-var NamespaceRow = React.createClass({
-    render: function () {
-        var options = $.extend({}, this.props.namespace);
-        delete options["name"];
-        var optionsJson = prettifyJson(options);
-        return (
-            <div>
-                <h5>{this.props.namespace.name}:</h5>
-                <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
-            </div>
-        )
-    }
-});
-
-var NamespaceTable = React.createClass({
-    render: function () {
-        var namespaces = this.props.namespaces;
-        return (
-            <div>
-                {namespaces.map(function (namespace, index) {
-                    return (
-                        <NamespaceRow key={index} namespace={namespace} />
-                    )
-                })}
-            </div>
-        )
-    }
-});
-
-var NamespacesNotConfigured = React.createClass({
-    render: function () {
-        return (
-            <pre>
-                Namespaces not configured
-            </pre>
         )
     }
 });
@@ -668,90 +465,6 @@ var NotFoundHandler = React.createClass({
         return (
             <div className="content">
                 <h2>404 not found</h2>
-            </div>
-        )
-    }
-});
-
-var OptionsHandler = React.createClass({
-    mixins: [Router.State],
-    getInitialState: function () {
-        return {
-            secretHidden: true
-        }
-    },
-    toggleSecret: function() {
-        var secretHidden = this.state.secretHidden;
-        if (secretHidden) {
-            this.setState({secretHidden: !secretHidden});
-        }
-    },
-    render: function () {
-        var options = this.props.dashboard.channelOptions || {};
-        var optionsJson = prettifyJson(options);
-        var namespaces = this.props.dashboard.namespaces || [];
-        var cx = Addons.addons.classSet;
-        var secretClasses = cx({
-            "secret-hidden": this.state.secretHidden
-        });
-        var secretText;
-        if (this.state.secretHidden) {
-            secretText = "click to see secret";
-        } else {
-            secretText = this.props.dashboard.secret;
-        }
-        var connLifetimeText;
-        if (this.props.dashboard.connectionLifetime == 0) {
-            connLifetimeText = "Client connections do not expire (connection_lifetime=0)";
-        } else {
-            connLifetimeText = "Client must refresh its connection every " + this.props.dashboard.connectionLifetime + " seconds";
-        }
-        var ns;
-        if (namespaces.length > 0) {
-            ns = <NamespaceTable namespaces={namespaces} />
-        } else {
-            ns = <NamespacesNotConfigured />
-        }
-        return (
-            <div className="content">
-                <p className="content-help">Various important configuration options here</p>
-                <h4>Secret</h4>
-                <pre className={secretClasses} onClick={this.toggleSecret}>{secretText}</pre>
-                <h4>Channel options</h4>
-                <pre dangerouslySetInnerHTML={{"__html": optionsJson}} />
-                <h4>Namespaces</h4>
-                {ns}
-                <h4>Connection Lifetime</h4>
-                <pre>{connLifetimeText}</pre>
-            </div>
-        )
-    }
-});
-
-var MessagesHandler = React.createClass({
-    mixins: [Router.State],
-    componentDidMount: function () {
-        this.props.clearMessageCounter();
-    },
-    handleChange: function(event) {
-        this.props.toggleMessagesRender();
-    },
-    render: function () {
-        var messages = this.props.dashboard.messages;
-        if (!messages) {
-            messages = [];
-        }
-        return (
-            <div className="content">
-                <p className="content-help">
-                    Waiting for messages from channels with "watch" option enabled,
-                    stop rendering: <input type="checkbox" onChange={this.handleChange} checked={!this.props.dashboard.renderMessages} title="While checked new messages won't be rendered in this tab" />
-                </p>
-                {messages.map(function (message, index) {
-                    return (
-                        <Message key={index} message={message} />
-                    )
-                })}
             </div>
         )
     }
@@ -769,7 +482,7 @@ var ActionsHandler = React.createClass({
         "unsubscribe": ["channel", "user"],
         "disconnect": ["user"],
         "channels": [],
-        "stats": []
+        "info": []
     },
     handleMethodChange: function () {
         var method = $(this.refs.method.getDOMNode()).val();
@@ -838,10 +551,6 @@ var ActionsHandler = React.createClass({
     },
     handleSubmit: function (e) {
         e.preventDefault();
-        if (!this.props.dashboard.isConnected) {
-            this.showError("Can't send in disconnected state");
-            return;
-        }
         var methodElem = $(this.refs.method.getDOMNode());
         var method = methodElem.val();
         var publishData;
@@ -855,8 +564,6 @@ var ActionsHandler = React.createClass({
             }
         }
         $(this.refs.data.getDOMNode()).val(json);
-        var submitButton = $(this.refs.submit.getDOMNode());
-        submitButton.attr('disabled', true);
         var fieldsForParams = this.methodFields[method];
         var params = {};
         for (var i in fieldsForParams) {
@@ -877,8 +584,8 @@ var ActionsHandler = React.createClass({
         }
         this.hideError();
         this.hideSuccess();
-        var uid = this.props.sendAction(method, params);
         this.setState({loading: true, uid: uid});
+        var uid = this.props.sendAction(method, params);
     },
     render: function () {
         var cx = Addons.addons.classSet;
@@ -901,7 +608,7 @@ var ActionsHandler = React.createClass({
                             <option value="unsubscribe">unsubscribe</option>
                             <option value="disconnect">disconnect</option>
                             <option value="channels">channels</option>
-                            <option value="stats">stats</option>
+                            <option value="info">info</option>
                         </select>
                     </div>
                     <div className="form-group">
@@ -927,13 +634,13 @@ var ActionsHandler = React.createClass({
                 </form>
                 <div className="action-request">
                     <div className="action-label-container">
-                        <span className="action-label">Last request:</span>
+                        <span className="action-label">Request:</span>
                     </div>
                     <pre ref="request" dangerouslySetInnerHTML={{"__html": request}} />
                 </div>
                 <div className="action-response">
                     <div className="action-label-container">
-                        <span className="action-label">Last response:</span>
+                        <span className="action-label">Response:</span>
                         <span className={loaderClasses}>
                             <div className="loading">
                               <div className="loading-bar"></div>
@@ -950,34 +657,9 @@ var ActionsHandler = React.createClass({
     }
 });
 
-var pad = function (n) {
-    // http://stackoverflow.com/a/3313953/1288429
-    return ("0" + n).slice(-2);
-};
-
-var Message = React.createClass({
-    render: function () {
-        return (
-            <div className="message">
-                <div className="message-header">
-                    <span className="message-channel text-muted">
-                        {this.props.message.channel}
-                    </span>
-                    <span className="message-time text-muted">{this.props.message.time}</span>
-                </div>
-                <div className="message-description">
-                    <pre dangerouslySetInnerHTML={{"__html": prettifyJson(this.props.message.data)}} />
-                </div>
-            </div>
-        )
-    }
-});
-
 var routes = (
     <Route handler={App}>
         <DefaultRoute name="status" handler={StatusHandler} />
-        <Route name="options" path="/options/" handler={OptionsHandler} />
-        <Route name="messages" path="/messages/" handler={MessagesHandler} />
         <Route name="actions" path="/actions/" handler={ActionsHandler} />
         <NotFoundRoute name="404" handler={NotFoundHandler} />
     </Route>
