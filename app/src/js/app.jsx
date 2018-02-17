@@ -103,14 +103,14 @@ var App = React.createClass({
     },
     handleLogin: function (password, auto) {
         var autoLogin = auto || false;
-        $.post(globalUrlPrefix + "admin/auth", {password: password}, "json").success(function (data) {
+        $.post(globalUrlPrefix + "admin/auth", {password: password}, "json").done(function (data) {
             localStorage.setItem("token", data.token);
             var insecure = data.token === "insecure";
             if (insecure) {
                 localStorage.setItem("insecure", true);
             }
             this.setState({isAuthenticated: true, insecure: insecure});
-        }.bind(this)).error(function () {
+        }.bind(this)).fail(function () {
             $.noop();
         });
     },
@@ -137,8 +137,6 @@ var reconnectTimeout;
 var stateLoadTimeout;
 var pingInterval;
 var maxMessageAmount = 50;
-var lastUID = 0;
-var lastActionUID;
 
 var Dashboard = React.createClass({
     mixins: [Router.State],
@@ -159,12 +157,8 @@ var Dashboard = React.createClass({
         });
     },
     sendAction: function(method, params) {
-        var uid = (++lastUID).toString();
-        lastActionUID = uid;
-
         cmd = {
-            uid: uid,
-            method: method,
+            method: methodNameToType[method],
             params: params
         };
 
@@ -181,7 +175,7 @@ var Dashboard = React.createClass({
             },
             dataType: 'json',
             success: function (data) {
-                self.setState({actionResponse: data, loading: false, uid: uid});
+                self.setState({actionResponse: data, loading: false});
             }
         });
 
@@ -193,7 +187,7 @@ var Dashboard = React.createClass({
             url: globalUrlPrefix + "admin/api",
             type: 'post',
             data: JSON.stringify({
-                "method": "info",
+                "method": methodNameToType["info"],
                 "params": {}
             }),
             headers: {
@@ -470,6 +464,19 @@ var NotFoundHandler = React.createClass({
     }
 });
 
+var methodNameToType = {
+    "publish": 0,
+    "broadcast": 1,
+    "unsubscribe": 2,
+    "disconnect": 3,
+    "presence": 4,
+    "presence_stats": 5,
+    "history": 6,
+    "history_remove": 7,
+    "channels": 8,
+    "info": 9
+}
+
 var ActionsHandler = React.createClass({
     mixins: [Router.State],
     editor: null,
@@ -478,7 +485,9 @@ var ActionsHandler = React.createClass({
         "publish": ["channel", "data"],
         "broadcast": ["channels", "data"],
         "presence": ["channel"],
+        "presence_stats": ["channel"],
         "history": ["channel"],
+        "history_remove": ["channel"],
         "unsubscribe": ["channel", "user"],
         "disconnect": ["user"],
         "channels": [],
@@ -520,7 +529,7 @@ var ActionsHandler = React.createClass({
         if (nextProps.dashboard.actionResponse && this.state.loading && this.state.uid === nextProps.dashboard.actionResponse.uid ) {
             this.setState({loading: false, uid: ""});
             if (nextProps.dashboard.actionResponse.error) {
-                this.showError(nextProps.dashboard.actionResponse.error);
+                this.showError(nextProps.dashboard.actionResponse.error.message);
             } else {
                 this.showSuccess();
             }
@@ -604,6 +613,7 @@ var ActionsHandler = React.createClass({
                             <option value="publish">publish</option>
                             <option value="broadcast">broadcast</option>
                             <option value="presence">presence</option>
+                            <option value="presence_stats">presence stats</option>
                             <option value="history">history</option>
                             <option value="unsubscribe">unsubscribe</option>
                             <option value="disconnect">disconnect</option>
