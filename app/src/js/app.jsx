@@ -158,7 +158,7 @@ var Dashboard = React.createClass({
     },
     sendAction: function(method, params) {
         cmd = {
-            method: methodNameToType[method],
+            method: method,
             params: params
         };
 
@@ -187,7 +187,7 @@ var Dashboard = React.createClass({
             url: globalUrlPrefix + "admin/api",
             type: 'post',
             data: JSON.stringify({
-                "method": methodNameToType["info"],
+                "method": "info",
                 "params": {}
             }),
             headers: {
@@ -282,7 +282,7 @@ var Login = React.createClass({
                                 <p className="login-text">Real-time messaging</p>
                                 <form action="" method="post" className="login-form" onSubmit={this.handleSubmit}>
                                     <div className="form-group">
-                                        <input ref="password" onFocus={this.inputFocus} onBlur={this.inputBlur} autoComplete="new-password" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
+                                        <input ref="password" onFocus={this.inputFocus} onBlur={this.inputBlur} autoComplete="off" className="form-control" type="password" name="password" placeholder="Type password to log in..."/>
                                     </div>
                                     <button type="submit" onFocus={this.inputFocus} onBlur={this.inputBlur} className="btn btn-success login-submit">Log In <i className="glyphicon glyphicon-log-in"></i></button>
                                 </form>
@@ -321,7 +321,7 @@ var Nav = React.createClass({
                 <div className="collapse navbar-collapse navbar-ex8-collapse">
                     <ul className="nav navbar-nav">
                         <li>
-                            <a href="http://fzambia.gitbooks.io/centrifugal/content/" target="_blank">
+                            <a href="https://centrifugal.github.io/centrifugo/" target="_blank">
                                 Documentation
                             </a>
                         </li>
@@ -398,11 +398,6 @@ var StatusHandler = React.createClass({
         return (
             <div className="content">
                 <div className="stat-row">
-                    <span className="text-muted stat-key">Engine:</span>
-                &nbsp;
-                    <span className="stat-value">{this.props.dashboard.engine}</span>
-                </div>
-                <div className="stat-row">
                     <span className="text-muted stat-key">Nodes running:</span>
                 &nbsp;
                     <span className="stat-value" id="node-count">{this.props.dashboard.nodeCount}</span>
@@ -463,19 +458,6 @@ var NotFoundHandler = React.createClass({
         )
     }
 });
-
-var methodNameToType = {
-    "publish": 0,
-    "broadcast": 1,
-    "unsubscribe": 2,
-    "disconnect": 3,
-    "presence": 4,
-    "presence_stats": 5,
-    "history": 6,
-    "history_remove": 7,
-    "channels": 8,
-    "info": 9
-}
 
 var ActionsHandler = React.createClass({
     mixins: [Router.State],
