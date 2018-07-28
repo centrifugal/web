@@ -198,9 +198,33 @@ body, pre {
     width: 150px;
 }
 
+.navbar-inverse .navbar-brand, .navbar-inverse .navbar-nav>li>a {
+    color: #cecece;
+}
+
+.navbar-inverse {
+    background:
+    linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px,
+    linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px,
+    linear-gradient(27deg, #222 5px, transparent 5px) 0px 10px,
+    linear-gradient(207deg, #222 5px, transparent 5px) 10px 5px,
+    linear-gradient(90deg, #1b1b1b 10px, transparent 10px),
+    linear-gradient(#1d1d1d 25%, #1a1a1a 25%, #1a1a1a 50%, transparent 50%, transparent 75%, #242424 75%, #242424);
+    background-color: #131313;
+    background-size: 20px 20px;   
+}
+
 /* login screen styles */
 .login {
-    background-color: #000;
+    background:
+    linear-gradient(27deg, #151515 5px, transparent 5px) 0 5px,
+    linear-gradient(207deg, #151515 5px, transparent 5px) 10px 0px,
+    linear-gradient(27deg, #222 5px, transparent 5px) 0px 10px,
+    linear-gradient(207deg, #222 5px, transparent 5px) 10px 5px,
+    linear-gradient(90deg, #1b1b1b 10px, transparent 10px),
+    linear-gradient(#1d1d1d 25%, #1a1a1a 25%, #1a1a1a 50%, transparent 50%, transparent 75%, #242424 75%, #242424);
+    background-color: #131313;
+    background-size: 20px 20px;
     color: #f5f5f5;
     display: table;
     height: 100%;
@@ -278,8 +302,7 @@ body, pre {
 }
 
 .login .login-heading {
-    font-size: 40px;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 60px;
     margin-top: 0;
 }
 .login .login-forkme {
@@ -287,10 +310,6 @@ body, pre {
     top: 0;
     right: 0;
     border: 0;
-}
-.login .login-body .login-text {
-    font-size: 18px;
-    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 .login-form {
     max-width: 300px;
@@ -315,7 +334,7 @@ body, pre {
         padding: 0;
     }
     .login .login-body .login-heading {
-        font-size: 80px;
+        font-size: 64px;
     }
     .login .login-body .login-text {
         font-size: 32px;
