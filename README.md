@@ -7,6 +7,8 @@ centrifugo genconfig
 centrifugo --config=config.json --admin
 ```
 
+And then open http://localhost:8000/ in browser.
+
 You can also run Centrifugo with custom path to web interface (for example if you want to contribute into this web and need to test your changes):
 
 ```bash
