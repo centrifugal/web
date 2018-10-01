@@ -135,8 +135,6 @@ var App = React.createClass({
 var conn;
 var reconnectTimeout;
 var stateLoadTimeout;
-var pingInterval;
-var maxMessageAmount = 50;
 
 var Dashboard = React.createClass({
     mixins: [Router.State],
@@ -176,6 +174,11 @@ var Dashboard = React.createClass({
             dataType: 'json',
             success: function (data) {
                 self.setState({actionResponse: data, loading: false});
+            },
+            error: function(jqXHR) {
+                if (jqXHR.status === 401) {
+                    self.props.handleLogout();
+                }
             }
         });
 
@@ -199,6 +202,11 @@ var Dashboard = React.createClass({
                 setTimeout(function(){
                     self.askInfo();
                 }, 10000);
+            },
+            error: function(jqXHR) {
+                if (jqXHR.status === 401) {
+                    self.props.handleLogout();
+                }
             }
         });
     },
