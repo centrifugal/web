@@ -1,13 +1,16 @@
 Web interface for Centrifugo. See its description in [documentation](http://fzambia.gitbooks.io/centrifugal/content/web/index.html).
 
-This web interface built into Centrifugo. Use command-line option `--web` to run Centrifugo with web interface:
+This web interface built into Centrifugo. Use command-line option `--admin` to run Centrifugo with admin web interface:
 
 ```bash
-centrifugo --config=/path/to/config.json --web
+centrifugo genconfig
+centrifugo --config=config.json --admin
 ```
+
+And then open http://localhost:8000/ in browser.
 
 You can also run Centrifugo with custom path to web interface (for example if you want to contribute into this web and need to test your changes):
 
 ```bash
-centrifugo --config=/path/to/config.json --web --web_path=/path/to/centrifugal/web/app/
+centrifugo --config=config.json --admin --admin_web_path=/path/to/centrifugal/web/app/
 ```
