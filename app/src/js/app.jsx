@@ -164,13 +164,16 @@ var Dashboard = React.createClass({
 
         var self = this;
 
+        var headers = {};
+        if (!this.props.insecure) {
+            headers["Authorization"] = "token " +  localStorage.getItem("token");
+        }
+
         $.ajax({
             url: globalUrlPrefix + "admin/api",
             type: 'post',
             data: JSON.stringify(cmd),
-            headers: {
-                Authorization: "token " +  localStorage.getItem("token")
-            },
+            headers: headers,
             dataType: 'json',
             success: function (data) {
                 self.setState({actionResponse: data, loading: false});
@@ -181,11 +184,13 @@ var Dashboard = React.createClass({
                 }
             }
         });
-
-        return uid;
     },
     askInfo: function() {
         var self = this;
+        var headers = {};
+        if (!this.props.insecure) {
+            headers["Authorization"] = "token " +  localStorage.getItem("token");
+        }
         $.ajax({
             url: globalUrlPrefix + "admin/api",
             type: 'post',
@@ -193,9 +198,7 @@ var Dashboard = React.createClass({
                 "method": "info",
                 "params": {}
             }),
-            headers: {
-                Authorization: "token " +  localStorage.getItem("token")
-            },
+            headers: headers,
             dataType: 'json',
             success: function (data) {
                 self.handleInfo(data.result);
