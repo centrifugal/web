@@ -209,7 +209,11 @@ var Dashboard = React.createClass({
             error: function(jqXHR) {
                 if (jqXHR.status === 401) {
                     self.props.handleLogout();
+                    return;
                 }
+                setTimeout(function(){
+                    self.askInfo();
+                }, 10000);
             }
         });
     },
