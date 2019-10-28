@@ -1,56 +1,60 @@
 import React from 'react';
-import { AppRouter } from './routers/AppRouter';
-import { LoginPage } from './pages/LoginPage';
-var $ = require('jquery');
+import AppRouter from './routers/AppRouter';
+import LoginPage from './pages/LoginPage';
 
-var globalUrlPrefix = window.location.pathname;
+const $ = require('jquery');
 
-export class App extends React.Component {
+const globalUrlPrefix = window.location.pathname;
 
-    constructor() {
-        super();
-        this.props;
-        var state = {};
-        if (localStorage.getItem('token')) {
-            state['isAuthenticated'] = true;
-        }
-        if (localStorage.getItem('insecure')) {
-            state['insecure'] = true;
-        }
-        this.state = state;
+export default class App extends React.Component {
+  constructor() {
+    super();
+    const state = {};
+    if (localStorage.getItem('token')) {
+      state.isAuthenticated = true;
     }
-
-    handleLogin(password) {
-        $.post(globalUrlPrefix + 'admin/auth', {password: password}, 'json').done(function (data) {
-            localStorage.setItem('token', data.token);
-            var insecure = data.token === 'insecure';
-            if (insecure) {
-                localStorage.setItem('insecure', true);
-            }
-            this.setState({isAuthenticated: true, insecure: insecure});
-        }.bind(this)).fail(function () {
-            $.noop();
-        });
+    if (localStorage.getItem('insecure')) {
+      state.insecure = true;
+    } else {
+      state.insecure = false;
     }
+    this.state = state;
+    this.handleLogin = this.handleLogin.bind(this);
+    this.handleLogout = this.handleLogout.bind(this);
+  }
 
-    handleLogout(e) {
-        if (e) {
-            e.preventDefault();
-        }
-        delete localStorage.token;
-        delete localStorage.insecure;
-        this.setState({isAuthenticated: false, insecure: false});
-    }
+  handleLogin(password) {
+    $.post(`${globalUrlPrefix}admin/auth`, { password }, 'json').done((data) => {
+      localStorage.setItem('token', data.token);
+      const insecure = data.token === 'insecure';
+      if (insecure) {
+        localStorage.setItem('insecure', true);
+      }
+      this.setState({ isAuthenticated: true, insecure });
+    }).fail(() => {
+      $.noop();
+    });
+  }
 
-    render() {
-        if (this.state.isAuthenticated) {
-            return (
-                <AppRouter handleLogout={this.handleLogout.bind(this)} insecure={this.state.insecure} />
-            );
-        } else {
-            return (
-                <LoginPage handleLogin={this.handleLogin.bind(this)} {...this.props} />
-            );
-        }
+  handleLogout(e) {
+    if (e) {
+      e.preventDefault();
     }
+    delete localStorage.token;
+    delete localStorage.insecure;
+    this.setState({ isAuthenticated: false, insecure: false });
+  }
+
+  render() {
+    const { isAuthenticated } = this.state;
+    const { insecure } = this.state;
+    if (isAuthenticated) {
+      return (
+        <AppRouter handleLogout={this.handleLogout} insecure={insecure} />
+      );
+    }
+    return (
+      <LoginPage handleLogin={this.handleLogin} />
+    );
+  }
 }

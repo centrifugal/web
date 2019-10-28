@@ -1,126 +1,140 @@
-import React, { Fragment } from 'react';
-import { HashRouter, Route, Switch, Redirect } from 'react-router-dom';
+import React from 'react';
+import {
+  HashRouter, Route, Switch, Redirect,
+} from 'react-router-dom';
+import PropTypes from 'prop-types';
 
-import { Header } from '../header/Header';
-import { StatusPage } from '../pages/StatusPage';
-import { ActionsPage } from '../pages/ActionsPage';
-import { LinksPage } from '../pages/LinksPage';
+import Header from '../header/Header';
+import StatusPage from '../pages/StatusPage';
+import ActionsPage from '../pages/ActionsPage';
+import LinksPage from '../pages/LinksPage';
 
-var $ = require('jquery');
+const $ = require('jquery');
 
-var globalUrlPrefix = window.location.pathname;
+const globalUrlPrefix = window.location.pathname;
 
-var infoLoadTimeout;
+let infoLoadTimeout;
 
-export class AppRouter extends React.Component{
+export default class AppRouter extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      loading: false,
+      nodeCount: 0,
+      nodes: [],
+      actionRequest: null,
+      actionResponse: null,
+    };
+    this.sendAction = this.sendAction.bind(this);
+  }
 
-    constructor() {
-        super();
-        this.state = {
-            engine: '',
-            nodeCount: '',
-            nodes: [],
-            actionRequest: null,
-            actionResponse: null
-        };
+  componentDidMount() {
+    this.askInfo();
+  }
+
+  componentWillUnmount() {
+    if (infoLoadTimeout) {
+      clearTimeout(infoLoadTimeout);
+    }
+  }
+
+  handleInfo(info) {
+    this.setState({
+      nodes: info.nodes,
+      nodeCount: Object.keys(info.nodes).length,
+    });
+  }
+
+  sendAction(method, params) {
+    const cmd = {
+      method,
+      params,
+    };
+
+    this.setState({ actionRequest: cmd });
+
+    const self = this;
+
+    const headers = {};
+    const { insecure } = this.props;
+    if (!insecure) {
+      headers.Authorization = `token ${localStorage.getItem('token')}`;
     }
 
-    handleInfo(info) {
-        this.setState({
-            engine: info.engine,
-            nodes: info.nodes,
-            nodeCount: Object.keys(info.nodes).length
-        });
-    }
-
-    sendAction(method, params) {
-        let cmd = {
-            method: method,
-            params: params
-        };
-
-        this.setState({actionRequest: cmd});
-
-        var self = this;
-
-        var headers = {};
-        if (!this.props.insecure) {
-            headers['Authorization'] = 'token ' +  localStorage.getItem('token');
+    $.ajax({
+      url: `${globalUrlPrefix}admin/api`,
+      type: 'post',
+      data: JSON.stringify(cmd),
+      headers,
+      dataType: 'json',
+      success(data) {
+        self.setState({ actionResponse: data, loading: false });
+      },
+      error(jqXHR) {
+        if (jqXHR.status === 401) {
+          self.props.handleLogout();
         }
+      },
+    });
+  }
 
-        $.ajax({
-            url: globalUrlPrefix + 'admin/api',
-            type: 'post',
-            data: JSON.stringify(cmd),
-            headers: headers,
-            dataType: 'json',
-            success: function (data) {
-                self.setState({actionResponse: data, loading: false});
-            },
-            error: function(jqXHR) {
-                if (jqXHR.status === 401) {
-                    self.props.handleLogout();
-                }
-            }
-        });
+  askInfo() {
+    const self = this;
+    const headers = {};
+    const { insecure } = this.props;
+    if (!insecure) {
+      headers.Authorization = `token ${localStorage.getItem('token')}`;
     }
-
-    askInfo() {
-        var self = this;
-        var headers = {};
-        if (!this.props.insecure) {
-            headers['Authorization'] = 'token ' +  localStorage.getItem('token');
+    $.ajax({
+      url: `${globalUrlPrefix}admin/api`,
+      type: 'post',
+      data: JSON.stringify({
+        method: 'info',
+        params: {},
+      }),
+      headers,
+      dataType: 'json',
+      success(data) {
+        self.handleInfo(data.result);
+        infoLoadTimeout = setTimeout(() => {
+          self.askInfo();
+        }, 5000);
+      },
+      error(jqXHR) {
+        if (jqXHR.status === 401) {
+          self.props.handleLogout();
+          return;
         }
-        $.ajax({
-            url: globalUrlPrefix + 'admin/api',
-            type: 'post',
-            data: JSON.stringify({
-                'method': 'info',
-                'params': {}
-            }),
-            headers: headers,
-            dataType: 'json',
-            success: function (data) {
-                self.handleInfo(data.result);
-                infoLoadTimeout = setTimeout(function(){
-                    self.askInfo();
-                }, 5000);
-            },
-            error: function(jqXHR) {
-                if (jqXHR.status === 401) {
-                    self.props.handleLogout();
-                    return;
-                }
-                infoLoadTimeout = setTimeout(function(){
-                    self.askInfo();
-                }, 5000);
-            }
-        });
-    }
+        infoLoadTimeout = setTimeout(() => {
+          self.askInfo();
+        }, 5000);
+      },
+    });
+  }
 
-    componentDidMount() {
-        this.askInfo();
-    }
-
-    componentWillUnmount() {
-        if (infoLoadTimeout) {
-            clearTimeout(infoLoadTimeout);
-        }
-    }
-
-    render() {
-        return (
-            <HashRouter>
-                <Fragment>
-                    <Header {...this.props} />            
-                    <Switch>
-                        <Route path='/' render={()=><StatusPage dashboard={this.state}/>} exact={true} />
-                        <Route path='/actions' render={()=><ActionsPage dashboard={this.state} sendAction={this.sendAction.bind(this)} />} />
-                        <Route path='/links' component={LinksPage} />
-                        <Redirect to="/" />
-                    </Switch>
-                </Fragment>
-            </HashRouter>
-        );
-    }
+  render() {
+    const { insecure, handleLogout } = this.props;
+    const
+      {
+        nodes, nodeCount, loading, actionRequest, actionResponse,
+      } = this.state;
+    return (
+      <HashRouter>
+        <div>
+          <Header insecure={insecure} handleLogout={handleLogout} />
+          <Switch>
+            <Route path="/" render={() => <StatusPage nodes={nodes} nodeCount={nodeCount} />} exact />
+            <Route path="/actions" render={() => <ActionsPage loading={loading} actionRequest={actionRequest} actionResponse={actionResponse} sendAction={this.sendAction} />} />
+            <Route path="/links" component={LinksPage} />
+            <Redirect to="/" />
+          </Switch>
+        </div>
+      </HashRouter>
+    );
+  }
 }
+
+AppRouter.propTypes = {
+  insecure: PropTypes.bool.isRequired,
+  handleLogout: PropTypes.func.isRequired,
+};
