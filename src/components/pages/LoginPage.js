@@ -7,12 +7,12 @@ export class LoginPage extends React.Component {
     constructor() {
         super();
         this.passwordRef;
-    }
 
-    state = {
-        'focus': false,
-        'password': ''
-    };
+        this.state = {
+            'focus': false,
+            'password': ''
+        };
+    }
 
     componentDidMount() {
         // try to login with empty password – maybe admin_insecure option enabled in Centrifugo.

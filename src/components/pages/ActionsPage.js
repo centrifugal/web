@@ -22,23 +22,23 @@ export class ActionsPage extends React.Component {
             loading: false,
             uid: ''
         };
-    }
 
-    editor = null
+        this.editor = null;
 
-    fields = ['channel', 'channels', 'data', 'user']
+        this.fields = ['channel', 'channels', 'data', 'user']
 
-    methodFields = {
-        'publish': ['channel', 'data'],
-        'broadcast': ['channels', 'data'],
-        'presence': ['channel'],
-        'presence_stats': ['channel'],
-        'history': ['channel'],
-        'history_remove': ['channel'],
-        'unsubscribe': ['channel', 'user'],
-        'disconnect': ['user'],
-        'channels': [],
-        'info': []
+        this.methodFields = {
+            'publish': ['channel', 'data'],
+            'broadcast': ['channels', 'data'],
+            'presence': ['channel'],
+            'presence_stats': ['channel'],
+            'history': ['channel'],
+            'history_remove': ['channel'],
+            'unsubscribe': ['channel', 'user'],
+            'disconnect': ['user'],
+            'channels': [],
+            'info': []
+        }
     }
 
     handleMethodChange() {
