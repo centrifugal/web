@@ -1,3 +1,4 @@
+/* eslint-disable */
 const webpack = require('webpack');
 const commonPaths = require('./common-paths');
 

@@ -1,3 +1,4 @@
+/* eslint-disable */
 const UglifyJsWebpackPlugin = require('uglifyjs-webpack-plugin');
 const webpack = require('webpack');
 
