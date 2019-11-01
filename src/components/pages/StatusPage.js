@@ -7,12 +7,14 @@ import { SortByKey, HumanSeconds } from '../functions/Functions';
 export default class StatusPage extends React.Component {
   render() {
     let nodeRows;
+    let totalClients = 0;
     const { nodes, nodeCount } = this.props;
     if (nodes.length > 0) {
       nodeRows = [];
       Object.keys(SortByKey(nodes, 'name')).forEach((key) => {
         const node = nodes[key];
         nodeRows.push(<NodeRow node={node} key={node.uid} />);
+        totalClients += node.num_clients;
       });
     } else {
       nodeRows = <NodeRowLoader />;
@@ -25,6 +27,8 @@ export default class StatusPage extends React.Component {
           <p className="lead">
             Nodes running:&nbsp;
             {nodeCount}
+            , Total clients:&nbsp;
+            {totalClients}
           </p>
           <div className="node_info">
             <table className="table table-bordered">
