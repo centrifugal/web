@@ -39,15 +39,6 @@ ACTIONS
                 </NavLink>
               </div>
             </li>
-            <li className="nav-item">
-              <div className="nav-link">
-                <NavLink to="/links" activeClassName="menu selected">
-                  <i className="fa fa-link" />
-                  {' '}
-LINKS
-                </NavLink>
-              </div>
-            </li>
           </ul>
           <ul className="navbar-nav ml-auto">
             <li className="nav-item">

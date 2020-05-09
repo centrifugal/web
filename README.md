@@ -3,7 +3,7 @@ Centrifugo admin web interface.
 To develop:
 
 ```
-yarn
+npm i
 npm run build:dev:watch
 ```
 
