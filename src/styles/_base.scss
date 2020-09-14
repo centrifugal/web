@@ -32,7 +32,7 @@ body {
     animation-name: fadeIn;
 }
 .login {
-    background-color: #291444;
+    background-color:#190b2b;
     color: #f5f5f5;
     display: table;
     height: 100%;
@@ -41,84 +41,17 @@ body {
     width: 100%;
 }
 .login .login-body {
-    display: table-cell;
+    position: absolute;
     vertical-align: middle;
+    width: 100%;
+    height: 100%;
 }
-.login .login-logo {
-    height: 110px;
-    width: 110px;
-    margin: 0 auto;
-}
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-@-moz-keyframes spin {
-    0% {
-        -moz-transform: rotate(0deg);
-    }
-    100% {
-        -moz-transform: rotate(360deg);
-    }
-}
-@-webkit-keyframes spin {
-    0% {
-        -webkit-transform: rotate(0deg);
-    }
-    100% {
-        -webkit-transform: rotate(360deg);
-    }
-}
-@-o-keyframes spin {
-    0% {
-        -o-transform: rotate(0deg);
-    }
-    100% {
-        -o-transform: rotate(360deg);
-    }
-}
-.spin {
-    height: 110px;
-    width: 110px;
-}
-.login .login-logo-outer {
-    background-image: url("../images/logo-login-outer.svg");
-    height: 110px;
-    width: 110px;
-    position: absolute;
-    animation: spin 2s linear 0s infinite normal;
-    -moz-animation: 2s linear 0s normal none infinite spin;
-    -webkit-animation: spin 2s linear 0s infinite normal;
-    -o-animation: spin 3s linear 0s infinite normal;
-}
-.login .login-logo-inner {
-    background-image: url("../images/logo-login-inner.svg");
-    height: 110px;
-    width: 110px;
-    position: absolute;
-    animation: spin 3s linear 0s infinite normal;
-    -moz-animation: 3s linear 0s normal none infinite spin;
-    -webkit-animation: spin 3s linear 0s infinite normal;
-    -o-animation: spin 3s linear 0s infinite normal;
-}
-// .login.login-focus .login-logo-inner {
-//     -webkit-animation-play-state: paused;
-//     -o-animation-play-state: paused;
-//     -moz-animation-play-state: paused;
-//     animation-play-state: paused;
-// }
-// .login.login-focus .login-logo-outer {
-//     -webkit-animation-play-state: paused;
-//     -o-animation-play-state: paused;
-//     -moz-animation-play-state: paused;
-//     animation-play-state: paused;
-// }
-.logo-outer-path {
-    fill: #6a5388;
+.login-body > .container {
+    position: relative;
+    /* make the top edge of .inner appear in the vertical center of .outer */
+    top: 50%;
+    /* move .inner up by half of its height so that its middle is in the middle of .outer */
+    transform: translateY(-50%);
 }
 .login .login-heading {
     font-size: 40px;
@@ -137,15 +70,15 @@ body {
 .login-submit {
     -webkit-transition: background-color 0.5s ease-in-out;
     transition: background-color 0.2s ease-in-out;
-    background-color: #ff2e2d;
-    border-color: #862516;
+    background-color: #a95dd0;
+    border-color: #7520a0;
     text-transform: uppercase;
 }
 .login-submit:hover, .login-submit:focus, .login-submit:active {
     -webkit-transition: background-color 0.2s ease-in-out;
     transition: background-color 0.2s ease-in-out;
-    background-color: #d00605;
-    border-color: #862516;
+    background-color: #9d3cce;
+    border-color: #7520a0;
 }
 @media (min-width:767px) {
     .login {
