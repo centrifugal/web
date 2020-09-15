@@ -48,9 +48,7 @@ body {
 }
 .login-body > .container {
     position: relative;
-    /* make the top edge of .inner appear in the vertical center of .outer */
     top: 50%;
-    /* move .inner up by half of its height so that its middle is in the middle of .outer */
     transform: translateY(-50%);
 }
 .login .login-heading {
