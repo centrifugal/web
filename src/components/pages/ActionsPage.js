@@ -53,7 +53,7 @@ export default class ActionsPage extends React.Component {
 
     this.editor = null;
 
-    this.fields = ['channel', 'channels', 'data', 'user'];
+    this.fields = ['channel', 'channels', 'data', 'user', 'rpc_method'];
 
     this.methodFields = {
       publish: ['channel', 'data'],
@@ -62,10 +62,12 @@ export default class ActionsPage extends React.Component {
       presence_stats: ['channel'],
       history: ['channel'],
       history_remove: ['channel'],
+      subscribe: ['channel', 'user', 'data'],
       unsubscribe: ['channel', 'user'],
       disconnect: ['user'],
       channels: [],
       info: [],
+      rpc: ['rpc_method', 'data'],
     };
   }
 
@@ -115,15 +117,21 @@ export default class ActionsPage extends React.Component {
   handleSubmit(e) {
     e.preventDefault();
     const method = this.methodRef.current.value;
-    let publishData;
+    let jsonData;
     let json;
-    if (method === 'publish' || method === 'broadcast') {
-      publishData = this.editor.getSession().getValue();
-      try {
-        json = JSON.stringify(JSON.parse(publishData));
-      } catch (err) {
-        showError('malformed JSON');
+    if (method === 'publish' || method === 'broadcast' || method === 'rpc' || method === 'subscribe') {
+      jsonData = this.editor.getSession().getValue();
+      if (jsonData.length === 0 && (method === 'publish' || method === 'broadcast' || method === 'rpc')) {
+        showError('JSON data required');
         return;
+      }
+      if (jsonData.length > 0) {
+        try {
+          json = JSON.stringify(JSON.parse(jsonData));
+        } catch (err) {
+          showError('malformed JSON');
+          return;
+        }
       }
     }
     this.dataEditorRef.current.value = json;
@@ -131,15 +139,30 @@ export default class ActionsPage extends React.Component {
     const params = {};
     Object.keys(fieldsForParams).forEach((key) => {
       const field = $(`#${fieldsForParams[key]}`);
-      params[fieldsForParams[key]] = field.val();
+      let paramsKey = fieldsForParams[key];
+      if (paramsKey === 'rpc_method') {
+        paramsKey = 'method';
+      }
+      params[paramsKey] = field.val();
     });
-    if (method === 'publish' && params.channel === '') {
+    delete params.data;
+    if ((method === 'publish' || method === 'subscribe') && params.channel === '') {
       showError('channel required');
       return;
     }
+    if ((method === 'subscribe') && params.user === '') {
+      showError('user required');
+      return;
+    }
     if (method === 'publish' || method === 'broadcast') {
-      // publish and broadcast are somewhat special as they have raw JSON in data.
-      params.data = JSON.parse(publishData);
+      // publish, broadcast are somewhat special as they have raw JSON in data.
+      params.data = JSON.parse(jsonData);
+    }
+    if (method === 'rpc') {
+      params.params = JSON.parse(jsonData);
+    }
+    if (method === 'subscribe' && jsonData.length > 0) {
+      params.data = JSON.parse(jsonData);
     }
     if (method === 'broadcast') {
       // convert space separated channels to array of channels.
@@ -174,23 +197,29 @@ export default class ActionsPage extends React.Component {
               <option value="presence_stats">presence stats</option>
               <option value="history">history</option>
               <option value="history_remove">history remove</option>
+              <option value="subscribe">subscribe</option>
               <option value="unsubscribe">unsubscribe</option>
               <option value="disconnect">disconnect</option>
               <option value="channels">channels</option>
               <option value="info">info</option>
+              <option value="rpc">rpc</option>
             </select>
           </div>
           <div className="form-group">
             Channel
-            <input type="text" autoComplete="new-password" className="form-control" name="channel" id="channel" />
+            <input type="text" autoComplete="off" className="form-control" name="channel" id="channel" />
           </div>
           <div className="form-group">
             Channels (SPACE separated)
-            <input type="text" autoComplete="new-password" className="form-control" name="channels" id="channels" />
+            <input type="text" autoComplete="off" className="form-control" name="channels" id="channels" />
           </div>
           <div className="form-group">
             User ID
-            <input type="text" autoComplete="new-password" className="form-control" name="user" id="user" />
+            <input type="text" autoComplete="off" className="form-control" name="user" id="user" />
+          </div>
+          <div className="form-group">
+            RPC method name
+            <input type="text" autoComplete="off" className="form-control" name="rpc_method" id="rpc_method" />
           </div>
           <div className="form-group">
             Data
