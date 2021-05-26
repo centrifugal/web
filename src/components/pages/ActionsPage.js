@@ -65,7 +65,6 @@ export default class ActionsPage extends React.Component {
       subscribe: ['channel', 'user', 'data'],
       unsubscribe: ['channel', 'user'],
       disconnect: ['user'],
-      channels: [],
       info: [],
       rpc: ['rpc_method', 'data'],
     };
@@ -200,7 +199,6 @@ export default class ActionsPage extends React.Component {
               <option value="subscribe">subscribe</option>
               <option value="unsubscribe">unsubscribe</option>
               <option value="disconnect">disconnect</option>
-              <option value="channels">channels</option>
               <option value="info">info</option>
               <option value="rpc">rpc</option>
             </select>

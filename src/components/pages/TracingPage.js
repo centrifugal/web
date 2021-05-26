@@ -6,11 +6,10 @@ import { RandomString } from '../functions/Functions';
 const classNames = require('classnames');
 const $ = require('jquery');
 
-function getURL(traceType, traceEntity) {
-  const proto = window.location.protocol.replace('http', 'ws');
+function getURL() {
+  const proto = window.location.protocol;
   const baseURL = `${proto}//${window.location.host}${window.location.pathname}admin/trace`;
-  const urlWithAuth = `${baseURL}?token=${localStorage.getItem('token')}`;
-  return `${urlWithAuth}&type=${traceType}&entity=${traceEntity}`;
+  return baseURL;
 }
 
 class PrettyPrintJson extends React.Component {
@@ -25,6 +24,56 @@ PrettyPrintJson.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
   data: PropTypes.any.isRequired,
 };
+
+function handleErrors(response) {
+  if (!response.ok) throw new Error(response.status);
+  return response;
+}
+
+function FetchEventTarget(url, options) {
+  const utf8decoder = new TextDecoder();
+  const eventTarget = new EventTarget();
+  // fetch with connection timeout maybe? https://github.com/github/fetch/issues/175
+  fetch(url, options)
+    .then(handleErrors)
+    .then((response) => {
+      eventTarget.dispatchEvent(new Event('open'));
+      let streamBuf = '';
+      let streamPos = 0;
+      const reader = response.body.getReader();
+      return new ReadableStream({
+        start(controller) {
+          function pump() {
+            return reader.read().then(({ done, value }) => {
+              // When no more data needs to be consumed, close the stream
+              if (done) {
+                eventTarget.dispatchEvent(new CloseEvent('close'));
+                controller.close();
+                return;
+              }
+              streamBuf += utf8decoder.decode(value);
+              while (streamPos < streamBuf.length) {
+                if (streamBuf[streamPos] === '\n') {
+                  const line = streamBuf.substring(0, streamPos);
+                  eventTarget.dispatchEvent(new MessageEvent('message', { data: JSON.parse(line) }));
+                  streamBuf = streamBuf.substring(streamPos + 1);
+                  streamPos = 0;
+                } else {
+                  streamPos += 1;
+                }
+              }
+              pump();
+            });
+          }
+          return pump();
+        },
+      });
+    })
+    .catch((error) => {
+      eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }));
+    });
+  return eventTarget;
+}
 
 // eslint-disable-next-line react/prefer-stateless-function
 export default class TracingPage extends React.Component {
@@ -42,10 +91,10 @@ export default class TracingPage extends React.Component {
     };
     this.fields = ['channel', 'user'];
     this.methodFields = {
-      publication: ['channel'],
+      channel: ['channel'],
       user: ['user'],
     };
-    this.ws = null;
+    this.streamCancel = null;
   }
 
   componentDidMount() {
@@ -53,24 +102,63 @@ export default class TracingPage extends React.Component {
   }
 
   componentWillUnmount() {
-    this.stopWS();
-    clearInterval(this.interval);
+    this.stopStream();
   }
 
-  startWS(method, traceEntity) {
-    this.ws = new WebSocket(getURL(method, traceEntity));
-    const handleMessage = (event) => {
-      this.messages.unshift({
-        json: JSON.parse(event.data),
-        time: new Date().toLocaleTimeString(),
-      });
-      this.messages = this.messages.slice(0, 100);
-    };
+  processStreamData(data) {
+    this.messages.unshift({
+      json: data,
+      time: new Date().toLocaleTimeString(),
+    });
+    this.messages = this.messages.slice(0, 100);
+  }
+
+  startStream(method, traceEntity) {
+    const abortController = new AbortController();
+    const cancelFunc = () => { abortController.abort(); };
+    this.streamCancel = cancelFunc;
+    const eventTarget = new FetchEventTarget(
+      getURL(),
+      {
+        method: 'POST',
+        headers: new Headers({
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: 'Token ' + localStorage.getItem('token'),
+        }),
+        mode: 'same-origin',
+        signal: abortController.signal,
+        body: JSON.stringify({
+          type: method,
+          entity: traceEntity,
+        }),
+      },
+    );
+
+    eventTarget.addEventListener('open', () => {
+      // numFailures = 0;
+    });
+
+    eventTarget.addEventListener('message', (e) => {
+      if (e.data === null) {
+        // PING.
+        return;
+      }
+      this.processStreamData(e.data);
+    });
+
     const handleClose = () => {
-      this.stopWS();
+      this.stopStream();
     };
-    this.ws.onmessage = handleMessage;
-    this.ws.onclose = handleClose;
+
+    eventTarget.addEventListener('error', () => {
+      handleClose();
+    });
+
+    eventTarget.addEventListener('close', () => {
+      handleClose();
+    });
+
     this.setState({
       running: true,
       method,
@@ -81,9 +169,10 @@ export default class TracingPage extends React.Component {
     }, 1000);
   }
 
-  stopWS() {
-    if (this.ws != null) {
-      this.ws.close();
+  stopStream() {
+    if (this.streamCancel !== null) {
+      this.streamCancel();
+      this.streamCancel = null;
     }
     clearInterval(this.interval);
     this.messages = [];
@@ -114,19 +203,19 @@ export default class TracingPage extends React.Component {
     e.preventDefault();
     const { running } = this.state;
     if (running) {
-      this.stopWS();
+      this.stopStream();
       return;
     }
     const method = this.methodRef.current.value;
     let traceEntity;
-    if (method === 'publication') {
+    if (method === 'channel') {
       const field = $('#channel');
       traceEntity = field.val();
     } else if (method === 'user') {
       const field = $('#user');
       traceEntity = field.val();
     }
-    this.startWS(method, traceEntity);
+    this.startStream(method, traceEntity);
   }
 
   render() {
@@ -158,31 +247,12 @@ export default class TracingPage extends React.Component {
           <PrettyPrintJson data={message.json} />
         </div>
       ));
-    } else if (method === 'publication') {
+    } else if (method === 'channel') {
       messageLog = messages.map((message) => {
-        const serverPublication = message.json.client === '';
-        let span;
-        if (serverPublication) {
-          span = null;
-        } else {
-          span = (
-            <span>
-              <span className="trace-row-elem">User</span>
-              :&nbsp;
-              <span className="trace-row-value">{message.json.user}</span>
-              ,&nbsp;
-              <span className="trace-row-elem">Client</span>
-              :&nbsp;
-              <span className="trace-row-value">{message.json.client}</span>
-            </span>
-          );
-        }
         return (
           <div key={RandomString(16)} className="trace-row">
             <div className="trace-row-header">
               <span className="trace-row-time">{message.time}</span>
-              &nbsp;
-              {span}
             </div>
             <PrettyPrintJson data={message.json} />
           </div>
@@ -197,8 +267,8 @@ export default class TracingPage extends React.Component {
           <div className="form-group">
             Choose what to trace
             <select className="form-control" ref={this.methodRef} name="method" id="method" onChange={this.handleMethodChange.bind(this)}>
-              <option value="user">User events</option>
-              <option value="publication">Channel Publications</option>
+              <option value="user">Trace User</option>
+              <option value="channel">Trace Channel</option>
             </select>
           </div>
           <div className="form-group">
