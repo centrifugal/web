@@ -88,6 +88,7 @@ export default class TracingPage extends React.Component {
       method: 'user',
       running: false,
       messages: [],
+      errorMessage: '',
     };
     this.fields = ['channel', 'user'];
     this.methodFields = {
@@ -151,7 +152,12 @@ export default class TracingPage extends React.Component {
       this.stopStream();
     };
 
-    eventTarget.addEventListener('error', () => {
+    eventTarget.addEventListener('error', (error) => {
+      if (error.detail.message === '404') {
+        this.setState({
+          errorMessage: '404: Tracing feature available in Centrifugo Pro version only',
+        });
+      }
       handleClose();
     });
 
@@ -163,6 +169,7 @@ export default class TracingPage extends React.Component {
       running: true,
       method,
       messages: [],
+      errorMessage: '',
     });
     this.interval = setInterval(() => {
       this.setState({ messages: this.messages });
@@ -219,8 +226,11 @@ export default class TracingPage extends React.Component {
   }
 
   render() {
-    const { messages, running, method } = this.state;
+    const {
+      messages, running, method, errorMessage,
+    } = this.state;
     const loaderClasses = classNames({ 'trace-loader': true, 'd-none': !running });
+    const errorClasses = classNames({ box: true, 'box-error': true, 'd-none': errorMessage === '' });
     let buttonText = 'Start';
     if (running) {
       buttonText = 'Stop';
@@ -231,18 +241,6 @@ export default class TracingPage extends React.Component {
         <div key={RandomString(16)} className="trace-row">
           <div className="trace-row-header">
             <span className="trace-row-time">{message.time}</span>
-            &nbsp;
-            <span className="trace-row-elem">User</span>
-            :&nbsp;
-            <span className="trace-row-value">{message.json.user}</span>
-            ,&nbsp;
-            <span className="trace-row-elem">Client</span>
-            :&nbsp;
-            <span className="trace-row-value">{message.json.client}</span>
-            ,&nbsp;
-            <span className="trace-row-elem">Type</span>
-            :&nbsp;
-            <span className="trace-row-value">{message.json.type}</span>
           </div>
           <PrettyPrintJson data={message.json} />
         </div>
@@ -281,6 +279,7 @@ export default class TracingPage extends React.Component {
           </div>
           <button type="submit" ref={this.submitRef} disabled={false} className="btn btn-primary">{buttonText}</button>
           <button type="button" ref={this.cancelRef} disabled={false} className="btn btn-secondary d-none">Cancel</button>
+          <span id="errorBox" className={errorClasses}>{errorMessage}</span>
           <span className={loaderClasses}>
             <div className="loading">
               <div className="loading-bar" />
