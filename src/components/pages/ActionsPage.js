@@ -1,13 +1,12 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import AceEditor from 'react-ace';
 import { PrettifyJson } from '../functions/Functions';
+import 'ace-builds/src-noconflict/mode-json';
+import 'ace-builds/src-noconflict/theme-monokai';
 
 const classNames = require('classnames');
 const $ = require('jquery');
-
-const ace = require('brace');
-require('brace/mode/json');
-require('brace/theme/monokai');
 
 function hideSuccess() {
   const success = $('#successBox');
@@ -41,43 +40,19 @@ export default class ActionsPage extends React.Component {
     super();
     this.formRef = React.createRef();
     this.methodRef = React.createRef();
-    this.dataEditorRef = React.createRef();
     this.submitRef = React.createRef();
     this.requestRef = React.createRef();
     this.responseRef = React.createRef();
+    this.paramsRef = React.createRef();
 
     this.state = {
+      method: 'publish',
       loading: false,
       uid: '',
-    };
-
-    this.editor = null;
-
-    this.fields = ['channel', 'channels', 'data', 'user', 'rpc_method'];
-
-    this.methodFields = {
-      publish: ['channel', 'data'],
-      broadcast: ['channels', 'data'],
-      presence: ['channel'],
-      presence_stats: ['channel'],
-      history: ['channel'],
-      history_remove: ['channel'],
-      subscribe: ['channel', 'user', 'data'],
-      unsubscribe: ['channel', 'user'],
-      disconnect: ['user'],
-      info: [],
-      rpc: ['rpc_method', 'data'],
     };
   }
 
   componentDidMount() {
-    this.editor = ace.edit('data-editor');
-    this.editor.getSession().setMode('ace/mode/json');
-    this.editor.setTheme('ace/theme/monokai');
-    this.editor.setShowPrintMargin(false);
-    this.editor.getSession().setUseSoftTabs(true);
-    this.editor.getSession().setUseWrapMode(true);
-
     this.handleMethodChange();
   }
 
@@ -100,72 +75,23 @@ export default class ActionsPage extends React.Component {
     if (!method) {
       return;
     }
-    const fieldsToShow = this.methodFields[method];
-    Object.keys(fieldsToShow).forEach((key) => {
-      const field = $(`#${fieldsToShow[key]}`);
-      field.attr('disabled', false).parents('.form-group:first').show();
-    });
-    Object.keys(this.fields).forEach((key) => {
-      const fieldName = this.fields[key];
-      if (fieldsToShow.indexOf(fieldName) === -1) {
-        $(`#${fieldName}`).attr('disabled', true).parents('.form-group:first').hide();
-      }
-    });
+    this.setState({ method });
   }
 
   handleSubmit(e) {
     e.preventDefault();
     const method = this.methodRef.current.value;
-    let jsonData;
-    let json;
-    if (method === 'publish' || method === 'broadcast' || method === 'rpc' || method === 'subscribe') {
-      jsonData = this.editor.getSession().getValue();
-      if (jsonData.length === 0 && (method === 'publish' || method === 'broadcast' || method === 'rpc')) {
-        showError('JSON data required');
+    let params;
+    if (this.paramsRef.current) {
+      const result = this.paramsRef.current.getParams();
+      if (result.error) {
+        console.log(result.error);
+        // this.setState({ error: result.error });
         return;
       }
-      if (jsonData.length > 0) {
-        try {
-          json = JSON.stringify(JSON.parse(jsonData));
-        } catch (err) {
-          showError('malformed JSON');
-          return;
-        }
-      }
-    }
-    this.dataEditorRef.current.value = json;
-    const fieldsForParams = this.methodFields[method];
-    const params = {};
-    Object.keys(fieldsForParams).forEach((key) => {
-      const field = $(`#${fieldsForParams[key]}`);
-      let paramsKey = fieldsForParams[key];
-      if (paramsKey === 'rpc_method') {
-        paramsKey = 'method';
-      }
-      params[paramsKey] = field.val();
-    });
-    delete params.data;
-    if ((method === 'publish' || method === 'subscribe') && params.channel === '') {
-      showError('channel required');
-      return;
-    }
-    if ((method === 'subscribe') && params.user === '') {
-      showError('user required');
-      return;
-    }
-    if (method === 'publish' || method === 'broadcast') {
-      // publish, broadcast are somewhat special as they have raw JSON in data.
-      params.data = JSON.parse(jsonData);
-    }
-    if (method === 'rpc') {
-      params.params = JSON.parse(jsonData);
-    }
-    if (method === 'subscribe' && jsonData.length > 0) {
-      params.data = JSON.parse(jsonData);
-    }
-    if (method === 'broadcast') {
-      // convert space separated channels to array of channels.
-      params.channels = $('#channels').val().split(' ');
+      params = result.params;
+    } else {
+      params = {};
     }
     hideError();
     hideSuccess();
@@ -181,6 +107,30 @@ export default class ActionsPage extends React.Component {
     const response = actionResponse ? PrettifyJson(actionResponse) : '';
     const requestLabelClasses = classNames({ 'action-label': true, 'd-none': actionRequest == null });
     const responseLabelClasses = classNames({ 'action-label': true, 'd-none': actionResponse == null });
+
+    let paramsForm;
+    const { method } = this.state;
+    if (method === 'publish') {
+      paramsForm = <PublishForm ref={this.paramsRef} />;
+    } else if (method === 'broadcast') {
+      paramsForm = <BroadcastForm ref={this.paramsRef} />;
+    } else if (method === 'rpc') {
+      paramsForm = <RpcForm ref={this.paramsRef} />;
+    } else if (method === 'presence') {
+      paramsForm = <ChannelOnlyForm ref={this.paramsRef} />;
+    } else if (method === 'presence_stats') {
+      paramsForm = <ChannelOnlyForm ref={this.paramsRef} />;
+    } else if (method === 'history') {
+      paramsForm = <HistoryForm ref={this.paramsRef} />;
+    } else if (method === 'history_remove') {
+      paramsForm = <ChannelOnlyForm ref={this.paramsRef} />;
+    } else if (method === 'subscribe') {
+      paramsForm = <SubscribeForm ref={this.paramsRef} />;
+    } else if (method === 'unsubscribe') {
+      paramsForm = <UnsubscribeForm ref={this.paramsRef} />;
+    } else if (method === 'disconnect') {
+      paramsForm = <DisconnectForm ref={this.paramsRef} />;
+    }
 
     return (
       <main className="p-3 animated fadeIn">
@@ -203,27 +153,7 @@ export default class ActionsPage extends React.Component {
               <option value="rpc">rpc</option>
             </select>
           </div>
-          <div className="form-group">
-            Channel
-            <input type="text" autoComplete="off" className="form-control" name="channel" id="channel" />
-          </div>
-          <div className="form-group">
-            Channels (SPACE separated)
-            <input type="text" autoComplete="off" className="form-control" name="channels" id="channels" />
-          </div>
-          <div className="form-group">
-            User ID
-            <input type="text" autoComplete="off" className="form-control" name="user" id="user" />
-          </div>
-          <div className="form-group">
-            RPC method name
-            <input type="text" autoComplete="off" className="form-control" name="rpc_method" id="rpc_method" />
-          </div>
-          <div className="form-group">
-            Data
-            <div id="data-editor" />
-            <textarea ref={this.dataEditorRef} className="d-none" id="data" name="data" />
-          </div>
+          {paramsForm}
           <button type="submit" ref={this.submitRef} disabled={false} className="btn btn-primary">Submit</button>
           <span id="errorBox" className="box box-error d-none">Error</span>
           <span id="successBox" className="box box-success d-none">Success</span>
@@ -266,3 +196,447 @@ ActionsPage.propTypes = {
   loading: PropTypes.bool.isRequired,
   sendAction: PropTypes.func.isRequired,
 };
+
+function onLoadFunction(editor) {
+  editor.renderer.setPadding(10);
+  editor.renderer.setScrollMargin(10);
+}
+
+class PublishForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.onDataChange = this.onDataChange.bind(this);
+    this.state = {
+      channel: '',
+      data: '',
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  onDataChange(value) {
+    this.setState({ data: value });
+  }
+
+  getParams() {
+    const channel = this.state.channel;
+    const data = this.state.data;
+    if (!channel) {
+      return { error: 'empty channel' };
+    }
+    let dataJSON;
+    try {
+      dataJSON = JSON.parse(data);
+    } catch (e) {
+      return { error: 'malformed data JSON' };
+    }
+    return {
+      params: {
+        channel,
+        data: dataJSON,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+        <div className="form-group">
+          Data
+          <AceEditor
+            mode="json"
+            theme="monokai"
+            onChange={this.onDataChange}
+            name="data-editor-publish"
+            editorProps={{ $blockScrolling: true }}
+            width="100%"
+            height="300px"
+            showGutter={false}
+            onLoad={onLoadFunction}
+            setOptions={{ useWorker: false }}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+class BroadcastForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelsChange = this.onChannelsChange.bind(this);
+    this.onDataChange = this.onDataChange.bind(this);
+    this.state = {
+      channels: [],
+      data: '',
+    };
+  }
+
+  onChannelsChange(e) {
+    this.setState({ channels: e.target.value.split(' ') });
+  }
+
+  onDataChange(value) {
+    this.setState({ data: value });
+  }
+
+  getParams() {
+    const channels = this.state.channels;
+    const data = this.state.data;
+    if (channels.length === 0) {
+      return { error: 'empty channels' };
+    }
+    let dataJSON;
+    try {
+      dataJSON = JSON.parse(data);
+    } catch (e) {
+      return { error: 'malformed data JSON' };
+    }
+    return {
+      params: {
+        channels,
+        data: dataJSON,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+            Channels (SPACE separated)
+          <input type="text" onChange={this.onChannelsChange} autoComplete="off" className="form-control" name="channels" id="channels" />
+        </div>
+        <div className="form-group">
+            Data
+          <AceEditor
+            mode="json"
+            theme="monokai"
+            onChange={this.onDataChange}
+            name="data-editor-publish"
+            editorProps={{ $blockScrolling: true }}
+            width="100%"
+            height="300px"
+            showGutter={false}
+            onLoad={onLoadFunction}
+            setOptions={{ useWorker: false }}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+class ChannelOnlyForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.state = {
+      channel: '',
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  getParams() {
+    const channel = this.state.channel;
+    if (!channel) {
+      return { error: 'empty channel' };
+    }
+    return {
+      params: {
+        channel,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class HistoryForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.onLimitChange = this.onLimitChange.bind(this);
+    // this.onReverseChange = this.onReverseChange.bind(this);
+    this.state = {
+      channel: '',
+      limit: 0,
+      // reverse: false,
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  onLimitChange(e) {
+    this.setState({ limit: e.target.value });
+  }
+
+  // onReverseChange() {
+  //   this.setState({ reverse: !this.state.reverse });
+  // }
+
+  getParams() {
+    const channel = this.state.channel;
+    if (!channel) {
+      return { error: 'empty channel' };
+    }
+    let limit;
+    try {
+      limit = parseInt(this.state.limit, 10);
+    } catch (e) {
+      return { error: 'malformed limit' };
+    }
+    // const reverse = this.state.reverse;
+    return {
+      params: {
+        channel,
+        limit,
+        // reverse
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+        <div className="form-group">
+          Limit
+          <input type="text" onChange={this.onLimitChange} value={this.state.limit} autoComplete="off" className="form-control" name="limit" id="limit" />
+        </div>
+        {/* <div className="form-group">
+          Reverse
+          <input type="checkbox" onChange={this.onReverseChange} checked={this.state.reverse} className="form-control" name="reverse" id="reverse" />
+        </div> */}
+      </div>
+    );
+  }
+}
+
+class RpcForm extends React.Component {
+  constructor() {
+    super();
+    this.onMethodChange = this.onMethodChange.bind(this);
+    this.onParamsChange = this.onParamsChange.bind(this);
+    this.state = {
+      method: '',
+      params: '',
+    };
+  }
+
+  onMethodChange(e) {
+    this.setState({ method: e.target.value });
+  }
+
+  onParamsChange(value) {
+    this.setState({ params: value });
+  }
+
+  getParams() {
+    const method = this.state.method;
+    const params = this.state.params;
+    let paramsJSON;
+    try {
+      paramsJSON = JSON.parse(params);
+    } catch (e) {
+      return { error: 'malformed data JSON' };
+    }
+    return {
+      params: {
+        method,
+        params: paramsJSON,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Method
+          <input type="text" onChange={this.onMethodChange} autoComplete="off" className="form-control" name="method" id="method" />
+        </div>
+        <div className="form-group">
+          Params
+          <AceEditor
+            mode="json"
+            theme="monokai"
+            onChange={this.onParamsChange}
+            name="data-editor-publish"
+            editorProps={{ $blockScrolling: true }}
+            width="100%"
+            height="300px"
+            showGutter={false}
+            onLoad={onLoadFunction}
+            setOptions={{ useWorker: false }}
+          />
+        </div>
+      </div>
+    );
+  }
+}
+
+class SubscribeForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      channel: '',
+      user: '',
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getParams() {
+    const channel = this.state.channel;
+    if (!channel) {
+      return { error: 'empty channel' };
+    }
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'empty user ID' };
+    }
+    return {
+      params: {
+        channel,
+        user,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class UnsubscribeForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      channel: '',
+      user: '',
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getParams() {
+    const channel = this.state.channel;
+    if (!channel) {
+      return { error: 'empty channel' };
+    }
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'empty user ID' };
+    }
+    return {
+      params: {
+        channel,
+        user,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class DisconnectForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      user: '',
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'empty user ID' };
+    }
+    return {
+      params: {
+        user,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
