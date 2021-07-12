@@ -6,34 +6,6 @@ import 'ace-builds/src-noconflict/mode-json';
 import 'ace-builds/src-noconflict/theme-monokai';
 
 const classNames = require('classnames');
-const $ = require('jquery');
-
-function hideSuccess() {
-  const success = $('#successBox');
-  success.addClass('d-none');
-}
-
-function hideError() {
-  const error = $('#errorBox');
-  error.addClass('d-none');
-}
-
-function showError(text) {
-  const error = $('#errorBox');
-  error.text(`Error: ${text}`);
-  if (error.hasClass('d-none')) {
-    hideSuccess();
-    error.stop().hide().removeClass('d-none').fadeIn();
-  }
-}
-
-function showSuccess() {
-  const success = $('#successBox');
-  if (success.hasClass('d-none')) {
-    hideError();
-    success.stop().hide().removeClass('d-none').fadeIn();
-  }
-}
 
 export default class ActionsPage extends React.Component {
   constructor() {
@@ -49,6 +21,8 @@ export default class ActionsPage extends React.Component {
       method: 'publish',
       loading: false,
       uid: '',
+      error: '',
+      success: false,
     };
   }
 
@@ -63,9 +37,9 @@ export default class ActionsPage extends React.Component {
     if (actionResponse && loading && uid === actionResponse.uid) {
       this.setState({ loading: false, uid: '' });
       if (actionResponse.error) {
-        showError(actionResponse.error.message);
+        this.setState({ error: actionResponse.error.message });
       } else {
-        showSuccess();
+        this.setState({ success: true });
       }
     }
   }
@@ -75,29 +49,37 @@ export default class ActionsPage extends React.Component {
     if (!method) {
       return;
     }
-    this.setState({ method });
+    this.setState({
+      method,
+      error: '',
+      success: false,
+    });
   }
 
   handleSubmit(e) {
     e.preventDefault();
+    this.setState({ success: false });
     const method = this.methodRef.current.value;
     let params;
     if (this.paramsRef.current) {
       const result = this.paramsRef.current.getParams();
       if (result.error) {
-        console.log(result.error);
-        // this.setState({ error: result.error });
+        this.setState({ error: result.error });
         return;
       }
       params = result.params;
     } else {
       params = {};
     }
-    hideError();
-    hideSuccess();
+
     const { sendAction } = this.props;
     const uid = sendAction(method, params);
-    this.setState({ loading: true, uid });
+    this.setState({
+      error: '',
+      success: false,
+      loading: true,
+      uid,
+    });
   }
 
   render() {
@@ -107,6 +89,8 @@ export default class ActionsPage extends React.Component {
     const response = actionResponse ? PrettifyJson(actionResponse) : '';
     const requestLabelClasses = classNames({ 'action-label': true, 'd-none': actionRequest == null });
     const responseLabelClasses = classNames({ 'action-label': true, 'd-none': actionResponse == null });
+    const errorClasses = classNames({ 'd-none': this.state.error === '', box: true, 'box-error': true });
+    const successClasses = classNames({ 'd-none': this.state.success === false, box: true, 'box-success': true });
 
     let paramsForm;
     const { method } = this.state;
@@ -155,8 +139,8 @@ export default class ActionsPage extends React.Component {
           </div>
           {paramsForm}
           <button type="submit" ref={this.submitRef} disabled={false} className="btn btn-primary">Submit</button>
-          <span id="errorBox" className="box box-error d-none">Error</span>
-          <span id="successBox" className="box box-success d-none">Success</span>
+          <span id="errorBox" className={errorClasses}>{this.state.error}</span>
+          <span id="successBox" className={successClasses}>Success</span>
         </form>
         <div className="action-request">
           <div className="action-label-container">
@@ -225,13 +209,13 @@ class PublishForm extends React.Component {
     const channel = this.state.channel;
     const data = this.state.data;
     if (!channel) {
-      return { error: 'empty channel' };
+      return { error: 'Empty channel' };
     }
     let dataJSON;
     try {
       dataJSON = JSON.parse(data);
     } catch (e) {
-      return { error: 'malformed data JSON' };
+      return { error: 'Invalid data JSON' };
     }
     return {
       params: {
@@ -297,7 +281,7 @@ class BroadcastForm extends React.Component {
     try {
       dataJSON = JSON.parse(data);
     } catch (e) {
-      return { error: 'malformed data JSON' };
+      return { error: 'Invalid data JSON' };
     }
     return {
       params: {
@@ -350,7 +334,7 @@ class ChannelOnlyForm extends React.Component {
   getParams() {
     const channel = this.state.channel;
     if (!channel) {
-      return { error: 'empty channel' };
+      return { error: 'Empty channel' };
     }
     return {
       params: {
@@ -399,13 +383,13 @@ class HistoryForm extends React.Component {
   getParams() {
     const channel = this.state.channel;
     if (!channel) {
-      return { error: 'empty channel' };
+      return { error: 'Empty channel' };
     }
     let limit;
     try {
       limit = parseInt(this.state.limit, 10);
     } catch (e) {
-      return { error: 'malformed limit' };
+      return { error: 'Malformed limit' };
     }
     // const reverse = this.state.reverse;
     return {
@@ -463,7 +447,7 @@ class RpcForm extends React.Component {
     try {
       paramsJSON = JSON.parse(params);
     } catch (e) {
-      return { error: 'malformed data JSON' };
+      return { error: 'Invalid data JSON' };
     }
     return {
       params: {
@@ -522,11 +506,11 @@ class SubscribeForm extends React.Component {
   getParams() {
     const channel = this.state.channel;
     if (!channel) {
-      return { error: 'empty channel' };
+      return { error: 'Empty channel' };
     }
     const user = this.state.user;
     if (!user) {
-      return { error: 'empty user ID' };
+      return { error: 'Empty user ID' };
     }
     return {
       params: {
@@ -574,11 +558,11 @@ class UnsubscribeForm extends React.Component {
   getParams() {
     const channel = this.state.channel;
     if (!channel) {
-      return { error: 'empty channel' };
+      return { error: 'Empty channel' };
     }
     const user = this.state.user;
     if (!user) {
-      return { error: 'empty user ID' };
+      return { error: 'Empty user ID' };
     }
     return {
       params: {
@@ -620,7 +604,7 @@ class DisconnectForm extends React.Component {
   getParams() {
     const user = this.state.user;
     if (!user) {
-      return { error: 'empty user ID' };
+      return { error: 'Empty user ID' };
     }
     return {
       params: {

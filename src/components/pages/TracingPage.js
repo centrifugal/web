@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import { RandomString } from '../functions/Functions';
 
 const classNames = require('classnames');
-const $ = require('jquery');
 
 function getURL() {
   const proto = window.location.protocol;
@@ -83,17 +82,13 @@ export default class TracingPage extends React.Component {
     this.methodRef = React.createRef();
     this.submitRef = React.createRef();
     this.cancelRef = React.createRef();
+    this.entityFormRef = React.createRef();
     this.messages = [];
     this.state = {
       method: 'user',
       running: false,
       messages: [],
       errorMessage: '',
-    };
-    this.fields = ['channel', 'user'];
-    this.methodFields = {
-      channel: ['channel'],
-      user: ['user'],
     };
     this.streamCancel = null;
   }
@@ -193,16 +188,8 @@ export default class TracingPage extends React.Component {
     if (!method) {
       return;
     }
-    const fieldsToShow = this.methodFields[method];
-    Object.keys(fieldsToShow).forEach((key) => {
-      const field = $(`#${fieldsToShow[key]}`);
-      field.attr('disabled', false).parents('.form-group:first').show();
-    });
-    Object.keys(this.fields).forEach((key) => {
-      const fieldName = this.fields[key];
-      if (fieldsToShow.indexOf(fieldName) === -1) {
-        $(`#${fieldName}`).attr('disabled', true).parents('.form-group:first').hide();
-      }
+    this.setState({
+      method,
     });
   }
 
@@ -213,15 +200,19 @@ export default class TracingPage extends React.Component {
       this.stopStream();
       return;
     }
-    const method = this.methodRef.current.value;
+    const method = this.state.method;
     let traceEntity;
-    if (method === 'channel') {
-      const field = $('#channel');
-      traceEntity = field.val();
-    } else if (method === 'user') {
-      const field = $('#user');
-      traceEntity = field.val();
+    if (this.entityFormRef.current) {
+      const result = this.entityFormRef.current.getEntity();
+      if (result.error) {
+        this.setState({ errorMessage: result.error });
+        return;
+      }
+      traceEntity = result.entity;
+    } else {
+      traceEntity = '';
     }
+
     this.startStream(method, traceEntity);
   }
 
@@ -258,6 +249,13 @@ export default class TracingPage extends React.Component {
       });
     }
 
+    let paramsForm;
+    if (method === 'user') {
+      paramsForm = <UserForm ref={this.entityFormRef} />;
+    } else {
+      paramsForm = <ChannelForm ref={this.entityFormRef} />;
+    }
+
     return (
       <main className="p-3 animated fadeIn">
         <p className="lead">Trace Centrifugo events in real-time</p>
@@ -269,14 +267,7 @@ export default class TracingPage extends React.Component {
               <option value="channel">Trace Channel</option>
             </select>
           </div>
-          <div className="form-group">
-            Channel
-            <input type="text" autoComplete="off" className="form-control" name="channel" id="channel" />
-          </div>
-          <div className="form-group">
-            User ID
-            <input type="text" autoComplete="off" className="form-control" name="user" id="user" />
-          </div>
+          {paramsForm}
           <button type="submit" ref={this.submitRef} disabled={false} className="btn btn-primary">{buttonText}</button>
           <button type="button" ref={this.cancelRef} disabled={false} className="btn btn-secondary d-none">Cancel</button>
           <span id="errorBox" className={errorClasses}>{errorMessage}</span>
@@ -301,3 +292,73 @@ export default class TracingPage extends React.Component {
 TracingPage.propTypes = {
   // eslint-disable-next-line react/forbid-prop-types
 };
+
+class ChannelForm extends React.Component {
+  constructor() {
+    super();
+    this.onChannelChange = this.onChannelChange.bind(this);
+    this.state = {
+      channel: '',
+    };
+  }
+
+  onChannelChange(e) {
+    this.setState({ channel: e.target.value });
+  }
+
+  getEntity() {
+    const channel = this.state.channel;
+    if (!channel) {
+      return { error: 'Empty channel' };
+    }
+    return {
+      entity: channel,
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Channel
+          <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class UserForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      user: '',
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getEntity() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    return {
+      entity: user,
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
