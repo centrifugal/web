@@ -2,8 +2,6 @@ import React from 'react';
 import AppRouter from './routers/AppRouter';
 import LoginPage from './pages/LoginPage';
 
-const $ = require('jquery');
-
 const globalUrlPrefix = window.location.pathname;
 
 export default class App extends React.Component {
@@ -24,16 +22,30 @@ export default class App extends React.Component {
   }
 
   handleLogin(password) {
-    $.post(`${globalUrlPrefix}admin/auth`, { password }, 'json').done((data) => {
-      localStorage.setItem('token', data.token);
-      const insecure = data.token === 'insecure';
-      if (insecure) {
-        localStorage.setItem('insecure', true);
-      }
-      this.setState({ isAuthenticated: true, insecure });
-    }).fail(() => {
-      $.noop();
-    });
+    const formData = new FormData();
+    formData.append('password', password);
+    fetch(`${globalUrlPrefix}admin/auth`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+      },
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw Error(response.status);
+        }
+        return response.json();
+      })
+      .then((data) => {
+        localStorage.setItem('token', data.token);
+        const insecure = data.token === 'insecure';
+        if (insecure) {
+          localStorage.setItem('insecure', true);
+        }
+        this.setState({ isAuthenticated: true, insecure });
+      })
+      .catch(() => {});
   }
 
   handleLogout(e) {

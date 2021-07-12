@@ -164,3 +164,16 @@ body {
 .boolean { color: #5567ff; }
 .null { color: #ff5d58; }
 .key { color: #1F76B5; }
+
+.trace-loader { margin-left: 10px; }
+.trace-row { margin-top: 10px; }
+.trace-row-time { color: rgb(114, 114, 114); }
+.trace-row-value {
+    border-radius: 5px; 
+    -moz-border-radius: 5px; 
+    -webkit-border-radius: 5px; 
+    border: 1px solid #BCBEC0;
+    padding: 2px;
+    font:12px Monaco,Consolas,"Andale  Mono","DejaVu Sans Mono",monospace;
+    user-select: all;
+}

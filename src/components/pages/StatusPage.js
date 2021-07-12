@@ -1,7 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
 import React from 'react';
 import PropTypes from 'prop-types';
-import { SortByKey, HumanSeconds } from '../functions/Functions';
+import { SortByKey, HumanSeconds, HumanSize } from '../functions/Functions';
 
 // eslint-disable-next-line react/prefer-stateless-function
 export default class StatusPage extends React.Component {
@@ -40,6 +40,8 @@ export default class StatusPage extends React.Component {
                   <th title="Total active channels on node">Channels</th>
                   <th title="Total connected clients on node">Clients</th>
                   <th title="Total unique clients on node">Users</th>
+                  <th title="Node CPU usage">CPU %</th>
+                  <th title="Node RSS memory usage">RSS</th>
                 </tr>
               </thead>
               <tbody id="node-info">
@@ -77,6 +79,7 @@ class NodeRow extends React.Component {
     const {
       name, version, uptime, num_channels: numChannels,
       num_clients: numClients, num_users: numUsers,
+      process,
     } = node;
 
     return (
@@ -87,6 +90,8 @@ class NodeRow extends React.Component {
         <td>{numChannels}</td>
         <td>{numClients}</td>
         <td>{numUsers}</td>
+        <td>{process ? (process.cpu || 0).toFixed(1) : 'n/a'}</td>
+        <td>{process ? HumanSize(process.rss) : 'n/a'}</td>
       </tr>
     );
   }
