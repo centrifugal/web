@@ -114,6 +114,8 @@ export default class ActionsPage extends React.Component {
       paramsForm = <UnsubscribeForm ref={this.paramsRef} />;
     } else if (method === 'disconnect') {
       paramsForm = <DisconnectForm ref={this.paramsRef} />;
+    } else if (method === 'refresh') {
+      paramsForm = <RefreshForm ref={this.paramsRef} />;
     }
 
     return (
@@ -133,6 +135,7 @@ export default class ActionsPage extends React.Component {
               <option value="subscribe">subscribe</option>
               <option value="unsubscribe">unsubscribe</option>
               <option value="disconnect">disconnect</option>
+              <option value="refresh">refresh</option>
               <option value="info">info</option>
               <option value="rpc">rpc</option>
             </select>
@@ -619,6 +622,70 @@ class DisconnectForm extends React.Component {
         <div className="form-group">
           User ID
           <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class RefreshForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.onExpireAtChange = this.onExpireAtChange.bind(this);
+    this.onClientChange = this.onClientChange.bind(this);
+    this.state = {
+      user: '',
+      expireAt: 0,
+      client: '',
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  onExpireAtChange(e) {
+    this.setState({ expireAt: e.target.value });
+  }
+
+  onClientChange(e) {
+    this.setState({ client: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    const expireAt = parseInt(this.state.expireAt, 10);
+    if (!Number.isInteger(expireAt)) {
+      return { error: 'Invalid expire at value' };
+    }
+    const client = this.state.client;
+    return {
+      params: {
+        user,
+        expire_at: expireAt,
+        client,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+        <div className="form-group">
+          Expire At (Unix seconds, zero value means no expiration)
+          <input type="text" onChange={this.onExpireAtChange} autoComplete="off" className="form-control" name="expire_at" id="expire_at" />
+        </div>
+        <div className="form-group">
+          Client
+          <input type="text" onChange={this.onClientChange} autoComplete="off" className="form-control" name="client" id="client" />
         </div>
       </div>
     );
