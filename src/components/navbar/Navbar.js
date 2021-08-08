@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 const classNames = require('classnames');
 
 // eslint-disable-next-line react/prefer-stateless-function
-export default class Header extends React.Component {
+export default class Navbar extends React.Component {
   render() {
     const { insecure } = this.props;
     const { handleLogout } = this.props;
@@ -13,7 +13,9 @@ export default class Header extends React.Component {
     return (
       <nav className="navbar navbar-expand-lg navbar-light">
         <a className="navbar-brand" href="/">
-                    Centrifugo
+          <img src="favicon.png" width="30" height="30" className="d-inline-block align-top" alt="" />
+          &nbsp;
+          Centrifugo
         </a>
         <button className="navbar-toggler" type="button" data-toggle="collapse" data-target="#menu">
           <span className="navbar-toggler-icon" />
@@ -26,7 +28,7 @@ export default class Header extends React.Component {
                 <NavLink to="/" activeClassName="menu selected" exact>
                   <i className="fa fa-signal" />
                   {' '}
-STATUS
+                  STATUS
                 </NavLink>
               </div>
             </li>
@@ -35,7 +37,16 @@ STATUS
                 <NavLink to="/actions" activeClassName="menu selected">
                   <i className="fa fa-fire" />
                   {' '}
-ACTIONS
+                  ACTIONS
+                </NavLink>
+              </div>
+            </li>
+            <li className="nav-item">
+              <div className="nav-link">
+                <NavLink to="/namespaces" activeClassName="menu selected">
+                  <i className="fa fa-database" />
+                  {' '}
+                  NAMESPACES
                 </NavLink>
               </div>
             </li>
@@ -44,7 +55,7 @@ ACTIONS
                 <NavLink to="/tracing" activeClassName="menu selected">
                   <i className="fa fa-play" />
                   {' '}
-TRACING
+                  TRACING
                 </NavLink>
               </div>
             </li>
@@ -60,7 +71,7 @@ TRACING
   }
 }
 
-Header.propTypes = {
+Navbar.propTypes = {
   handleLogout: PropTypes.func.isRequired,
   insecure: PropTypes.bool.isRequired,
 };

@@ -4,9 +4,10 @@ import {
 } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-import Header from '../header/Header';
+import Navbar from '../navbar/Navbar';
 import StatusPage from '../pages/StatusPage';
 import ActionsPage from '../pages/ActionsPage';
+import NamespacesPage from '../pages/NamespacesPage';
 import TracingPage from '../pages/TracingPage';
 
 const $ = require('jquery');
@@ -121,10 +122,11 @@ export default class AppRouter extends React.Component {
     return (
       <HashRouter>
         <div>
-          <Header insecure={insecure} handleLogout={handleLogout} />
+          <Navbar insecure={insecure} handleLogout={handleLogout} />
           <Switch>
             <Route path="/" render={() => <StatusPage nodes={nodes} nodeCount={nodeCount} />} exact />
             <Route path="/actions" render={() => <ActionsPage loading={loading} actionRequest={actionRequest} actionResponse={actionResponse} sendAction={this.sendAction} />} />
+            <Route path="/namespaces" render={() => <NamespacesPage />} />
             <Route path="/tracing" render={() => <TracingPage />} />
             <Redirect to="/" />
           </Switch>

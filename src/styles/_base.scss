@@ -6,6 +6,13 @@ body {
     font-family: $font-family;
     height: 100%;
 }
+div.collapsed p {
+    margin-bottom: 0.5rem;
+}
+.badge {
+    font-weight: 400;
+    padding: .5em .8em;
+}
 #app {
     height: 100%;
 }
