@@ -4,9 +4,21 @@
   "env": {
     "browser": true
   },
+  "plugins": ["react"],
   "rules": {
+    "react/prefer-stateless-function": 0,
     "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
     "react/no-danger": 0,
-    "jsx-a11y/anchor-is-valid": 0
+    "jsx-a11y/anchor-is-valid": 0,
+    "no-console": 0,
+    "arrow-body-style": 0,
+    "prefer-template": 0,
+    "max-classes-per-file": 0,
+    "max-len": 0,
+    "class-methods-use-this": 0,
+    "prefer-destructuring": 0,
+    "react/destructuring-assignment": 0,
+    "no-alert": 0,
+    "react/prop-types": 0
   }
 }
