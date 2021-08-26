@@ -184,3 +184,6 @@ div.collapsed p {
     font:12px Monaco,Consolas,"Andale  Mono","DejaVu Sans Mono",monospace;
     user-select: all;
 }
+.menu.selected {
+    border-bottom: none !important;
+}

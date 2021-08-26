@@ -116,6 +116,16 @@ export default class ActionsPage extends React.Component {
       paramsForm = <DisconnectForm ref={this.paramsRef} />;
     } else if (method === 'refresh') {
       paramsForm = <RefreshForm ref={this.paramsRef} />;
+    } else if (method === 'channels') {
+      paramsForm = <ChannelsForm ref={this.paramsRef} />;
+    } else if (method === 'update_user_status') {
+      paramsForm = <UpdateUserStatusForm ref={this.paramsRef} />;
+    } else if (method === 'get_user_status') {
+      paramsForm = <GetUserStatusForm ref={this.paramsRef} />;
+    } else if (method === 'delete_user_status') {
+      paramsForm = <DeleteUserStatusForm ref={this.paramsRef} />;
+    } else if (method === 'user_connections') {
+      paramsForm = <UserConnectionsForm ref={this.paramsRef} />;
     }
 
     return (
@@ -138,6 +148,12 @@ export default class ActionsPage extends React.Component {
               <option value="refresh">refresh</option>
               <option value="info">info</option>
               <option value="rpc">rpc</option>
+              <option value="channels">channels</option>
+              <option disabled>---PRO methods---</option>
+              <option value="user_connections">user connections</option>
+              <option value="update_user_status">update user status</option>
+              <option value="get_user_status">get user status</option>
+              <option value="delete_user_status">delete user status</option>
             </select>
           </div>
           {paramsForm}
@@ -298,11 +314,11 @@ class BroadcastForm extends React.Component {
     return (
       <div>
         <div className="form-group">
-            Channels (SPACE separated)
+          Channels (SPACE separated)
           <input type="text" onChange={this.onChannelsChange} autoComplete="off" className="form-control" name="channels" id="channels" />
         </div>
         <div className="form-group">
-            Data
+          Data
           <AceEditor
             mode="json"
             theme="monokai"
@@ -686,6 +702,179 @@ class RefreshForm extends React.Component {
         <div className="form-group">
           Client
           <input type="text" onChange={this.onClientChange} autoComplete="off" className="form-control" name="client" id="client" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class ChannelsForm extends React.Component {
+  constructor() {
+    super();
+    this.onPatternChange = this.onPatternChange.bind(this);
+    this.state = {
+      pattern: '',
+    };
+  }
+
+  onPatternChange(e) {
+    this.setState({ pattern: e.target.value });
+  }
+
+  getParams() {
+    const pattern = this.state.pattern;
+    return {
+      params: {
+        pattern,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Pattern
+          <input type="text" onChange={this.onPatternChange} autoComplete="off" className="form-control" name="pattern" id="pattern" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class UpdateUserStatusForm extends React.Component {
+  constructor() {
+    super();
+    this.onUsersChange = this.onUsersChange.bind(this);
+    this.state = {
+      users: [],
+    };
+  }
+
+  onUsersChange(e) {
+    this.setState({ users: e.target.value.split(' ') });
+  }
+
+  getParams() {
+    const users = this.state.users;
+    return {
+      params: {
+        users,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Users (SPACE separated)
+          <input type="text" onChange={this.onUsersChange} autoComplete="off" className="form-control" name="users" id="users" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class GetUserStatusForm extends React.Component {
+  constructor() {
+    super();
+    this.onUsersChange = this.onUsersChange.bind(this);
+    this.state = {
+      users: [],
+    };
+  }
+
+  onUsersChange(e) {
+    this.setState({ users: e.target.value.split(' ') });
+  }
+
+  getParams() {
+    const users = this.state.users;
+    return {
+      params: {
+        users,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Users (SPACE separated)
+          <input type="text" onChange={this.onUsersChange} autoComplete="off" className="form-control" name="users" id="users" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class DeleteUserStatusForm extends React.Component {
+  constructor() {
+    super();
+    this.onUsersChange = this.onUsersChange.bind(this);
+    this.state = {
+      users: [],
+    };
+  }
+
+  onUsersChange(e) {
+    this.setState({ users: e.target.value.split(' ') });
+  }
+
+  getParams() {
+    const users = this.state.users;
+    return {
+      params: {
+        users,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Users (SPACE separated)
+          <input type="text" onChange={this.onUsersChange} autoComplete="off" className="form-control" name="users" id="users" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class UserConnectionsForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      user: '',
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    return {
+      params: {
+        user,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
         </div>
       </div>
     );

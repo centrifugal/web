@@ -36,7 +36,7 @@ export default class NamespacesPage extends React.Component {
       .then((items) => this.setState({ items }))
       .catch((err) => {
         if (err.message === '404') {
-          this.setState({ error: 'Database namespace configuration disabled (Centrifugo PRO only)' });
+          this.setState({ error: 'Database namespace configuration disabled' });
           return;
         }
         console.log(err);

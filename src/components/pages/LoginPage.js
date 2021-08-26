@@ -165,10 +165,10 @@ function drawLogo(ctx, canvasWidth, canvasHeight) {
   const lw = radius / 16;
 
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
-  || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
-  || function requestAnimationFrame(cb) {
-    setTimeout(cb, 17);
-  };
+    || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+    || function requestAnimationFrame(cb) {
+      setTimeout(cb, 17);
+    };
 
   for (let i = 0; i < linesNum; i += 1) {
     const line = new Line(ctx, X, Y, rand(0, X), rand(0, Y), lineColor);
@@ -275,7 +275,7 @@ export default class LoginPage extends React.Component {
                   <button type="submit" onFocus={this.inputFocus.bind(this)} onBlur={this.inputBlur.bind(this)} className="btn btn-success login-submit">
                     <i className="fa fa-sign-in-alt" />
                     {' '}
-Log In
+                    Log In
                   </button>
                 </form>
               </div>
