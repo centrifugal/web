@@ -43,15 +43,6 @@ export default class Navbar extends React.Component {
             </li>
             <li className="nav-item">
               <div className="nav-link">
-                <NavLink to="/namespaces" activeClassName="menu selected">
-                  <i className="fa fa-database" />
-                  {' '}
-                  NAMESPACES
-                </NavLink>
-              </div>
-            </li>
-            <li className="nav-item">
-              <div className="nav-link">
                 <NavLink to="/tracing" activeClassName="menu selected">
                   <i className="fa fa-play" />
                   {' '}
