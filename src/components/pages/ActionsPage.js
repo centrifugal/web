@@ -126,6 +126,14 @@ export default class ActionsPage extends React.Component {
       paramsForm = <DeleteUserStatusForm ref={this.paramsRef} />;
     } else if (method === 'user_connections') {
       paramsForm = <UserConnectionsForm ref={this.paramsRef} />;
+    } else if (method === 'block_user') {
+      paramsForm = <BlockUserForm ref={this.paramsRef} />;
+    } else if (method === 'unblock_user') {
+      paramsForm = <UnblockUserForm ref={this.paramsRef} />;
+    } else if (method === 'revoke_token') {
+      paramsForm = <RevokeTokenForm ref={this.paramsRef} />;
+    } else if (method === 'invalidate_user_tokens') {
+      paramsForm = <InvalidateUserTokensForm ref={this.paramsRef} />;
     }
 
     return (
@@ -154,6 +162,10 @@ export default class ActionsPage extends React.Component {
               <option value="update_user_status">update user status</option>
               <option value="get_user_status">get user status</option>
               <option value="delete_user_status">delete user status</option>
+              <option value="block_user">block user</option>
+              <option value="unblock_user">unblock user</option>
+              <option value="revoke_token">revoke token</option>
+              <option value="invalidate_user_tokens">invalidate user tokens</option>
             </select>
           </div>
           {paramsForm}
@@ -875,6 +887,222 @@ class UserConnectionsForm extends React.Component {
         <div className="form-group">
           User ID
           <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class BlockUserForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.onExpireAtChange = this.onExpireAtChange.bind(this);
+    this.state = {
+      user: '',
+      expireAt: 0,
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  onExpireAtChange(e) {
+    this.setState({ expireAt: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    let expireAt;
+    try {
+      expireAt = parseInt(this.state.expireAt, 10);
+    } catch (e) {
+      return { error: 'Malformed expire_at' };
+    }
+    return {
+      params: {
+        user,
+        expire_at: expireAt,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+        <div className="form-group">
+          Expire entry at (Unix seconds, zero value means no expiration and not recommended)
+          <input type="text" onChange={this.onExpireAtChange} autoComplete="off" className="form-control" name="expire_at" id="expire_at" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class UnblockUserForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.state = {
+      user: '',
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    return {
+      params: {
+        user,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class RevokeTokenForm extends React.Component {
+  constructor() {
+    super();
+    this.onUidChange = this.onUidChange.bind(this);
+    this.onExpireAtChange = this.onExpireAtChange.bind(this);
+    this.state = {
+      uid: '',
+      expireAt: 0,
+    };
+  }
+
+  onUidChange(e) {
+    this.setState({ uid: e.target.value });
+  }
+
+  onExpireAtChange(e) {
+    this.setState({ expireAt: e.target.value });
+  }
+
+  getParams() {
+    const uid = this.state.uid;
+    if (!uid) {
+      return { error: 'Empty token UID' };
+    }
+    let expireAt;
+    try {
+      expireAt = parseInt(this.state.expireAt, 10);
+    } catch (e) {
+      return { error: 'Malformed expire_at' };
+    }
+    return {
+      params: {
+        uid,
+        expire_at: expireAt,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          Token ID (JTI)
+          <input type="text" onChange={this.onUidChange} autoComplete="off" className="form-control" name="uid" id="uid" />
+        </div>
+        <div className="form-group">
+          Expire entry at (Unix seconds, zero value means no expiration and not recommended)
+          <input type="text" onChange={this.onExpireAtChange} autoComplete="off" className="form-control" name="expire_at" id="expire_at" />
+        </div>
+      </div>
+    );
+  }
+}
+
+class InvalidateUserTokensForm extends React.Component {
+  constructor() {
+    super();
+    this.onUserChange = this.onUserChange.bind(this);
+    this.onIssuedBeforeChange = this.onIssuedBeforeChange.bind(this);
+    this.onExpireAtChange = this.onExpireAtChange.bind(this);
+    this.state = {
+      user: '',
+      issuedBefore: Math.round((new Date()).getTime() / 1000),
+      expireAt: 0,
+    };
+  }
+
+  onUserChange(e) {
+    this.setState({ user: e.target.value });
+  }
+
+  onIssuedBeforeChange(e) {
+    this.setState({ issuedBefore: e.target.value });
+  }
+
+  onExpireAtChange(e) {
+    this.setState({ expireAt: e.target.value });
+  }
+
+  getParams() {
+    const user = this.state.user;
+    if (!user) {
+      return { error: 'Empty user ID' };
+    }
+    let issuedBefore;
+    try {
+      issuedBefore = parseInt(this.state.issuedBefore, 10);
+    } catch (e) {
+      return { error: 'Malformed issued_before' };
+    }
+    let expireAt;
+    try {
+      expireAt = parseInt(this.state.expireAt, 10);
+    } catch (e) {
+      return { error: 'Malformed expire_at' };
+    }
+    return {
+      params: {
+        user,
+        issued_before: issuedBefore,
+        expire_at: expireAt,
+      },
+    };
+  }
+
+  render() {
+    return (
+      <div>
+        <div className="form-group">
+          User ID
+          <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+        <div className="form-group">
+          All tokens issued before (Unix seconds)
+          <input type="text" onChange={this.onIssuedBeforeChange} autoComplete="off" className="form-control" name="issued_before" id="issued_before" value={this.state.issuedBefore} />
+        </div>
+        <div className="form-group">
+          Expire entry at (Unix seconds, zero value means no expiration and not recommended)
+          <input type="text" onChange={this.onExpireAtChange} autoComplete="off" className="form-control" name="expire_at" id="expire_at" />
         </div>
       </div>
     );
