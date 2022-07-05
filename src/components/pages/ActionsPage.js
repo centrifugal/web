@@ -124,7 +124,7 @@ export default class ActionsPage extends React.Component {
       paramsForm = <GetUserStatusForm ref={this.paramsRef} />;
     } else if (method === 'delete_user_status') {
       paramsForm = <DeleteUserStatusForm ref={this.paramsRef} />;
-    } else if (method === 'user_connections') {
+    } else if (method === 'connections') {
       paramsForm = <UserConnectionsForm ref={this.paramsRef} />;
     } else if (method === 'block_user') {
       paramsForm = <BlockUserForm ref={this.paramsRef} />;
@@ -158,7 +158,7 @@ export default class ActionsPage extends React.Component {
               <option value="rpc">rpc</option>
               <option value="channels">channels</option>
               <option disabled>---PRO methods---</option>
-              <option value="user_connections">user connections</option>
+              <option value="connections">connections</option>
               <option value="update_user_status">update user status</option>
               <option value="get_user_status">get user status</option>
               <option value="delete_user_status">delete user status</option>
@@ -860,8 +860,10 @@ class UserConnectionsForm extends React.Component {
   constructor() {
     super();
     this.onUserChange = this.onUserChange.bind(this);
+    this.onExpressionChange = this.onExpressionChange.bind(this);
     this.state = {
       user: '',
+      expression: '',
     };
   }
 
@@ -869,14 +871,20 @@ class UserConnectionsForm extends React.Component {
     this.setState({ user: e.target.value });
   }
 
+  onExpressionChange(e) {
+    this.setState({ expression: e.target.value });
+  }
+
   getParams() {
     const user = this.state.user;
-    if (!user) {
-      return { error: 'Empty user ID' };
+    const expression = this.state.expression;
+    if (!user && !expression) {
+      return { error: 'user ID or expression required' };
     }
     return {
       params: {
         user,
+        expression,
       },
     };
   }
@@ -887,6 +895,10 @@ class UserConnectionsForm extends React.Component {
         <div className="form-group">
           User ID
           <input type="text" onChange={this.onUserChange} autoComplete="off" className="form-control" name="user" id="user" />
+        </div>
+        <div className="form-group">
+          CEL Expression
+          <input type="text" onChange={this.onExpressionChange} autoComplete="off" className="form-control" name="expression" id="expression" />
         </div>
       </div>
     );
