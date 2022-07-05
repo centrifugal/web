@@ -1,6 +1,6 @@
 Centrifugo admin web interface.
 
-To develop:
+To develop (**requires Node v14**):
 
 ```
 npm i
