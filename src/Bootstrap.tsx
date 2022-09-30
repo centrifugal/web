@@ -1,0 +1,126 @@
+import { useEffect, useState } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { v4 as uuid } from 'uuid'
+import localforage from 'localforage'
+
+import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
+import { StorageContext } from 'contexts/StorageContext'
+import { SettingsContext } from 'contexts/SettingsContext'
+import { routes } from 'config/routes'
+import { Home } from 'pages/Home'
+import { About } from 'pages/About'
+import { Settings } from 'pages/Settings'
+import { PublicRoom } from 'pages/PublicRoom'
+import { UserSettings } from 'models/settings'
+import { PersistedStorageKeys } from 'models/storage'
+import { Shell } from 'components/Shell'
+
+export interface BootstrapProps {
+  persistedStorage?: typeof localforage
+  getUuid?: typeof uuid
+}
+
+function Bootstrap({
+  persistedStorage: persistedStorageProp = localforage.createInstance({
+    name: 'chitchatter',
+    description: 'Persisted settings data for chitchatter',
+  }),
+  getUuid = uuid,
+}: BootstrapProps) {
+  const [persistedStorage] = useState(persistedStorageProp)
+  const [appNeedsUpdate, setAppNeedsUpdate] = useState(false)
+  const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
+  const [userSettings, setUserSettings] = useState<UserSettings>({
+    userId: getUuid(),
+    colorMode: 'dark',
+    playSoundOnNewMessage: true,
+    showNotificationOnNewMessage: true,
+  })
+  const { userId } = userSettings
+
+  const handleServiceWorkerUpdate = () => {
+    setAppNeedsUpdate(true)
+  }
+
+  useEffect(() => {
+    serviceWorkerRegistration.register({ onUpdate: handleServiceWorkerUpdate })
+  }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      if (hasLoadedSettings) return
+
+      const persistedUserSettings =
+        await persistedStorageProp.getItem<UserSettings>(
+          PersistedStorageKeys.USER_SETTINGS
+        )
+
+      if (persistedUserSettings) {
+        setUserSettings({ ...userSettings, ...persistedUserSettings })
+      } else {
+        await persistedStorageProp.setItem(
+          PersistedStorageKeys.USER_SETTINGS,
+          userSettings
+        )
+      }
+
+      setHasLoadedSettings(true)
+    })()
+  }, [hasLoadedSettings, persistedStorageProp, userSettings, userId])
+
+  const settingsContextValue = {
+    updateUserSettings: async (changedSettings: Partial<UserSettings>) => {
+      const newSettings = {
+        ...userSettings,
+        ...changedSettings,
+      }
+
+      await persistedStorageProp.setItem(
+        PersistedStorageKeys.USER_SETTINGS,
+        newSettings
+      )
+
+      setUserSettings(newSettings)
+    },
+    getUserSettings: () => ({ ...userSettings }),
+  }
+
+  const storageContextValue = {
+    getPersistedStorage: () => persistedStorage,
+  }
+
+  return (
+    <Router>
+      <StorageContext.Provider value={storageContextValue}>
+        <SettingsContext.Provider value={settingsContextValue}>
+          <Shell appNeedsUpdate={appNeedsUpdate} userPeerId={userId}>
+            {hasLoadedSettings ? (
+              <Routes>
+                {[routes.ROOT, routes.INDEX_HTML].map(path => (
+                  <Route
+                    key={path}
+                    path={path}
+                    element={<Home userId={userId} />}
+                  />
+                ))}
+                <Route path={routes.ABOUT} element={<About />} />
+                <Route
+                  path={routes.SETTINGS}
+                  element={<Settings userId={userId} />}
+                />
+                <Route
+                  path={routes.PUBLIC_ROOM}
+                  element={<PublicRoom userId={userId} />}
+                />
+              </Routes>
+            ) : (
+              <></>
+            )}
+          </Shell>
+        </SettingsContext.Provider>
+      </StorageContext.Provider>
+    </Router>
+  )
+}
+
+export default Bootstrap

@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+set -e
+
+npx pretty-quick --staged
+npm run lint
+CI=true npm test
