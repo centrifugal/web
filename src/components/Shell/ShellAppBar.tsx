@@ -83,7 +83,6 @@ export const ShellAppBar = ({
   title,
 }: ShellAppBarProps) => {
   const location = useLocation()
-  console.log(location)
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(

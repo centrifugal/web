@@ -26,14 +26,15 @@ export interface ShellProps extends PropsWithChildren {
   appNeedsUpdate: boolean
 }
 
-const globalUrlPrefix = window.location.pathname
+const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isInsecure, setIsInsecure] = useState(false)
+
+  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('token')? true: false)
+  const [isInsecure, setIsInsecure] = useState(localStorage.getItem('insecure') === 'true')
   const [doShowPeers, setDoShowPeers] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
   const [title, setTitle] = useState('')
@@ -147,10 +148,10 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
         Accept: 'application/json',
       },
       body: formData,
+      mode: 'cors'
     })
       .then(response => {
         if (!response.ok) {
-          setIsAuthenticated(true);
           throw Error(response.status.toString())
         }
         return response.json()
@@ -164,7 +165,9 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
         setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
-      .catch(() => {})
+      .catch((e) => {
+        console.log(e)
+      })
   }
 
   const handleLogout = function () {
