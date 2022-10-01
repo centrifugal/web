@@ -15,22 +15,25 @@ import { AlertColor } from '@mui/material/Alert'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { AlertOptions } from 'models/shell'
+import { Login } from 'pages/Login/Login'
 
-import { Drawer } from './Drawer'
 import { UpgradeDialog } from './UpgradeDialog'
 import { ShellAppBar } from './ShellAppBar'
 import { NotificationArea } from './NotificationArea'
 import { RouteContent } from './RouteContent'
 
 export interface ShellProps extends PropsWithChildren {
-  userPeerId: string
   appNeedsUpdate: boolean
 }
 
-export const Shell = ({ appNeedsUpdate, children, userPeerId }: ShellProps) => {
+const globalUrlPrefix = window.location.pathname
+
+export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [isInsecure, setIsInsecure] = useState(false)
   const [doShowPeers, setDoShowPeers] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
   const [title, setTitle] = useState('')
@@ -135,43 +138,77 @@ export const Shell = ({ appNeedsUpdate, children, userPeerId }: ShellProps) => {
     setIsDrawerOpen(false)
   }
 
+  const handleLogin = function (password: string) {
+    const formData = new FormData()
+    formData.append('password', password)
+    fetch(`${globalUrlPrefix}admin/auth`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+      },
+      body: formData,
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw Error(response.status.toString())
+        }
+        return response.json()
+      })
+      .then(data => {
+        localStorage.setItem('token', data.token)
+        const insecure = data.token === 'insecure'
+        if (insecure) {
+          localStorage.setItem('insecure', 'true')
+        }
+        setIsInsecure(insecure)
+        setIsAuthenticated(true)
+      })
+      .catch(() => {})
+  }
+
+  const handleLogout = function () {
+    delete localStorage.token
+    delete localStorage.insecure
+    setIsAuthenticated(false)
+    setIsInsecure(false)
+  }
+
   return (
     <ShellContext.Provider value={shellContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <UpgradeDialog appNeedsUpdate={appNeedsUpdate} />
-        <Box
-          className="Chitchatter"
-          sx={{
-            height: '100vh',
-            display: 'flex',
-          }}
-        >
-          <NotificationArea
-            alertSeverity={alertSeverity}
-            alertText={alertText}
-            isAlertShowing={isAlertShowing}
-            onAlertClose={handleAlertClose}
-          />
-          <ShellAppBar
-            doShowPeers={doShowPeers}
-            handleDrawerOpen={handleDrawerOpen}
-            handleLinkButtonClick={handleLinkButtonClick}
-            isDrawerOpen={isDrawerOpen}
-            numberOfPeers={numberOfPeers}
-            title={title}
-          />
-          <Drawer
-            isDrawerOpen={isDrawerOpen}
-            onAboutLinkClick={handleAboutLinkClick}
-            onDrawerClose={handleDrawerClose}
-            onHomeLinkClick={handleHomeLinkClick}
-            onSettingsLinkClick={handleSettingsLinkClick}
-            theme={theme}
-            userPeerId={userPeerId}
-          />
-          <RouteContent isDrawerOpen={isDrawerOpen}>{children}</RouteContent>
-        </Box>
+        {isAuthenticated ? (
+          <Box>
+            <NotificationArea
+              alertSeverity={alertSeverity}
+              alertText={alertText}
+              isAlertShowing={isAlertShowing}
+              onAlertClose={handleAlertClose}
+            />
+            <ShellAppBar
+              doShowPeers={doShowPeers}
+              handleDrawerOpen={handleDrawerOpen}
+              handleLinkButtonClick={handleLinkButtonClick}
+              handleLogout={handleLogout}
+              isDrawerOpen={isDrawerOpen}
+              numberOfPeers={numberOfPeers}
+              title={title}
+            />
+            {/* <Drawer
+              isDrawerOpen={isDrawerOpen}
+              onAboutLinkClick={handleAboutLinkClick}
+              onDrawerClose={handleDrawerClose}
+              onHomeLinkClick={handleHomeLinkClick}
+              onSettingsLinkClick={handleSettingsLinkClick}
+              theme={theme}
+              userId={userId}
+            /> */}
+            <RouteContent isDrawerOpen={false}>{children}</RouteContent>
+          </Box>
+        ) : (
+          <Login handleLogin={handleLogin} />
+        )}
       </ThemeProvider>
     </ShellContext.Provider>
   )

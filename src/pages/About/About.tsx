@@ -15,7 +15,7 @@ export const About = () => {
   }, [setTitle])
 
   return (
-    <Box className="max-w-3xl mx-auto p-4">
+    <Box className="max-w-8xl mx-auto p-8">
       <Typography sx={{ mb: 1 }}>
         Chitchatter is a communication tool designed to make secure and private
         communication accessible to all. Please{' '}

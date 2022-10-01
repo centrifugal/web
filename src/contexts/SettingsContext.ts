@@ -10,9 +10,8 @@ interface SettingsContextProps {
 export const SettingsContext = createContext<SettingsContextProps>({
   updateUserSettings: () => Promise.resolve(),
   getUserSettings: () => ({
-    userId: '',
-    colorMode: 'dark',
-    playSoundOnNewMessage: true,
-    showNotificationOnNewMessage: true,
+    colorMode: 'light',
+    playSoundOnNewMessage: false,
+    showNotificationOnNewMessage: false,
   }),
 })

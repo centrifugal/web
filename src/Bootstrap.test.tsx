@@ -8,8 +8,6 @@ import Bootstrap, { BootstrapProps } from './Bootstrap'
 const mockPersistedStorage =
   jest.createMockFromModule<jest.Mock<typeof localforage>>('localforage')
 
-const mockGetUuid = jest.fn()
-
 const mockGetItem = jest.fn()
 const mockSetItem = jest.fn()
 
@@ -47,13 +45,11 @@ test('checks persistedStorage for user settings', async () => {
 })
 
 test('persists user settings if none were already persisted', async () => {
-  await renderBootstrap({
-    getUuid: mockGetUuid.mockImplementation(() => 'abc123'),
-  })
+  await renderBootstrap({})
 
   expect(mockSetItem).toHaveBeenCalledWith(PersistedStorageKeys.USER_SETTINGS, {
     colorMode: 'dark',
-    userId: 'abc123',
+    userId: 'admin',
     playSoundOnNewMessage: true,
     showNotificationOnNewMessage: true,
   })

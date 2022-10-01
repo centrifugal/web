@@ -5,4 +5,6 @@ export enum routes {
   PUBLIC_ROOM = '/public/:roomId',
   ROOT = '/',
   SETTINGS = '/settings',
+  ACTIONS = '/actions',
+  TRACING = '/tracing',
 }

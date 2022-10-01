@@ -3,7 +3,6 @@ import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
 
 import { DrawerHeader } from './DrawerHeader'
-import { drawerWidth } from './Drawer'
 
 const Main = styled('main', { shouldForwardProp: prop => prop !== 'open' })<{
   open?: boolean
@@ -12,7 +11,6 @@ const Main = styled('main', { shouldForwardProp: prop => prop !== 'open' })<{
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  marginLeft: `-${drawerWidth}px`,
   ...(open && {
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.easeOut,
@@ -30,14 +28,18 @@ export const RouteContent = ({ children, isDrawerOpen }: RouteContentProps) => {
   return (
     <Main
       open={isDrawerOpen}
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: '100%',
-      }}
+      // sx={{
+      //   display: 'flex',
+      //   flexDirection: 'column',
+      //   width: '100%',
+      // }}
     >
-      <DrawerHeader />
-      <Box sx={{ overflow: 'auto', flexGrow: 1 }}>{children}</Box>
+      {/* <DrawerHeader /> */}
+      <Box
+      // sx={{ overflow: 'auto', flexGrow: 1 }}
+      >
+        {children}
+      </Box>
     </Main>
   )
 }

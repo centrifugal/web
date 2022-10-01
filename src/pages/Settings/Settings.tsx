@@ -10,19 +10,18 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import { NotificationService } from 'services/Notification'
 import { ShellContext } from 'contexts/ShellContext'
 import { StorageContext } from 'contexts/StorageContext'
-import { PeerNameDisplay } from 'components/PeerNameDisplay'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SettingsContext } from '../../contexts/SettingsContext'
 
-interface SettingsProps {
-  userId: string
-}
+interface SettingsProps {}
 
-export const Settings = ({ userId }: SettingsProps) => {
+export const Settings = ({}: SettingsProps) => {
   const { setTitle } = useContext(ShellContext)
   const { updateUserSettings, getUserSettings } = useContext(SettingsContext)
   const { getPersistedStorage } = useContext(StorageContext)
+  const settingsContext = useContext(SettingsContext)
+  const colorMode = settingsContext.getUserSettings().colorMode
   const [
     isDeleteSettingsConfirmDiaglogOpen,
     setIsDeleteSettingsConfirmDiaglogOpen,
@@ -30,6 +29,11 @@ export const Settings = ({ userId }: SettingsProps) => {
   const [, setIsNotificationPermissionDetermined] = useState(false)
   const { playSoundOnNewMessage, showNotificationOnNewMessage } =
     getUserSettings()
+
+  const handleColorModeToggleClick = () => {
+    const newMode = colorMode === 'light' ? 'dark' : 'light'
+    settingsContext.updateUserSettings({ colorMode: newMode })
+  }
 
   const persistedStorage = getPersistedStorage()
 
@@ -74,7 +78,7 @@ export const Settings = ({ userId }: SettingsProps) => {
     window.location.reload()
   }
 
-  const areNotificationsAvailable = NotificationService.permission === 'granted'
+  // const areNotificationsAvailable = NotificationService.permission === 'granted'
 
   return (
     <Box className="max-w-3xl mx-auto p-4">
@@ -86,30 +90,17 @@ export const Settings = ({ userId }: SettingsProps) => {
           mb: 2,
         })}
       >
-        Chat
+        Settings
       </Typography>
-      <Typography>When a message is received in the background:</Typography>
       <FormGroup>
         <FormControlLabel
           control={
             <Switch
-              checked={playSoundOnNewMessage}
-              onChange={handlePlaySoundOnNewMessageChange}
+              checked={colorMode === 'dark'}
+              onChange={handleColorModeToggleClick}
             />
           }
-          label="Play a sound"
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={
-                areNotificationsAvailable && showNotificationOnNewMessage
-              }
-              onChange={handleShowNotificationOnNewMessageChange}
-              disabled={!areNotificationsAvailable}
-            />
-          }
-          label="Show a notification"
+          label="Enable dark theme"
         />
       </FormGroup>
       <Divider sx={{ my: 2 }} />
@@ -133,26 +124,6 @@ export const Settings = ({ userId }: SettingsProps) => {
       >
         Delete all settings data
       </Typography>
-      <Typography
-        variant="body1"
-        sx={_theme => ({
-          mb: 2,
-        })}
-      >
-        <strong>Be careful with this</strong>. This will cause your user name to
-        change from{' '}
-        <strong>
-          <PeerNameDisplay
-            sx={theme => ({
-              fontWeight: theme.typography.fontWeightMedium,
-            })}
-          >
-            {userId}
-          </PeerNameDisplay>
-        </strong>{' '}
-        to a new, randomly-assigned name. It will also reset all of your saved
-        Chitchatter application preferences.
-      </Typography>
       <Button
         variant="outlined"
         color="error"
@@ -174,9 +145,8 @@ export const Settings = ({ userId }: SettingsProps) => {
           mb: 2,
         })}
       >
-        Chitchatter only stores user preferences and never message content of
-        any kind. This preference data is only stored locally on your device and
-        not a server.
+        Centrifugo admin panel only stores user preferences data locally on your
+        device and not a server.
       </Typography>
       <Divider sx={{ my: 2 }} />
     </Box>

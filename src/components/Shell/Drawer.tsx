@@ -20,7 +20,6 @@ import Brightness7Icon from '@mui/icons-material/Brightness7'
 
 import { routes } from 'config/routes'
 import { SettingsContext } from 'contexts/SettingsContext'
-import { PeerNameDisplay } from 'components/PeerNameDisplay'
 
 import { DrawerHeader } from './DrawerHeader'
 
@@ -33,7 +32,7 @@ export interface DrawerProps extends PropsWithChildren {
   onHomeLinkClick: () => void
   onSettingsLinkClick: () => void
   theme: Theme
-  userPeerId: string
+  userId: string
 }
 
 export const Drawer = ({
@@ -43,7 +42,7 @@ export const Drawer = ({
   onHomeLinkClick,
   onSettingsLinkClick,
   theme,
-  userPeerId,
+  userId,
 }: DrawerProps) => {
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
@@ -84,10 +83,7 @@ export const Drawer = ({
           }}
           primary={
             <Typography>
-              Your user name:{' '}
-              <PeerNameDisplay sx={{ fontWeight: 'bold' }}>
-                {userPeerId}
-              </PeerNameDisplay>
+              Your user name: <Typography component="span">{userId}</Typography>
             </Typography>
           }
         />

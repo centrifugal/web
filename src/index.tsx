@@ -1,5 +1,4 @@
 import ReactDOM from 'react-dom/client'
-import 'typeface-roboto'
 
 import 'index.sass'
 import Bootstrap from 'Bootstrap'
