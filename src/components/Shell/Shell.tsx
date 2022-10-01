@@ -32,7 +32,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isInsecure, setIsInsecure] = useState(false)
   const [doShowPeers, setDoShowPeers] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
@@ -150,6 +150,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
     })
       .then(response => {
         if (!response.ok) {
+          setIsAuthenticated(true);
           throw Error(response.status.toString())
         }
         return response.json()
