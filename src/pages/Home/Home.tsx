@@ -119,7 +119,7 @@ export function Home({handleLogout}: HomeProps) {
 
   return (
     <Box className="max-w-8xl mx-auto p-8">
-      <Typography variant='h5' sx={{ mb: 1 }}>Nodes running: <Chip label={numNodes} sx={{fontSize: '1em'}} />. Total clients: <Chip label={numConns} sx={{fontSize: '1em'}} /></Typography>
+      <Typography variant='h5' sx={{ mb: 1 }}>Nodes running: <Chip label={numNodes} sx={{fontSize: '1em'}} />{' '}Total clients: <Chip label={numConns} sx={{fontSize: '1em'}} /></Typography>
       <TableContainer sx={{ mt: 4 }} component={Paper}>
       <Table aria-label="simple table">
         <TableHead>

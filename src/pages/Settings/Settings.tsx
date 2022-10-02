@@ -81,12 +81,10 @@ export const Settings = ({}: SettingsProps) => {
   // const areNotificationsAvailable = NotificationService.permission === 'granted'
 
   return (
-    <Box className="max-w-3xl mx-auto p-4">
+    <Box className="max-w-8xl p-8">
       <Typography
-        variant="h2"
+        variant="h4"
         sx={theme => ({
-          fontSize: theme.typography.h3.fontSize,
-          fontWeight: theme.typography.fontWeightMedium,
           mb: 2,
         })}
       >
@@ -105,10 +103,8 @@ export const Settings = ({}: SettingsProps) => {
       </FormGroup>
       <Divider sx={{ my: 2 }} />
       <Typography
-        variant="h2"
+        variant="h4"
         sx={theme => ({
-          fontSize: theme.typography.h3.fontSize,
-          fontWeight: theme.typography.fontWeightMedium,
           mb: 2,
         })}
       >
