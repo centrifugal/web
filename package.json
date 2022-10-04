@@ -19,7 +19,7 @@
     "ace-builds": "^1.11.2",
     "classnames": "^2.3.1",
     "fast-memoize": "^2.5.2",
-    "filtrex": "github:m93a/filtrex#54e69a7fde0ab23a4b0cffb1179d6d1963c01239",
+    "filtrex": "^2.2.3",
     "fun-animal-names": "^0.1.1",
     "localforage": "^1.10.0",
     "react": "^18.2.0",

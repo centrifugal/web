@@ -89,18 +89,25 @@ function Bootstrap({
     <Router>
       <StorageContext.Provider value={storageContextValue}>
         <SettingsContext.Provider value={settingsContextValue}>
-        {hasLoadedSettings? (
-          <Shell appNeedsUpdate={appNeedsUpdate}>
-            <Routes>
-              {[routes.ROOT, routes.INDEX_HTML].map(path => (
-                <Route key={path} path={path} element={<Home handleLogout={()=>{}} />} />
-              ))}
-              <Route path={routes.SETTINGS} element={<Settings />} />
-              <Route path={routes.ACTIONS} element={<Actions />} />
-              <Route path={routes.TRACING} element={<Tracing />} />
-              <Route path={routes.ABOUT} element={<About />} />
-            </Routes>
-          </Shell>
+          {hasLoadedSettings ? (
+            <Shell appNeedsUpdate={appNeedsUpdate}>
+              <Routes>
+                {[routes.ROOT, routes.INDEX_HTML].map(path => (
+                  <Route
+                    key={path}
+                    path={path}
+                    element={<Home handleLogout={() => {}} />}
+                  />
+                ))}
+                <Route path={routes.SETTINGS} element={<Settings />} />
+                <Route
+                  path={routes.ACTIONS}
+                  element={<Actions handleLogout={() => {}} />}
+                />
+                <Route path={routes.TRACING} element={<Tracing />} />
+                <Route path={routes.ABOUT} element={<About />} />
+              </Routes>
+            </Shell>
           ) : (
             <></>
           )}

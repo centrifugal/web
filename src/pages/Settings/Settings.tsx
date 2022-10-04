@@ -37,15 +37,15 @@ export const Settings = ({}: SettingsProps) => {
 
   const persistedStorage = getPersistedStorage()
 
-  useEffect(() => {
-    ;(async () => {
-      await NotificationService.requestPermission()
+  // useEffect(() => {
+  //   ;(async () => {
+  //     await NotificationService.requestPermission()
 
-      // This state needs to be set to cause a rerender so that
-      // areNotificationsAvailable is up-to-date.
-      setIsNotificationPermissionDetermined(true)
-    })()
-  }, [])
+  //     // This state needs to be set to cause a rerender so that
+  //     // areNotificationsAvailable is up-to-date.
+  //     setIsNotificationPermissionDetermined(true)
+  //   })()
+  // }, [])
 
   useEffect(() => {
     setTitle('Settings')

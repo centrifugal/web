@@ -31,10 +31,12 @@ const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-
-  const [isAuthenticated, setIsAuthenticated] = useState(localStorage.getItem('token')? true: false)
-  const [isInsecure, setIsInsecure] = useState(localStorage.getItem('insecure') === 'true')
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    localStorage.getItem('token') ? true : false
+  )
+  const [isInsecure, setIsInsecure] = useState(
+    localStorage.getItem('insecure') === 'true'
+  )
   const [doShowPeers, setDoShowPeers] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
   const [title, setTitle] = useState('')
@@ -111,34 +113,6 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
     }
   }, [])
 
-  const handleDrawerOpen = () => {
-    setIsDrawerOpen(true)
-  }
-
-  const handleLinkButtonClick = async () => {
-    await navigator.clipboard.writeText(window.location.href)
-
-    shellContextValue.showAlert('Current URL copied to clipboard', {
-      severity: 'success',
-    })
-  }
-
-  const handleDrawerClose = () => {
-    setIsDrawerOpen(false)
-  }
-
-  const handleHomeLinkClick = () => {
-    setIsDrawerOpen(false)
-  }
-
-  const handleAboutLinkClick = () => {
-    setIsDrawerOpen(false)
-  }
-
-  const handleSettingsLinkClick = () => {
-    setIsDrawerOpen(false)
-  }
-
   const handleLogin = function (password: string) {
     const formData = new FormData()
     formData.append('password', password)
@@ -148,7 +122,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
         Accept: 'application/json',
       },
       body: formData,
-      mode: 'cors'
+      mode: 'cors',
     })
       .then(response => {
         if (!response.ok) {
@@ -165,7 +139,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
         setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
-      .catch((e) => {
+      .catch(e => {
         console.log(e)
       })
   }
@@ -190,24 +164,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
               isAlertShowing={isAlertShowing}
               onAlertClose={handleAlertClose}
             />
-            <ShellAppBar
-              doShowPeers={doShowPeers}
-              handleDrawerOpen={handleDrawerOpen}
-              handleLinkButtonClick={handleLinkButtonClick}
-              handleLogout={handleLogout}
-              isDrawerOpen={isDrawerOpen}
-              numberOfPeers={numberOfPeers}
-              title={title}
-            />
-            {/* <Drawer
-              isDrawerOpen={isDrawerOpen}
-              onAboutLinkClick={handleAboutLinkClick}
-              onDrawerClose={handleDrawerClose}
-              onHomeLinkClick={handleHomeLinkClick}
-              onSettingsLinkClick={handleSettingsLinkClick}
-              theme={theme}
-              userId={userId}
-            /> */}
+            <ShellAppBar handleLogout={handleLogout} title={title} />
             <RouteContent isDrawerOpen={false}>{children}</RouteContent>
           </Box>
         ) : (

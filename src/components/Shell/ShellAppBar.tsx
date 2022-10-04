@@ -46,12 +46,7 @@ export const AppBar = styled(MuiAppBar, {
 }))
 
 interface ShellAppBarProps {
-  doShowPeers: boolean
-  handleDrawerOpen: () => void
-  handleLinkButtonClick: () => Promise<void>
   handleLogout: () => void
-  isDrawerOpen: boolean
-  numberOfPeers: number
   title: string
 }
 
@@ -59,29 +54,24 @@ const pages = [
   {
     name: 'Status',
     icon: SignalCellularAltIcon,
+    iconColor: '#4caf50',
     to: routes.ROOT,
   },
   {
     name: 'Actions',
     icon: LocalFireDepartmentIcon,
+    iconColor: '#ff9800',
     to: routes.ACTIONS,
   },
   {
     name: 'Tracing',
     icon: PlayArrowIcon,
+    iconColor: '#03a9f4',
     to: routes.TRACING,
   },
 ]
 
-export const ShellAppBar = ({
-  doShowPeers,
-  handleDrawerOpen,
-  handleLinkButtonClick,
-  handleLogout,
-  isDrawerOpen,
-  numberOfPeers,
-  title,
-}: ShellAppBarProps) => {
+export const ShellAppBar = ({ handleLogout, title }: ShellAppBarProps) => {
   const location = useLocation()
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
@@ -110,7 +100,7 @@ export const ShellAppBar = ({
   }
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" color="inherit">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           <ImageListItem
@@ -215,7 +205,12 @@ export const ShellAppBar = ({
                 selected={page.to === location.pathname}
               >
                 <page.icon
-                  sx={{ lineHeight: '1em', fontSize: '1.2em', mb: '3px' }}
+                  sx={{
+                    lineHeight: '1em',
+                    fontSize: '1.2em',
+                    mb: '3px',
+                    color: page.iconColor,
+                  }}
                 />{' '}
                 {page.name}
               </MenuItem>

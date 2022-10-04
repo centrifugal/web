@@ -7,153 +7,403 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
-import Select from '@mui/material/Select'
-import LinearProgress from '@mui/material/LinearProgress';
+import Select, { SelectChangeEvent } from '@mui/material/Select'
+import LinearProgress from '@mui/material/LinearProgress'
 import { Grid } from '@mui/material'
-import { green, red } from '@mui/material/colors';
-import CircularProgress from '@mui/material/CircularProgress';
+import { green, red } from '@mui/material/colors'
+import CircularProgress from '@mui/material/CircularProgress'
+import FormGroup from '@mui/material/FormGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
+import Checkbox from '@mui/material/Checkbox'
 
-import AceEditor from "react-ace"
+import AceEditor from 'react-ace'
 
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { a11yDark, solarizedLight } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import SyntaxHighlighter from 'react-syntax-highlighter'
+import {
+  a11yDark,
+  solarizedLight,
+} from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { SettingsContext } from 'contexts/SettingsContext'
 
-import { PrettifyJson } from 'utils/Functions'
+import 'ace-builds/src-noconflict/mode-json'
+import 'ace-builds/src-noconflict/theme-monokai'
+import 'ace-builds/src-noconflict/theme-solarized_light'
+import 'ace-builds/src-noconflict/ext-language_tools'
 
-import { SettingsContext } from '../../contexts/SettingsContext'
-
-import "ace-builds/src-noconflict/mode-json"
-import "ace-builds/src-noconflict/theme-monokai"
-import "ace-builds/src-noconflict/theme-solarized_light"
-import "ace-builds/src-noconflict/ext-language_tools"
-
+const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 function onChange(newValue: any) {
-  console.log("change", newValue)
+  console.log('change', newValue)
 }
 
-export const Actions = () => {
+interface ActionsProps {
+  handleLogout: () => void
+}
+
+export const Actions = ({ handleLogout }: ActionsProps) => {
   const { setTitle } = useContext(ShellContext)
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
+  const [method, setMethod] = useState('publish')
+  const [loading, setLoading] = useState(false)
+  const [request, setRequest] = useState<any | null>(null)
+  const [response, setResponse] = useState<any | null>(null)
 
   let codeStyle = solarizedLight
   if (colorMode === 'dark') {
     codeStyle = a11yDark
   }
 
+  const sendRequest = (params: any) => {
+    setLoading(true)
+
+    const headers: any = {
+      Accept: 'application/json',
+    }
+    // const { insecure } = this.props;
+    // if (!insecure) {
+    headers.Authorization = `token ${localStorage.getItem('token')}`
+    // }
+
+    const request = {
+      method: method,
+      params: params,
+    }
+
+    setRequest(request)
+
+    fetch(`${globalUrlPrefix}admin/api`, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(request),
+      mode: 'cors',
+    })
+      .then(response => {
+        if (!response.ok) {
+          setLoading(false)
+          if (response.status === 401) {
+            handleLogout()
+            return
+          }
+          throw Error(response.status.toString())
+        }
+        return response.json()
+      })
+      .then(data => {
+        setResponse(data)
+        setLoading(false)
+      })
+      .catch(e => {
+        console.log(e)
+        setLoading(false)
+      })
+  }
+
+  const handleMethodChange = (event: SelectChangeEvent) => {
+    setMethod(event.target.value)
+    setRequest(null)
+    setResponse(null)
+    console.log(event.target.value)
+  }
+
   useEffect(() => {
     setTitle('Centrifugo | Actions')
   }, [setTitle])
 
-  return <Box className="max-w-8xl mx-auto p-8">
-    <FormControl fullWidth sx={{ }}>
-      <InputLabel htmlFor="grouped-native-select">Method</InputLabel>
-      <Select fullWidth native defaultValue="publish" label="Method">
-        <optgroup label="OSS">
-          <option value={"publish"}>Publish</option>
-          <option value={"broadcast"}>Broadcast</option>
-          <option value={"presence"}>Presence</option>
-          <option value={"presence_stats"}>Presence Stats</option>
-          <option value={"history"}>History</option>
-          <option value={"history_remove"}>History Remove</option>
-          <option value={"subscribe"}>Subscribe</option>
-          <option value={"unsubscribe"}>Unsubscribe</option>
-          <option value={"disconnect"}>Disconnect</option>
-          <option value={"refresh"}>Refresh</option>
-          <option value={"info"}>Info</option>
-          <option value={"rpc"}>RPC</option>
-          <option value={"channels"}>Channels</option>
-        </optgroup>
-        <optgroup label="PRO">
-          <option value={"connections"}>Connections</option>
-          <option value={"update_user_status"}>Update user status</option>
-          <option value={"get_user_status"}>Get user status</option>
-          <option value={"delete_user_status"}>Delete user status</option>
-          <option value={"block_user"}>Block user</option>
-          <option value={"unblock_user"}>Unblock user</option>
-          <option value={"revoke_token"}>Revoke token</option>
-          <option value={"invalidate_user_tokens"}>Invalidate user tokens</option>
-        </optgroup>
-      </Select>
-    </FormControl>
-    <PublishForm colorMode={colorMode} />
-    <Grid container spacing={2} sx={{mt: 1}}>
-      <Grid item xs={4}>
-        <Typography variant='h6'>
-          Request
-        </Typography>
-        <SyntaxHighlighter language="json" style={codeStyle}>
-          {JSON.stringify({"a": 1}, undefined, 2)}
-        </SyntaxHighlighter>
-      </Grid>
-      <Grid item xs={8}>
-        <Typography variant='h6'>
-          Response
-        </Typography>
-        <SyntaxHighlighter language="json" style={codeStyle}>
-          {JSON.stringify({"b": 1}, undefined, 2)}
-        </SyntaxHighlighter>
-      </Grid>
-    </Grid>
-  </Box>
+  let FormElem
+  if (method === 'publish') {
+    FormElem = (
+      <PublishForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'broadcast') {
+    FormElem = (
+      <BroadcastForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'presence') {
+    FormElem = (
+      <PresenceForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'presence_stats') {
+    FormElem = (
+      <PresenceStatsForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'history') {
+    FormElem = (
+      <HistoryForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'history_remove') {
+    FormElem = (
+      <HistoryRemoveForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'subscribe') {
+    FormElem = (
+      <SubscribeForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'unsubscribe') {
+    FormElem = (
+      <UnsubscribeForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'disconnect') {
+    FormElem = (
+      <DisconnectForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'info') {
+    FormElem = (
+      <InfoForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'rpc') {
+    FormElem = (
+      <RpcForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'channels') {
+    FormElem = (
+      <ChannelsForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'connections') {
+    FormElem = (
+      <ConnectionsForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else {
+    FormElem = <></>
+  }
+
+  return (
+    <Box className="max-w-8xl mx-auto p-8">
+      <FormControl fullWidth sx={{}}>
+        <InputLabel htmlFor="grouped-native-select">Method</InputLabel>
+        <Select
+          fullWidth
+          native
+          defaultValue={method}
+          label="Method"
+          onChange={handleMethodChange}
+        >
+          <optgroup label="OSS">
+            <option value={'publish'}>Publish</option>
+            <option value={'broadcast'}>Broadcast</option>
+            <option value={'presence'}>Presence</option>
+            <option value={'presence_stats'}>Presence Stats</option>
+            <option value={'history'}>History</option>
+            <option value={'history_remove'}>History Remove</option>
+            <option value={'subscribe'}>Subscribe</option>
+            <option value={'unsubscribe'}>Unsubscribe</option>
+            <option value={'disconnect'}>Disconnect</option>
+            <option value={'info'}>Info</option>
+            <option value={'rpc'}>RPC</option>
+            <option value={'channels'}>Channels</option>
+          </optgroup>
+          <optgroup label="PRO">
+            <option value={'connections'}>Connections</option>
+            <option value={'update_user_status'}>Update user status</option>
+            <option value={'get_user_status'}>Get user status</option>
+            <option value={'delete_user_status'}>Delete user status</option>
+            <option value={'block_user'}>Block user</option>
+            <option value={'unblock_user'}>Unblock user</option>
+            <option value={'revoke_token'}>Revoke token</option>
+            <option value={'invalidate_user_tokens'}>
+              Invalidate user tokens
+            </option>
+          </optgroup>
+        </Select>
+      </FormControl>
+      {FormElem}
+      {request && response ? (
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={4}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Request
+            </Typography>
+            <SyntaxHighlighter language="json" style={codeStyle}>
+              {JSON.stringify(request, undefined, 2)}
+            </SyntaxHighlighter>
+          </Grid>
+          <Grid item xs={8}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              Response{' '}
+              {!response.error ? (
+                <Box component="span" sx={{ color: green[500] }}>
+                  OK
+                </Box>
+              ) : (
+                <Box component="span" sx={{ color: red[500] }}>
+                  ERROR
+                </Box>
+              )}
+            </Typography>
+            <SyntaxHighlighter language="json" style={codeStyle}>
+              {!response.error
+                ? JSON.stringify(response.result, undefined, 2)
+                : JSON.stringify(response.error, undefined, 2)}
+            </SyntaxHighlighter>
+          </Grid>
+        </Grid>
+      ) : (
+        <></>
+      )}
+    </Box>
+  )
+}
+
+interface SubmitButtonProps {
+  loading: boolean
+  text: string
+}
+
+export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
+  // const buttonSx = {
+  //   ...(success && {
+  //     bgcolor: green[500],
+  //     '&:hover': {
+  //       bgcolor: green[700],
+  //     },
+  //   }),
+  // };
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+      <Box sx={{ position: 'relative' }}>
+        <Button
+          type="submit"
+          variant="contained"
+          // sx={buttonSx}
+          disabled={loading}
+        >
+          {text}
+        </Button>
+        {loading && (
+          <CircularProgress
+            size={24}
+            sx={{
+              color: green[500],
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              marginTop: '-12px',
+              marginLeft: '-12px',
+            }}
+          />
+        )}
+      </Box>
+    </Box>
+  )
+}
+
+interface AceFieldProps {
+  colorMode: 'light' | 'dark'
+  onChange: (value: string, event?: any) => void
+}
+
+export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
+  return (
+    <AceEditor
+      mode="json"
+      theme={colorMode === 'dark' ? 'monokai' : 'solarized_light'}
+      width="100%"
+      height="300px"
+      showGutter={false}
+      onChange={onChange}
+      name="data-editor-publish"
+      fontSize={18}
+      tabSize={2}
+      showPrintMargin={false}
+      placeholder="Data*"
+      setOptions={{
+        useWorker: false,
+      }}
+      editorProps={{ $blockScrolling: true }}
+    />
+  )
 }
 
 interface FormProps {
-  colorMode: string
+  colorMode: 'light' | 'dark'
+  loading: boolean
+  sendRequest: (req: any) => void
 }
 
-export const PublishForm = ({ colorMode }: FormProps) => {
+export const PublishForm = ({ colorMode, loading, sendRequest }: FormProps) => {
+  const { showAlert } = useContext(ShellContext)
   const [channel, setChannel] = useState('')
-  const [data, setData] = useState('')
+  const [data, setData] = useState<any | null>(null)
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
+    let jsonData
+    if (!data) {
+      showAlert('Data required', { severity: 'error' })
+      return
+    }
+    try {
+      jsonData = JSON.parse(data)
+    } catch {
+      showAlert('Invalid JSON data', { severity: 'error' })
+      return
+    }
+    sendRequest({ channel: channel, data: jsonData })
   }
 
   const onDataChange = (newValue: any) => {
-    console.log(newValue);
+    setData(newValue)
   }
 
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const timer = useRef<number>();
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(timer.current);
-    };
-  }, []);
-
-  const buttonSx = {
-    ...(success && {
-      bgcolor: green[500],
-      '&:hover': {
-        bgcolor: green[700],
-      },
-    }),
-  };
-
-  const handleButtonClick = () => {
-    if (!loading) {
-      setSuccess(false);
-      setLoading(true);
-      timer.current = window.setTimeout(() => {
-        setSuccess(true);
-        setLoading(false);
-      }, 2000);
-    }
-  };
-
-  return <Box
-    component="form"
-    onSubmit={handleFormSubmit}
-    sx={{ mt: 0 }}
-  >
-    <TextField
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
         margin="normal"
         required
         fullWidth
@@ -161,120 +411,485 @@ export const PublishForm = ({ colorMode }: FormProps) => {
         label="Channel"
         type="text"
         id="text"
-        autoComplete='off'
+        autoComplete="off"
         onChange={event => setChannel(event.target.value)}
         value={channel}
-    />
-    <AceEditor
-      mode="json"
-      theme={colorMode === 'dark'? 'monokai': 'solarized_light'}
-      width="100%"
-      height="300px"
-      showGutter={false}
-      onChange={onDataChange}
-      name="data-editor-publish"
-      fontSize={18}
-      tabSize={2}
-      showPrintMargin={false}
-      placeholder="Data*"
-      setOptions={{
-        enableLiveAutocompletion: true,
-        enableSnippets: true,
-        useWorker: false
-      }}
-      editorProps={{ $blockScrolling: true }}
-    />
-    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-      <Box sx={{ position: 'relative' }}>
-      <Button
-          type="submit"
-          variant="contained"
-          sx={buttonSx}
-          disabled={loading}
-          onClick={handleButtonClick}
-        >
-          Publish
-      </Button>
-      {loading && (
-        <CircularProgress
-          size={24}
-          sx={{
-            color: green[500],
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            marginTop: '-12px',
-            marginLeft: '-12px',
-          }}
-        />
-      )}
-      </Box>    
+      />
+      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <SubmitButton loading={loading} text="Publish" />
     </Box>
-  </Box>
+  )
 }
 
-// class PublishForm extends React.Component {
-//   constructor() {
-//     super();
-//     this.onChannelChange = this.onChannelChange.bind(this);
-//     this.onDataChange = this.onDataChange.bind(this);
-//     this.state = {
-//       channel: '',
-//       data: '',
-//     };
-//   }
+export const BroadcastForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const { showAlert } = useContext(ShellContext)
+  const [channel, setChannel] = useState('')
+  const [data, setData] = useState<any | null>(null)
 
-//   onChannelChange(e) {
-//     this.setState({ channel: e.target.value });
-//   }
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    let jsonData
+    if (!data) {
+      showAlert('Data required', { severity: 'error' })
+      return
+    }
+    try {
+      jsonData = JSON.parse(data)
+    } catch {
+      showAlert('Invalid JSON data', { severity: 'error' })
+      return
+    }
+    sendRequest({ channels: channel.split(' '), data: jsonData })
+  }
 
-//   onDataChange(value) {
-//     this.setState({ data: value });
-//   }
+  const onDataChange = (newValue: any) => {
+    setData(newValue)
+  }
 
-//   getParams() {
-//     const channel = this.state.channel;
-//     const data = this.state.data;
-//     if (!channel) {
-//       return { error: 'Empty channel' };
-//     }
-//     let dataJSON;
-//     try {
-//       dataJSON = JSON.parse(data);
-//     } catch (e) {
-//       return { error: 'Invalid data JSON' };
-//     }
-//     return {
-//       params: {
-//         channel,
-//         data: dataJSON,
-//       },
-//     };
-//   }
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channels"
+        type="text"
+        id="text"
+        helperText="Space-separated list of channels"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <SubmitButton loading={loading} text="Broadcast" />
+    </Box>
+  )
+}
 
-//   render() {
-//     return (
-//       <div>
-//         <div className="form-group">
-//           Channel
-//           <input type="text" onChange={this.onChannelChange} autoComplete="off" className="form-control" name="channel" id="channel" />
-//         </div>
-//         <div className="form-group">
-//           Data
-//           <AceEditor
-//             mode="json"
-//             theme="monokai"
-//             onChange={this.onDataChange}
-//             name="data-editor-publish"
-//             editorProps={{ $blockScrolling: true }}
-//             width="100%"
-//             height="300px"
-//             showGutter={false}
-//             onLoad={onLoadFunction}
-//             setOptions={{ useWorker: false }}
-//           />
-//         </div>
-//       </div>
-//     );
-//   }
-// }
+export const PresenceForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [channel, setChannel] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ channel: channel })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <SubmitButton loading={loading} text="Presence" />
+    </Box>
+  )
+}
+
+export const PresenceStatsForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [channel, setChannel] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ channel: channel })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <SubmitButton loading={loading} text="Presence Stats" />
+    </Box>
+  )
+}
+
+export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
+  const [channel, setChannel] = useState('')
+  const [limit, setLimit] = useState(0)
+  const [offset, setOffset] = useState<number | null>(null)
+  const [epoch, setEpoch] = useState<string>('')
+  const [reverse, setReverse] = useState(false)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const params: any = { channel: channel, limit: limit, reverse: reverse }
+    if (offset !== null) {
+      params.since = { offset: offset, epoch: epoch }
+    }
+    sendRequest(params)
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        required
+        name="limit"
+        label="Limit"
+        type="number"
+        id="text"
+        autoComplete="off"
+        onChange={event => setLimit(parseInt(event.target.value))}
+        value={limit}
+      />
+
+      <Grid container spacing={2}>
+        <Grid item xs={6}>
+          <TextField
+            margin="normal"
+            fullWidth
+            name="offset"
+            label="Since offset"
+            type="number"
+            id="text"
+            autoComplete="off"
+            onChange={event => {
+              if (event.target.value === '') {
+                setOffset(null)
+              } else {
+                setOffset(parseInt(event.target.value))
+              }
+            }}
+            value={offset}
+          />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField
+            margin="normal"
+            fullWidth
+            name="epoch"
+            label="Since epoch"
+            type="text"
+            id="text"
+            autoComplete="off"
+            onChange={event => setEpoch(event.target.value)}
+            value={epoch}
+          />
+        </Grid>
+      </Grid>
+
+      <FormGroup>
+        <FormControlLabel
+          control={
+            <Checkbox onChange={event => setReverse(event.target.checked)} />
+          }
+          label="Reverse"
+          checked={reverse}
+        />
+      </FormGroup>
+      <SubmitButton loading={loading} text="History" />
+    </Box>
+  )
+}
+
+export const HistoryRemoveForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [channel, setChannel] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ channel: channel })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <SubmitButton loading={loading} text="History Remove" />
+    </Box>
+  )
+}
+
+export const SubscribeForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [channel, setChannel] = useState('')
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ channel: channel, user: user })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <SubmitButton loading={loading} text="Subscribe" />
+    </Box>
+  )
+}
+
+export const UnsubscribeForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [channel, setChannel] = useState('')
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ channel: channel, user: user })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="channel"
+        label="Channel"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setChannel(event.target.value)}
+        value={channel}
+      />
+      <SubmitButton loading={loading} text="Unsubscribe" />
+    </Box>
+  )
+}
+
+export const DisconnectForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ user: user })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <SubmitButton loading={loading} text="Disconnect" />
+    </Box>
+  )
+}
+
+export const InfoForm = ({ colorMode, loading, sendRequest }: FormProps) => {
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({})
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <SubmitButton loading={loading} text="Info" />
+    </Box>
+  )
+}
+
+export const ChannelsForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [pattern, setPattern] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ pattern: pattern })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        fullWidth
+        name="pattern"
+        label="Pattern"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setPattern(event.target.value)}
+        value={pattern}
+      />
+      <SubmitButton loading={loading} text="Channels" />
+    </Box>
+  )
+}
+
+export const RpcForm = ({ colorMode, loading, sendRequest }: FormProps) => {
+  const { showAlert } = useContext(ShellContext)
+  const [method, setMethod] = useState('')
+  const [data, setData] = useState<any | null>(null)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    let jsonData
+    if (!data) {
+      showAlert('Data required', { severity: 'error' })
+      return
+    }
+    try {
+      jsonData = JSON.parse(data)
+    } catch {
+      showAlert('Invalid JSON data', { severity: 'error' })
+      return
+    }
+    sendRequest({ method: method, data: jsonData })
+  }
+
+  const onDataChange = (newValue: any) => {
+    setData(newValue)
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="method"
+        label="Method"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setMethod(event.target.value)}
+        value={method}
+      />
+      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <SubmitButton loading={loading} text="RPC" />
+    </Box>
+  )
+}
+
+export const ConnectionsForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ user: user })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <SubmitButton loading={loading} text="Connections" />
+    </Box>
+  )
+}
