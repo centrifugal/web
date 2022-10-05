@@ -15,6 +15,7 @@ import { Chip } from '@mui/material'
 
 interface StatusProps {
   handleLogout: () => void
+  insecure: boolean
 }
 
 const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
@@ -33,7 +34,7 @@ function createData(
   return { name, version, uptime, clients, users, subs, channels, cpu, rss }
 }
 
-export function Status({ handleLogout }: StatusProps) {
+export function Status({ handleLogout, insecure }: StatusProps) {
   const { setTitle } = useContext(ShellContext)
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
@@ -71,10 +72,9 @@ export function Status({ handleLogout }: StatusProps) {
       const headers: any = {
         Accept: 'application/json',
       }
-      // const { insecure } = this.props;
-      // if (!insecure) {
-      headers.Authorization = `token ${localStorage.getItem('token')}`
-      // }
+      if (!insecure) {
+        headers.Authorization = `token ${localStorage.getItem('token')}`
+      }
   
       fetch(`${globalUrlPrefix}admin/api`, {
         method: 'POST',
@@ -109,7 +109,7 @@ export function Status({ handleLogout }: StatusProps) {
     setTitle('Centrifugo')
     askInfo()
     return () => clearInterval(interval);
-  }, [setTitle, handleLogout]);
+  }, [setTitle, handleLogout, insecure]);
 
   return (
     <Box className="max-w-8xl mx-auto p-8">

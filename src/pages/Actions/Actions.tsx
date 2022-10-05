@@ -33,9 +33,10 @@ const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 interface ActionsProps {
   handleLogout: () => void
+  insecure: boolean
 }
 
-export const Actions = ({ handleLogout }: ActionsProps) => {
+export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
   const { setTitle } = useContext(ShellContext)
 
   const settingsContext = useContext(SettingsContext)
@@ -56,10 +57,9 @@ export const Actions = ({ handleLogout }: ActionsProps) => {
     const headers: any = {
       Accept: 'application/json',
     }
-    // const { insecure } = this.props;
-    // if (!insecure) {
-    headers.Authorization = `token ${localStorage.getItem('token')}`
-    // }
+    if (!insecure) {
+      headers.Authorization = `token ${localStorage.getItem('token')}`
+    }
 
     const request = {
       method: method,

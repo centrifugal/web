@@ -3,7 +3,7 @@ import localforage from 'localforage'
 
 import { PersistedStorageKeys } from 'models/storage'
 
-import Bootstrap, { BootstrapProps } from './Bootstrap'
+import App, { AppProps } from './App'
 
 const mockPersistedStorage =
   jest.createMockFromModule<jest.Mock<typeof localforage>>('localforage')
@@ -16,14 +16,14 @@ beforeEach(() => {
   mockSetItem.mockImplementation((data: any) => Promise.resolve(data))
 })
 
-const renderBootstrap = async (overrides: BootstrapProps = {}) => {
+const renderBootstrap = async (overrides: AppProps = {}) => {
   Object.assign(mockPersistedStorage, {
     getItem: mockGetItem,
     setItem: mockSetItem,
   })
 
   render(
-    <Bootstrap
+    <App
       persistedStorage={mockPersistedStorage as any as typeof localforage}
       {...overrides}
     />

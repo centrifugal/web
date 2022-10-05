@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import localforage from 'localforage'
+import Box from '@mui/material/Box'
+import UILink from '@mui/material/Link';
 
 import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
@@ -13,19 +15,20 @@ import { Tracing } from 'pages/Tracing'
 import { UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
+import { Typography } from '@mui/material'
 
-export interface BootstrapProps {
+export interface AppProps {
   persistedStorage?: typeof localforage
 }
 
 const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
-function Bootstrap({
+function App({
   persistedStorage: persistedStorageProp = localforage.createInstance({
     name: 'centrifugo',
     description: 'Persisted settings data for centrifugo',
   }),
-}: BootstrapProps) {
+}: AppProps) {
   const [persistedStorage] = useState(persistedStorageProp)
   const [appNeedsUpdate, setAppNeedsUpdate] = useState(false)
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
@@ -146,15 +149,16 @@ function Bootstrap({
                   <Route
                     key={path}
                     path={path}
-                    element={<Status handleLogout={handleLogout} />}
+                    element={<Status handleLogout={handleLogout} insecure={isInsecure} />}
                   />
                 ))}
                 <Route path={routes.SETTINGS} element={<Settings />} />
                 <Route
                   path={routes.ACTIONS}
-                  element={<Actions handleLogout={handleLogout} />}
+                  element={<Actions handleLogout={handleLogout} insecure={isInsecure} />}
                 />
                 <Route path={routes.TRACING} element={<Tracing />} />
+                <Route path="*" element={<PageNotFound />} />
               </Routes>
             </Shell>
           ) : (
@@ -166,4 +170,14 @@ function Bootstrap({
   )
 }
 
-export default Bootstrap
+function PageNotFound() {
+  return (
+    <Box className="max-w-8xl mx-auto p-8">
+      <Typography variant='h6'>
+        Page not found, go to <UILink to={'/'} component={Link}>home page</UILink>
+      </Typography>
+    </Box>
+  );
+}
+
+export default App
