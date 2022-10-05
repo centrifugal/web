@@ -11,7 +11,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
-import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import MenuItem from '@mui/material/MenuItem'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
@@ -65,7 +65,7 @@ const pages = [
   },
   {
     name: 'Tracing',
-    icon: PlayArrowIcon,
+    icon: PlayCircleIcon,
     iconColor: '#03a9f4',
     to: routes.TRACING,
   },

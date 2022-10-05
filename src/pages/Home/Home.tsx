@@ -18,7 +18,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 
-import { HumanSeconds } from 'utils/Functions'
+import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { routes } from 'config/routes'
 import { ShellContext } from 'contexts/ShellContext'
 import { PeerNameDisplay } from 'components/PeerNameDisplay'
@@ -40,8 +40,8 @@ function createData(
   users: number,
   subs: number,
   channels: number,
-  cpu: number,
-  rss: number
+  cpu: string | number,
+  rss: string
 ) {
   return { name, version, uptime, clients, users, subs, channels, cpu, rss }
 }
@@ -69,8 +69,8 @@ export function Home({ handleLogout }: HomeProps) {
           node.num_users,
           node.num_subs,
           node.num_channels,
-          0,
-          0
+          node.process ? (node.process.cpu || 0).toFixed(1) : 'n/a',
+          node.process ? HumanSize(node.process.rss) : 'n/a'
         )
       )
     })
