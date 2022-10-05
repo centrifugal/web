@@ -234,12 +234,12 @@ export const Tracing = () => {
         id="text"
         helperText={
           <span>
-            Filter tracing messages on the client side using{' '}
+            Optionally filter tracing messages on the client side by using{' '}
             <Link
-              href="https://www.npmjs.com/package/filtrex"
+              href="https://www.npmjs.com/package/filtrex/v/2.2.3"
               target={'_blank'}
             >
-              filtrex v3
+              filtrex v2.2.3
             </Link>{' '}
             as an expression language
           </span>
