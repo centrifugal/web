@@ -70,14 +70,6 @@ export const Settings = () => {
       </FormGroup>
       <Divider sx={{ my: 2 }} />
       <Typography
-        variant="h4"
-        sx={theme => ({
-          mb: 2,
-        })}
-      >
-        Data
-      </Typography>
-      <Typography
         variant="h2"
         sx={theme => ({
           fontSize: theme.typography.h5.fontSize,
