@@ -8,8 +8,7 @@
 # testing
 /coverage
 
-# production
-/build
+dist/
 
 # misc
 .DS_Store
@@ -24,3 +23,5 @@ yarn-error.log*
 
 # Editors
 Session.vim
+.idea/
+.vscode/
