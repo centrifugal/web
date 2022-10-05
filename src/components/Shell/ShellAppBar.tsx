@@ -48,6 +48,7 @@ export const AppBar = styled(MuiAppBar, {
 interface ShellAppBarProps {
   handleLogout: () => void
   title: string
+  insecure: boolean
 }
 
 const pages = [
@@ -71,7 +72,7 @@ const pages = [
   },
 ]
 
-export const ShellAppBar = ({ handleLogout, title }: ShellAppBarProps) => {
+export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps) => {
   const location = useLocation()
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
@@ -248,11 +249,15 @@ export const ShellAppBar = ({ handleLogout, title }: ShellAppBarProps) => {
                 &nbsp;
                 <Typography>{'Settings'}</Typography>
               </MenuItem>
+              {!insecure ? (
               <MenuItem onClick={handleLogoutClick}>
                 <LogoutIcon sx={{ fontSize: '1em' }} />
                 &nbsp;
                 <Typography>{'Log out'}</Typography>
               </MenuItem>
+              ) : (
+                <></>
+              )}
             </Menu>
           </Box>
         </Toolbar>

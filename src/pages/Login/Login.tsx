@@ -302,6 +302,7 @@ export function Login({ handleLogin }: LoginProps) {
 
     useEffect(() => {
         setTitle('Centrifugo')
+        handleLogin('')
     }, [setTitle])
 
     const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {

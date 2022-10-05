@@ -7,7 +7,7 @@ import { Shell, ShellProps } from './Shell'
 const ShellStub = (overrides: Partial<ShellProps> = {}) => {
   return (
     <Router>
-      <Shell appNeedsUpdate={false} {...overrides} />
+      <Shell appNeedsUpdate={false} handleLogin={(password: string) => {}} handleLogout={() => {}} authenticated={true} insecure={false} {...overrides} />
     </Router>
   )
 }

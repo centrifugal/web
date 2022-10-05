@@ -24,20 +24,15 @@ import { RouteContent } from './RouteContent'
 
 export interface ShellProps extends PropsWithChildren {
   appNeedsUpdate: boolean
+  handleLogin: (password: string) => void
+  handleLogout: () => void
+  authenticated: boolean
+  insecure: boolean
 }
 
-const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
-
-export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
+export const Shell = ({ appNeedsUpdate, handleLogin, handleLogout, authenticated, insecure, children }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem('token') ? true : false
-  )
-  const [isInsecure, setIsInsecure] = useState(
-    localStorage.getItem('insecure') === 'true'
-  )
-  const [doShowPeers, setDoShowPeers] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
   const [title, setTitle] = useState('')
   const [alertText, setAlertText] = useState('')
@@ -56,7 +51,6 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
     () => ({
       numberOfPeers,
       tabHasFocus,
-      setDoShowPeers,
       setNumberOfPeers,
       setTitle,
       showAlert,
@@ -64,7 +58,6 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
     [
       numberOfPeers,
       tabHasFocus,
-      setDoShowPeers,
       setNumberOfPeers,
       setTitle,
       showAlert,
@@ -113,50 +106,12 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
     }
   }, [])
 
-  const handleLogin = function (password: string) {
-    const formData = new FormData()
-    formData.append('password', password)
-    fetch(`${globalUrlPrefix}admin/auth`, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-      },
-      body: formData,
-      mode: 'cors',
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw Error(response.status.toString())
-        }
-        return response.json()
-      })
-      .then(data => {
-        localStorage.setItem('token', data.token)
-        const insecure = data.token === 'insecure'
-        if (insecure) {
-          localStorage.setItem('insecure', 'true')
-        }
-        setIsInsecure(insecure)
-        setIsAuthenticated(true)
-      })
-      .catch(e => {
-        console.log(e)
-      })
-  }
-
-  const handleLogout = function () {
-    delete localStorage.token
-    delete localStorage.insecure
-    setIsAuthenticated(false)
-    setIsInsecure(false)
-  }
-
   return (
     <ShellContext.Provider value={shellContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <UpgradeDialog appNeedsUpdate={appNeedsUpdate} />
-        {isAuthenticated ? (
+        {authenticated ? (
           <Box>
             <NotificationArea
               alertSeverity={alertSeverity}
@@ -164,7 +119,7 @@ export const Shell = ({ appNeedsUpdate, children }: ShellProps) => {
               isAlertShowing={isAlertShowing}
               onAlertClose={handleAlertClose}
             />
-            <ShellAppBar handleLogout={handleLogout} title={title} />
+            <ShellAppBar handleLogout={handleLogout} title={title} insecure={insecure} />
             <RouteContent isDrawerOpen={false}>{children}</RouteContent>
           </Box>
         ) : (
