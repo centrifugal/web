@@ -66,50 +66,50 @@ export function Status({ handleLogout }: StatusProps) {
     setNodes(rows)
   }
 
-  const askInfo = function () {
-    const headers: any = {
-      Accept: 'application/json',
-    }
-    // const { insecure } = this.props;
-    // if (!insecure) {
-    headers.Authorization = `token ${localStorage.getItem('token')}`
-    // }
-
-    fetch(`${globalUrlPrefix}admin/api`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify({
-        method: 'info',
-        params: {},
-      }),
-      mode: 'cors',
-    })
-      .then(response => {
-        if (!response.ok) {
-          if (response.status === 401) {
-            handleLogout()
-            return
-          }
-          throw Error(response.status.toString())
-        }
-        return response.json()
-      })
-      .then(data => {
-        handleInfo(data.result)
-      })
-      .catch(e => {
-        console.log(e)
-      })
-  }
-
   useEffect(() => {
+    const askInfo = function () {
+      const headers: any = {
+        Accept: 'application/json',
+      }
+      // const { insecure } = this.props;
+      // if (!insecure) {
+      headers.Authorization = `token ${localStorage.getItem('token')}`
+      // }
+  
+      fetch(`${globalUrlPrefix}admin/api`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          method: 'info',
+          params: {},
+        }),
+        mode: 'cors',
+      })
+        .then(response => {
+          if (!response.ok) {
+            if (response.status === 401) {
+              handleLogout()
+              return
+            }
+            throw Error(response.status.toString())
+          }
+          return response.json()
+        })
+        .then(data => {
+          handleInfo(data.result)
+        })
+        .catch(e => {
+          console.log(e)
+        })
+    }
+
     const interval = setInterval(function() {
       askInfo()
     }, 5000);
     setTitle('Centrifugo')
     askInfo()
     return () => clearInterval(interval);
-  });
+  }, [setTitle, handleLogout]);
 
   return (
     <Box className="max-w-8xl mx-auto p-8">
