@@ -13,26 +13,10 @@ const ShellStub = (overrides: Partial<ShellProps> = {}) => {
 }
 
 describe('Shell', () => {
-  describe('menu drawer', () => {
-    test('can be opened', () => {
-      render(<ShellStub />)
-      const menuButton = screen.getByLabelText('Open menu')
-      userEvent.click(menuButton)
-      const navigation = screen.getByRole('navigation')
-      expect(navigation).toBeVisible()
-    })
-
-    test('can be closed', async () => {
-      render(<ShellStub />)
-      const menuButton = screen.getByLabelText('Open menu')
-      userEvent.click(menuButton)
-      const closeMenu = screen.getByLabelText('Close menu')
-      userEvent.click(closeMenu)
-      const navigation = screen.getByRole('navigation')
-
-      await waitFor(() => {
-        expect(navigation).not.toBeVisible()
-      })
-    })
+  test('can be opened', () => {
+    render(<ShellStub />)
+    const elems = screen.getAllByText('CENTRIFUGO')
+    expect(elems).toHaveLength(2)
+    // expect(elem).toBeVisible()
   })
 })
