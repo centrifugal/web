@@ -1,5 +1,6 @@
 {
   "name": "web",
+  "description": "Admin web UI for Centrifugo",
   "version": "1.0.0",
   "homepage": "https://centrifugal.dev",
   "author": "Alexander Emelin <frvzmb@gmail.com>",
