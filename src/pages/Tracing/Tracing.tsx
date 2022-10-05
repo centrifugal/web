@@ -20,11 +20,8 @@ import {
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
-function getURL() {
-  const proto = window.location.protocol
-  const baseURL = 'http://localhost:8000/admin/trace' //`${proto}//${window.location.host}/admin/trace`;
-  return baseURL
-}
+const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
+
 
 export const Tracing = () => {
   const { setTitle, showAlert } = useContext(ShellContext)
@@ -114,11 +111,6 @@ export const Tracing = () => {
       streamCancelRef.current = null
     }
     setRunning(false)
-    // clearInterval(this.interval);
-    // this.messages = [];
-    // this.setState({
-    //   running: false,
-    // });
   }
 
   const startStream = function (traceType: string, traceEntity: string) {
@@ -128,7 +120,7 @@ export const Tracing = () => {
     }
     streamCancelRef.current = cancelFunc
     //@ts-ignore
-    const eventTarget = new FetchEventTarget(getURL(), {
+    const eventTarget = new FetchEventTarget(`${globalUrlPrefix}admin/trace`, {
       method: 'POST',
       headers: new Headers({
         'Content-Type': 'application/json',

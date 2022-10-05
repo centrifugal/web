@@ -1,15 +1,6 @@
-import React, { useEffect, useContext, useState, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import Button from '@mui/material/Button'
+import { useEffect, useContext, useState } from 'react'
 import Box from '@mui/material/Box'
-import FormControl from '@mui/material/FormControl'
 import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
-import Divider from '@mui/material/Divider'
-import IconButton from '@mui/material/IconButton'
-import MuiLink from '@mui/material/Link'
-import GitHubIcon from '@mui/icons-material/GitHub'
-import Tooltip from '@mui/material/Tooltip'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -19,11 +10,7 @@ import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 
 import { HumanSeconds, HumanSize } from 'utils/Functions'
-import { routes } from 'config/routes'
 import { ShellContext } from 'contexts/ShellContext'
-import { PeerNameDisplay } from 'components/PeerNameDisplay'
-import { ReactComponent as Logo } from 'img/logo.svg'
-import UILink from '@mui/material/Link'
 import { Chip } from '@mui/material'
 
 interface StatusProps {
@@ -51,7 +38,6 @@ export function Status({ handleLogout }: StatusProps) {
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
-  const navigate = useNavigate()
 
   const handleInfo = function (result: any) {
     const rows: any[] = []
@@ -123,17 +109,7 @@ export function Status({ handleLogout }: StatusProps) {
     setTitle('Centrifugo')
     askInfo()
     return () => clearInterval(interval);
-  }, [setTitle]);
-
-  // const handleRoomNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { value } = event.target
-  //   setRoomName(value)
-  // }
-
-  // const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
-  //   event.preventDefault()
-  //   navigate(`/public/${roomName}`)
-  // }
+  });
 
   return (
     <Box className="max-w-8xl mx-auto p-8">

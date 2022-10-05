@@ -7,7 +7,6 @@ import { StorageContext } from 'contexts/StorageContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { routes } from 'config/routes'
 import { Status } from 'pages/Status/index'
-import { About } from 'pages/About'
 import { Settings } from 'pages/Settings'
 import { Actions } from 'pages/Actions'
 import { Tracing } from 'pages/Tracing'
@@ -156,7 +155,6 @@ function Bootstrap({
                   element={<Actions handleLogout={handleLogout} />}
                 />
                 <Route path={routes.TRACING} element={<Tracing />} />
-                <Route path={routes.ABOUT} element={<About />} />
               </Routes>
             </Shell>
           ) : (

@@ -120,7 +120,7 @@ export const Shell = ({ appNeedsUpdate, handleLogin, handleLogout, authenticated
               onAlertClose={handleAlertClose}
             />
             <ShellAppBar handleLogout={handleLogout} title={title} insecure={insecure} />
-            <RouteContent isDrawerOpen={false}>{children}</RouteContent>
+            <RouteContent>{children}</RouteContent>
           </Box>
         ) : (
           <Login handleLogin={handleLogin} />

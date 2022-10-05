@@ -1,4 +1,4 @@
-import { ChangeEvent, useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
@@ -7,63 +7,32 @@ import Switch from '@mui/material/Switch'
 import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 
-import { NotificationService } from 'services/Notification'
 import { ShellContext } from 'contexts/ShellContext'
 import { StorageContext } from 'contexts/StorageContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { SettingsContext } from '../../contexts/SettingsContext'
 
-interface SettingsProps {}
-
-export const Settings = ({}: SettingsProps) => {
+export const Settings = () => {
   const { setTitle } = useContext(ShellContext)
   const { updateUserSettings, getUserSettings } = useContext(SettingsContext)
   const { getPersistedStorage } = useContext(StorageContext)
-  const settingsContext = useContext(SettingsContext)
-  const colorMode = settingsContext.getUserSettings().colorMode
+  const colorMode = getUserSettings().colorMode
   const [
     isDeleteSettingsConfirmDiaglogOpen,
     setIsDeleteSettingsConfirmDiaglogOpen,
   ] = useState(false)
-  const [, setIsNotificationPermissionDetermined] = useState(false)
-  const { playSoundOnNewMessage, showNotificationOnNewMessage } =
-    getUserSettings()
 
   const handleColorModeToggleClick = () => {
     const newMode = colorMode === 'light' ? 'dark' : 'light'
-    settingsContext.updateUserSettings({ colorMode: newMode })
+    updateUserSettings({ colorMode: newMode })
   }
 
   const persistedStorage = getPersistedStorage()
 
-  // useEffect(() => {
-  //   ;(async () => {
-  //     await NotificationService.requestPermission()
-
-  //     // This state needs to be set to cause a rerender so that
-  //     // areNotificationsAvailable is up-to-date.
-  //     setIsNotificationPermissionDetermined(true)
-  //   })()
-  // }, [])
-
   useEffect(() => {
     setTitle('Settings')
   }, [setTitle])
-
-  const handlePlaySoundOnNewMessageChange = (
-    _event: ChangeEvent,
-    playSoundOnNewMessage: boolean
-  ) => {
-    updateUserSettings({ playSoundOnNewMessage })
-  }
-
-  const handleShowNotificationOnNewMessageChange = (
-    _event: ChangeEvent,
-    showNotificationOnNewMessage: boolean
-  ) => {
-    updateUserSettings({ showNotificationOnNewMessage })
-  }
 
   const handleDeleteSettingsClick = () => {
     setIsDeleteSettingsConfirmDiaglogOpen(true)
@@ -77,8 +46,6 @@ export const Settings = ({}: SettingsProps) => {
     await persistedStorage.clear()
     window.location.reload()
   }
-
-  // const areNotificationsAvailable = NotificationService.permission === 'granted'
 
   return (
     <Box className="max-w-8xl p-8">

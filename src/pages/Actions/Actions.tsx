@@ -1,14 +1,11 @@
-import { useContext, useEffect, useState, useRef } from 'react'
-import Link from '@mui/material/Link'
+import { useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Divider from '@mui/material/Divider'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
 import InputLabel from '@mui/material/InputLabel'
 import Select, { SelectChangeEvent } from '@mui/material/Select'
-import LinearProgress from '@mui/material/LinearProgress'
 import { Grid } from '@mui/material'
 import { green, red } from '@mui/material/colors'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -33,10 +30,6 @@ import 'ace-builds/src-noconflict/theme-solarized_light'
 import 'ace-builds/src-noconflict/ext-language_tools'
 
 const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
-
-function onChange(newValue: any) {
-  console.log('change', newValue)
-}
 
 interface ActionsProps {
   handleLogout: () => void
@@ -361,15 +354,6 @@ interface SubmitButtonProps {
 }
 
 export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
-  // const buttonSx = {
-  //   ...(success && {
-  //     bgcolor: green[500],
-  //     '&:hover': {
-  //       bgcolor: green[700],
-  //     },
-  //   }),
-  // };
-
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
       <Box sx={{ position: 'relative' }}>
