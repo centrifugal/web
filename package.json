@@ -2,7 +2,7 @@
   "name": "web",
   "version": "1.0.0",
   "homepage": "https://centrifugal.dev",
-  "author": "Centrifugal <centrifugal.dev@gmail.com>",
+  "author": "Alexander Emelin <frvzmb@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "@emotion/react": "^11.10.0",
