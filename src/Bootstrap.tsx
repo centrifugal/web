@@ -6,7 +6,7 @@ import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { routes } from 'config/routes'
-import { Home } from 'pages/Home'
+import { Status } from 'pages/Status/index'
 import { About } from 'pages/About'
 import { Settings } from 'pages/Settings'
 import { Actions } from 'pages/Actions'
@@ -96,7 +96,7 @@ function Bootstrap({
                   <Route
                     key={path}
                     path={path}
-                    element={<Home handleLogout={() => {}} />}
+                    element={<Status handleLogout={() => {}} />}
                   />
                 ))}
                 <Route path={routes.SETTINGS} element={<Settings />} />

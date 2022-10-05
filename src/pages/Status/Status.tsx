@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState } from 'react'
+import React, { useEffect, useContext, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
@@ -26,7 +26,7 @@ import { ReactComponent as Logo } from 'img/logo.svg'
 import UILink from '@mui/material/Link'
 import { Chip } from '@mui/material'
 
-interface HomeProps {
+interface StatusProps {
   handleLogout: () => void
 }
 
@@ -46,12 +46,13 @@ function createData(
   return { name, version, uptime, clients, users, subs, channels, cpu, rss }
 }
 
-export function Home({ handleLogout }: HomeProps) {
+export function Status({ handleLogout }: StatusProps) {
   const { setTitle } = useContext(ShellContext)
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
   const navigate = useNavigate()
+
   const handleInfo = function (result: any) {
     const rows: any[] = []
     const resultNodes: any[] = result.nodes
@@ -116,9 +117,13 @@ export function Home({ handleLogout }: HomeProps) {
   }
 
   useEffect(() => {
+    const interval = setInterval(function() {
+      askInfo()
+    }, 5000);
     setTitle('Centrifugo')
     askInfo()
-  }, [setTitle])
+    return () => clearInterval(interval);
+  }, [setTitle]);
 
   // const handleRoomNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
   //   const { value } = event.target

@@ -218,6 +218,62 @@ export const Actions = ({ handleLogout }: ActionsProps) => {
         sendRequest={sendRequest}
       />
     )
+  } else if (method === 'update_user_status') {
+    FormElem = (
+      <UpdateUserStatusForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'get_user_status') {
+    FormElem = (
+      <GetUserStatusForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'delete_user_status') {
+    FormElem = (
+      <DeleteUserStatusForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'block_user') {
+    FormElem = (
+      <BlockUserForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'unblock_user') {
+    FormElem = (
+      <UnblockUserForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'revoke_token') {
+    FormElem = (
+      <RevokeTokenForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
+  } else if (method === 'invalidate_user_tokens') {
+    FormElem = (
+      <InvalidateUserTokensForm
+        colorMode={colorMode}
+        loading={loading}
+        sendRequest={sendRequest}
+      />
+    )
   } else {
     FormElem = <></>
   }
@@ -869,6 +925,194 @@ export const ConnectionsForm = ({
   sendRequest,
 }: FormProps) => {
   const [user, setUser] = useState('')
+  const [expression, setExpression] = useState('')
+  const { showAlert } = useContext(ShellContext)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!user && !expression) {
+      showAlert('User of CEL expression required', {severity: 'error'})
+      return
+    }
+    sendRequest({ user: user, expression: expression })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <TextField
+        margin="normal"
+        fullWidth
+        name="expression"
+        label="CEL expression"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setExpression(event.target.value)}
+        value={expression}
+      />
+      <SubmitButton loading={loading} text="Connections" />
+    </Box>
+  )
+}
+
+export const UpdateUserStatusForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ users: user.split(' ') })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User IDs"
+        type="text"
+        id="text"
+        autoComplete="off"
+        helperText="Space-separated list of User IDs"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <SubmitButton loading={loading} text="Update user status" />
+    </Box>
+  )
+}
+
+export const GetUserStatusForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ users: user.split(' ') })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User IDs"
+        type="text"
+        id="text"
+        autoComplete="off"
+        helperText="Space-separated list of User IDs"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <SubmitButton loading={loading} text="Get user status" />
+    </Box>
+  )
+}
+
+export const DeleteUserStatusForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ users: user.split(' ') })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User IDs"
+        type="text"
+        id="text"
+        autoComplete="off"
+        helperText="Space-separated list of User IDs"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <SubmitButton loading={loading} text="Delete user status" />
+    </Box>
+  )
+}
+
+export const BlockUserForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+  const [exp, setExp] = useState(0)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ user: user, expire_at: exp })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="exp"
+        label="Expire at"
+        type="number"
+        id="text"
+        autoComplete="off"
+        helperText="Unix seconds, zero value means no expiration and not recommended"
+        onChange={event => setExp(parseInt(event.target.value))}
+        value={exp}
+      />
+      <SubmitButton loading={loading} text="Block user" />
+    </Box>
+  )
+}
+
+export const UnblockUserForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -889,7 +1133,111 @@ export const ConnectionsForm = ({
         onChange={event => setUser(event.target.value)}
         value={user}
       />
-      <SubmitButton loading={loading} text="Connections" />
+      <SubmitButton loading={loading} text="Unblock user" />
+    </Box>
+  )
+}
+
+export const InvalidateUserTokensForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [user, setUser] = useState('')
+  const [exp, setExp] = useState(0)
+  const [before, setBefore] = useState(0)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ user: user, expire_at: exp, issued_before: before })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="user"
+        label="User ID"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUser(event.target.value)}
+        value={user}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="before"
+        label="Tokens issued before"
+        type="number"
+        id="text"
+        autoComplete="off"
+        helperText="Unix seconds"
+        onChange={event => setBefore(parseInt(event.target.value))}
+        value={exp}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="exp"
+        label="Expire at"
+        type="number"
+        id="text"
+        autoComplete="off"
+        helperText="Unix seconds, zero value means no expiration and not recommended"
+        onChange={event => setExp(parseInt(event.target.value))}
+        value={exp}
+      />
+      <SubmitButton loading={loading} text="Invalidate user tokens" />
+    </Box>
+  )
+}
+
+export const RevokeTokenForm = ({
+  colorMode,
+  loading,
+  sendRequest,
+}: FormProps) => {
+  const [uid, setUid] = useState('')
+  const [exp, setExp] = useState(0)
+
+  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    sendRequest({ uid: uid, expire_at: exp })
+  }
+
+  return (
+    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="uid"
+        label="Token uid (jti)"
+        type="text"
+        id="text"
+        autoComplete="off"
+        onChange={event => setUid(event.target.value)}
+        value={uid}
+      />
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        name="exp"
+        label="Expire at"
+        type="number"
+        id="text"
+        autoComplete="off"
+        helperText="Unix seconds, zero value means no expiration and not recommended"
+        onChange={event => setExp(parseInt(event.target.value))}
+        value={exp}
+      />
+      <SubmitButton loading={loading} text="Revoke token" />
     </Box>
   )
 }
