@@ -1,1 +1,1 @@
-export const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
+export const globalUrlPrefix = window.location.pathname

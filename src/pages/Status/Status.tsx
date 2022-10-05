@@ -74,7 +74,7 @@ export function Status({ handleLogout, insecure }: StatusProps) {
       if (!insecure) {
         headers.Authorization = `token ${localStorage.getItem('token')}`
       }
-  
+
       fetch(`${globalUrlPrefix}admin/api`, {
         method: 'POST',
         headers: headers,
@@ -82,7 +82,7 @@ export function Status({ handleLogout, insecure }: StatusProps) {
           method: 'info',
           params: {},
         }),
-        mode: 'cors',
+        mode: 'same-origin',
       })
         .then(response => {
           if (!response.ok) {
@@ -98,18 +98,18 @@ export function Status({ handleLogout, insecure }: StatusProps) {
           handleInfo(data.result)
         })
         .catch(e => {
-          showAlert("Error connecting to server", {severity: 'error'})
+          showAlert('Error connecting to server', { severity: 'error' })
           console.log(e)
         })
     }
 
-    const interval = setInterval(function() {
+    const interval = setInterval(function () {
       askInfo()
-    }, 5000);
+    }, 5000)
     setTitle('Centrifugo')
     askInfo()
-    return () => clearInterval(interval);
-  }, [setTitle, handleLogout, insecure, showAlert]);
+    return () => clearInterval(interval)
+  }, [setTitle, handleLogout, insecure, showAlert])
 
   return (
     <Box className="max-w-8xl mx-auto p-8">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import localforage from 'localforage'
 import Box from '@mui/material/Box'
-import UILink from '@mui/material/Link';
+import UILink from '@mui/material/Link'
 
 import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
@@ -107,7 +107,7 @@ function App({
         Accept: 'application/json',
       },
       body: formData,
-      mode: 'cors',
+      mode: 'same-origin',
     })
       .then(response => {
         if (!response.ok) {
@@ -146,13 +146,23 @@ function App({
                   <Route
                     key={path}
                     path={path}
-                    element={<Status handleLogout={handleLogout} insecure={isInsecure} />}
+                    element={
+                      <Status
+                        handleLogout={handleLogout}
+                        insecure={isInsecure}
+                      />
+                    }
                   />
                 ))}
                 <Route path={routes.SETTINGS} element={<Settings />} />
                 <Route
                   path={routes.ACTIONS}
-                  element={<Actions handleLogout={handleLogout} insecure={isInsecure} />}
+                  element={
+                    <Actions
+                      handleLogout={handleLogout}
+                      insecure={isInsecure}
+                    />
+                  }
                 />
                 <Route path={routes.TRACING} element={<Tracing />} />
                 <Route path="*" element={<PageNotFound />} />
@@ -170,11 +180,14 @@ function App({
 function PageNotFound() {
   return (
     <Box className="max-w-8xl mx-auto p-8">
-      <Typography variant='h6'>
-        Page not found, go to <UILink to={'/'} component={Link}>home page</UILink>
+      <Typography variant="h6">
+        Page not found, go to{' '}
+        <UILink to={'/'} component={Link}>
+          home page
+        </UILink>
       </Typography>
     </Box>
-  );
+  )
 }
 
 export default App

@@ -71,7 +71,7 @@ export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
       method: 'POST',
       headers: headers,
       body: JSON.stringify(request),
-      mode: 'cors',
+      mode: 'same-origin',
     })
       .then(response => {
         if (!response.ok) {
@@ -913,7 +913,7 @@ export const ConnectionsForm = ({
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!user && !expression) {
-      showAlert('User of CEL expression required', {severity: 'error'})
+      showAlert('User of CEL expression required', { severity: 'error' })
       return
     }
     sendRequest({ user: user, expression: expression })

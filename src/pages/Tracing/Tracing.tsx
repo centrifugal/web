@@ -125,7 +125,7 @@ export const Tracing = () => {
         Accept: 'application/json',
         Authorization: 'Token ' + localStorage.getItem('token'),
       }),
-      mode: 'cors',
+      mode: 'same-origin',
       signal: abortController.signal,
       body: JSON.stringify({
         type: traceType,
@@ -133,8 +133,7 @@ export const Tracing = () => {
       }),
     })
 
-    eventTarget.addEventListener('open', () => {
-    })
+    eventTarget.addEventListener('open', () => {})
 
     eventTarget.addEventListener('message', (e: any) => {
       if (e.data === null) {
