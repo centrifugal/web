@@ -21,6 +21,7 @@ import {
   solarizedLight,
 } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
+import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
@@ -28,8 +29,6 @@ import 'ace-builds/src-noconflict/mode-json'
 import 'ace-builds/src-noconflict/theme-monokai'
 import 'ace-builds/src-noconflict/theme-solarized_light'
 import 'ace-builds/src-noconflict/ext-language_tools'
-
-const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 interface ActionsProps {
   handleLogout: () => void

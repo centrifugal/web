@@ -17,11 +17,9 @@ import {
   solarizedLight,
 } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
+import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
-
-const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
-
 
 export const Tracing = () => {
   const { setTitle, showAlert } = useContext(ShellContext)

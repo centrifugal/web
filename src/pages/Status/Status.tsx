@@ -9,6 +9,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
 
+import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { Chip } from '@mui/material'
@@ -17,8 +18,6 @@ interface StatusProps {
   handleLogout: () => void
   insecure: boolean
 }
-
-const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 function createData(
   name: string,

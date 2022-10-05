@@ -7,6 +7,7 @@ import UILink from '@mui/material/Link';
 import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
 import { SettingsContext } from 'contexts/SettingsContext'
+import { globalUrlPrefix } from 'config/url'
 import { routes } from 'config/routes'
 import { Status } from 'pages/Status/index'
 import { Settings } from 'pages/Settings'
@@ -20,8 +21,6 @@ import { Typography } from '@mui/material'
 export interface AppProps {
   persistedStorage?: typeof localforage
 }
-
-const globalUrlPrefix = 'http://localhost:8000/' // window.location.pathname
 
 function App({
   persistedStorage: persistedStorageProp = localforage.createInstance({
