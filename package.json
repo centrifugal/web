@@ -17,7 +17,6 @@
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
     "ace-builds": "^1.11.2",
-    "fast-memoize": "^2.5.2",
     "filtrex": "^2.2.3",
     "localforage": "^1.10.0",
     "react": "^18.2.0",
