@@ -244,17 +244,6 @@ function drawLogo(ctx: any, canvasWidth: number, canvasHeight: number, colorMode
     }
 
     render();
-    // function onResize() {
-    //   X = canvas.width = window.innerWidth;
-    //   Y = canvas.height = window.innerHeight;
-    //   for (let i = 0; i < segments.length; i++) {
-    //       segments[i].resize();
-    //   }
-    // }
-
-    // window.addEventListener('resize', function() {
-    //     onResize();
-    // });
 }
 
 interface LoginProps {
@@ -281,7 +270,7 @@ export function Login({ handleLogin }: LoginProps) {
     useEffect(() => {
         setTitle('Centrifugo')
         handleLogin('')
-    })
+    }, [setTitle, handleLogin])
 
     const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
         event.preventDefault()
