@@ -15,7 +15,7 @@ npm run build
 
 ### Develop with Centrifugo
 
-It's possible to develop admin web UI with Centrifugo using `admin_web_proxy_address` option. So you can run `npm run dev`, also run Centrifugo with config like:
+To develop admin web UI with Centrifugo use `admin_web_proxy_address` Centrifugo option. So you can run `npm run dev`, also run Centrifugo with config like:
 
 ```json
 {
