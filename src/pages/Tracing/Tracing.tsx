@@ -136,7 +136,6 @@ export const Tracing = () => {
     })
 
     eventTarget.addEventListener('open', () => {
-      // numFailures = 0;
     })
 
     eventTarget.addEventListener('message', (e: any) => {
@@ -144,7 +143,6 @@ export const Tracing = () => {
         // PING.
         return
       }
-      console.log(e.data)
       processStreamData(e.data)
     })
 

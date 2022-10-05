@@ -99,7 +99,6 @@ export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
     setMethod(event.target.value)
     setRequest(null)
     setResponse(null)
-    console.log(event.target.value)
   }
 
   useEffect(() => {

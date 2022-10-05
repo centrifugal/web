@@ -1,5 +1,4 @@
-import { waitFor, render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter as Router } from 'react-router-dom'
 
 import { Shell, ShellProps } from './Shell'
@@ -17,6 +16,5 @@ describe('Shell', () => {
     render(<ShellStub />)
     const elems = screen.getAllByText('CENTRIFUGO')
     expect(elems).toHaveLength(2)
-    // expect(elem).toBeVisible()
   })
 })

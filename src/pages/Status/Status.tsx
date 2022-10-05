@@ -35,7 +35,7 @@ function createData(
 }
 
 export function Status({ handleLogout, insecure }: StatusProps) {
-  const { setTitle } = useContext(ShellContext)
+  const { setTitle, showAlert } = useContext(ShellContext)
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
@@ -99,6 +99,7 @@ export function Status({ handleLogout, insecure }: StatusProps) {
           handleInfo(data.result)
         })
         .catch(e => {
+          showAlert("Error connecting to server", {severity: 'error'})
           console.log(e)
         })
     }
@@ -109,7 +110,7 @@ export function Status({ handleLogout, insecure }: StatusProps) {
     setTitle('Centrifugo')
     askInfo()
     return () => clearInterval(interval);
-  }, [setTitle, handleLogout, insecure]);
+  }, [setTitle, handleLogout, insecure, showAlert]);
 
   return (
     <Box className="max-w-8xl mx-auto p-8">

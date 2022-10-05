@@ -34,8 +34,6 @@ function App({
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
   const [userSettings, setUserSettings] = useState<UserSettings>({
     colorMode: 'light',
-    playSoundOnNewMessage: true,
-    showNotificationOnNewMessage: true,
   })
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('token') ? true : false
