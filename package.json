@@ -31,7 +31,6 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "start:tracker": "bittorrent-tracker",
     "dev": "npm run start",
     "build": "react-scripts build",
     "test": "react-scripts test",
