@@ -28,9 +28,18 @@ export interface ShellProps extends PropsWithChildren {
   handleLogout: () => void
   authenticated: boolean
   insecure: boolean
+  edition: 'oss' | 'pro'
 }
 
-export const Shell = ({ appNeedsUpdate, handleLogin, handleLogout, authenticated, insecure, children }: ShellProps) => {
+export const Shell = ({
+  appNeedsUpdate,
+  handleLogin,
+  handleLogout,
+  authenticated,
+  insecure,
+  edition,
+  children,
+}: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
   const [isAlertShowing, setIsAlertShowing] = useState(false)
   const [alertSeverity, setAlertSeverity] = useState<AlertColor>('info')
@@ -55,13 +64,7 @@ export const Shell = ({ appNeedsUpdate, handleLogin, handleLogout, authenticated
       setTitle,
       showAlert,
     }),
-    [
-      numberOfPeers,
-      tabHasFocus,
-      setNumberOfPeers,
-      setTitle,
-      showAlert,
-    ]
+    [numberOfPeers, tabHasFocus, setNumberOfPeers, setTitle, showAlert]
   )
 
   const colorMode = settingsContext.getUserSettings().colorMode
@@ -119,7 +122,12 @@ export const Shell = ({ appNeedsUpdate, handleLogin, handleLogout, authenticated
               isAlertShowing={isAlertShowing}
               onAlertClose={handleAlertClose}
             />
-            <ShellAppBar handleLogout={handleLogout} title={title} insecure={insecure} />
+            <ShellAppBar
+              handleLogout={handleLogout}
+              title={title}
+              insecure={insecure}
+              edition={edition}
+            />
             <RouteContent>{children}</RouteContent>
           </Box>
         ) : (

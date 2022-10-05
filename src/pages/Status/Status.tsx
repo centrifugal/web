@@ -51,7 +51,7 @@ export function Status({ handleLogout, insecure }: StatusProps) {
         createData(
           node.name,
           node.version,
-          HumanSeconds(node.uptime),
+          HumanSeconds(node.uptime || 0),
           node.num_clients,
           node.num_users,
           node.num_subs,
@@ -95,6 +95,9 @@ export function Status({ handleLogout, insecure }: StatusProps) {
           return response.json()
         })
         .then(data => {
+          if (!data) {
+            return
+          }
           handleInfo(data.result)
         })
         .catch(e => {

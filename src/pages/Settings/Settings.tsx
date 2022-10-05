@@ -44,6 +44,9 @@ export const Settings = () => {
 
   const handleDeleteSettingsConfirm = async () => {
     await persistedStorage.clear()
+    delete localStorage.token
+    delete localStorage.insecure
+    delete localStorage.edition
     window.location.reload()
   }
 
@@ -51,9 +54,9 @@ export const Settings = () => {
     <Box className="max-w-8xl p-8">
       <Typography
         variant="h4"
-        sx={theme => ({
+        sx={{
           mb: 2,
-        })}
+        }}
       >
         Settings
       </Typography>
@@ -69,16 +72,6 @@ export const Settings = () => {
         />
       </FormGroup>
       <Divider sx={{ my: 2 }} />
-      <Typography
-        variant="h2"
-        sx={theme => ({
-          fontSize: theme.typography.h5.fontSize,
-          fontWeight: theme.typography.fontWeightMedium,
-          mb: 1.5,
-        })}
-      >
-        Delete all settings data
-      </Typography>
       <Button
         variant="outlined"
         color="error"
@@ -87,7 +80,7 @@ export const Settings = () => {
         })}
         onClick={handleDeleteSettingsClick}
       >
-        Delete all data and restart
+        Drop saved settings, tokens and restart
       </Button>
       <ConfirmDialog
         isOpen={isDeleteSettingsConfirmDiaglogOpen}
@@ -103,7 +96,6 @@ export const Settings = () => {
         Centrifugo admin panel only stores user preferences data locally on your
         device and not a server.
       </Typography>
-      <Divider sx={{ my: 2 }} />
     </Box>
   )
 }

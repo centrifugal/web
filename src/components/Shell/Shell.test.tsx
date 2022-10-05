@@ -6,7 +6,15 @@ import { Shell, ShellProps } from './Shell'
 const ShellStub = (overrides: Partial<ShellProps> = {}) => {
   return (
     <Router>
-      <Shell appNeedsUpdate={false} handleLogin={(password: string) => {}} handleLogout={() => {}} authenticated={true} insecure={false} {...overrides} />
+      <Shell
+        appNeedsUpdate={false}
+        handleLogin={(password: string) => {}}
+        handleLogout={() => {}}
+        authenticated={true}
+        insecure={false}
+        edition={'oss'}
+        {...overrides}
+      />
     </Router>
   )
 }
@@ -14,7 +22,7 @@ const ShellStub = (overrides: Partial<ShellProps> = {}) => {
 describe('Shell', () => {
   test('can be opened', () => {
     render(<ShellStub />)
-    const elems = screen.getAllByText('CENTRIFUGO')
+    const elems = screen.getAllByText('Centrifugo')
     expect(elems).toHaveLength(2)
   })
 })

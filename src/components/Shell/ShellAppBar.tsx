@@ -11,7 +11,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 import MenuItem from '@mui/material/MenuItem'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
@@ -39,6 +39,7 @@ interface ShellAppBarProps {
   handleLogout: () => void
   title: string
   insecure: boolean
+  edition: 'oss' | 'pro'
 }
 
 const pages = [
@@ -47,22 +48,30 @@ const pages = [
     icon: SignalCellularAltIcon,
     iconColor: '#4caf50',
     to: routes.ROOT,
+    oss: true,
   },
   {
     name: 'Actions',
     icon: LocalFireDepartmentIcon,
     iconColor: '#ff9800',
     to: routes.ACTIONS,
+    oss: true,
   },
   {
     name: 'Tracing',
     icon: PlayCircleIcon,
     iconColor: '#03a9f4',
     to: routes.TRACING,
+    oss: false,
   },
 ]
 
-export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps) => {
+export const ShellAppBar = ({
+  handleLogout,
+  title,
+  insecure,
+  edition,
+}: ShellAppBarProps) => {
   const location = useLocation()
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
@@ -90,6 +99,28 @@ export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps)
     handleLogout()
   }
 
+  const menuPages = [
+    <MenuItem
+      key={'settings'}
+      onClick={handleCloseUserMenu}
+      component={Link}
+      to={routes.SETTINGS}
+    >
+      <SettingsIcon sx={{ fontSize: '1em' }} />
+      &nbsp;
+      <Typography>{'Settings'}</Typography>
+    </MenuItem>,
+  ]
+  if (!insecure) {
+    menuPages.push(
+      <MenuItem key={'logout'} onClick={handleLogoutClick}>
+        <LogoutIcon sx={{ fontSize: '1em' }} />
+        &nbsp;
+        <Typography>{'Log out'}</Typography>
+      </MenuItem>
+    )
+  }
+
   return (
     <AppBar position="static" color="inherit">
       <Container maxWidth="xl">
@@ -115,7 +146,7 @@ export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps)
               textDecoration: 'none',
             }}
           >
-            CENTRIFUGO
+            Centrifugo{edition === 'pro' ? ' PRO' : ''}
           </Typography>
 
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
@@ -147,17 +178,19 @@ export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps)
                 display: { xs: 'block', md: 'none' },
               }}
             >
-              {pages.map(page => (
-                <MenuItem
-                  key={page.name}
-                  onClick={handleCloseNavMenu}
-                  selected={page.to === location.pathname}
-                  component={Link}
-                  to={page.to}
-                >
-                  <Typography textAlign="center">{page.name}</Typography>
-                </MenuItem>
-              ))}
+              {pages
+                .filter(page => page.oss || edition === 'pro')
+                .map(page => (
+                  <MenuItem
+                    key={page.name}
+                    onClick={handleCloseNavMenu}
+                    selected={page.to === location.pathname}
+                    component={Link}
+                    to={page.to}
+                  >
+                    <Typography textAlign="center">{page.name}</Typography>
+                  </MenuItem>
+                ))}
             </Menu>
           </Box>
           <ImageListItem
@@ -183,29 +216,33 @@ export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps)
               textDecoration: 'none',
             }}
           >
-            CENTRIFUGO
+            Centrifugo{edition === 'pro' ? ' PRO' : ''}
           </Typography>
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-            {pages.map(page => (
-              <MenuItem
-                key={page.name}
-                onClick={handleCloseNavMenu}
-                component={Link}
-                to={page.to}
-                sx={{ display: 'block' }}
-                selected={page.to === location.pathname}
-              >
-                <page.icon
-                  sx={{
-                    lineHeight: '1em',
-                    fontSize: '1.2em',
-                    mb: '3px',
-                    color: page.iconColor,
-                  }}
-                />{' '}
-                {page.name}
-              </MenuItem>
-            ))}
+            {pages
+              .filter(page => page.oss || edition === 'pro')
+              .map(page => {
+                return (
+                  <MenuItem
+                    key={page.name}
+                    onClick={handleCloseNavMenu}
+                    component={Link}
+                    to={page.to}
+                    sx={{ display: 'block' }}
+                    selected={page.to === location.pathname}
+                  >
+                    <page.icon
+                      sx={{
+                        lineHeight: '1em',
+                        fontSize: '1.2em',
+                        mb: '3px',
+                        color: page.iconColor,
+                      }}
+                    />{' '}
+                    {page.name}
+                  </MenuItem>
+                )
+              })}
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>
@@ -230,24 +267,7 @@ export const ShellAppBar = ({ handleLogout, title, insecure }: ShellAppBarProps)
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              <MenuItem
-                onClick={handleCloseUserMenu}
-                component={Link}
-                to={routes.SETTINGS}
-              >
-                <SettingsIcon sx={{ fontSize: '1em' }} />
-                &nbsp;
-                <Typography>{'Settings'}</Typography>
-              </MenuItem>
-              {!insecure ? (
-              <MenuItem onClick={handleLogoutClick}>
-                <LogoutIcon sx={{ fontSize: '1em' }} />
-                &nbsp;
-                <Typography>{'Log out'}</Typography>
-              </MenuItem>
-              ) : (
-                <></>
-              )}
+              {menuPages}
             </Menu>
           </Box>
         </Toolbar>

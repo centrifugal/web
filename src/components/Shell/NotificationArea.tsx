@@ -25,7 +25,7 @@ export const NotificationArea = ({
   return (
     <Snackbar
       open={isAlertShowing}
-      autoHideDuration={6000}
+      autoHideDuration={3000}
       onClose={onAlertClose}
       anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
     >

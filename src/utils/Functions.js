@@ -4,6 +4,9 @@ function pad(n) {
 }
 
 export function HumanSeconds(seconds) {
+  if (seconds === 0) {
+    return '0s'
+  }
   const numyears = Math.floor(seconds / 31536000)
   const numdays = Math.floor((seconds % 31536000) / 86400)
   const numhours = Math.floor(((seconds % 31536000) % 86400) / 3600)

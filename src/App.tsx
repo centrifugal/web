@@ -40,6 +40,9 @@ function App({
   const [isInsecure, setIsInsecure] = useState(
     localStorage.getItem('insecure') === 'true'
   )
+  const [edition, setEdition] = useState<'oss' | 'pro'>(
+    localStorage.getItem('edition') === 'pro' ? 'pro' : 'oss'
+  )
 
   const handleServiceWorkerUpdate = () => {
     setAppNeedsUpdate(true)
@@ -94,8 +97,10 @@ function App({
   const handleLogout = function () {
     delete localStorage.token
     delete localStorage.insecure
+    delete localStorage.edition
     setIsAuthenticated(false)
     setIsInsecure(false)
+    setEdition('oss')
   }
 
   const handleLogin = function (password: string) {
@@ -121,6 +126,10 @@ function App({
         if (insecure) {
           localStorage.setItem('insecure', 'true')
         }
+        if (data.edition === 'pro') {
+          setEdition('pro')
+          localStorage.setItem('edition', 'pro')
+        }
         setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
@@ -140,6 +149,7 @@ function App({
               handleLogout={handleLogout}
               authenticated={isAuthenticated}
               insecure={isInsecure}
+              edition={edition}
             >
               <Routes>
                 {[routes.ROOT, routes.INDEX_HTML].map(path => (
@@ -164,7 +174,11 @@ function App({
                     />
                   }
                 />
-                <Route path={routes.TRACING} element={<Tracing />} />
+                {edition === 'pro' ? (
+                  <Route path={routes.TRACING} element={<Tracing />} />
+                ) : (
+                  <></>
+                )}
                 <Route path="*" element={<PageNotFound />} />
               </Routes>
             </Shell>
