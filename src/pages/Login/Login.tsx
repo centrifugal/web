@@ -11,21 +11,18 @@ import { SettingsContext } from 'contexts/SettingsContext'
 
 import Canvas from './Canvas'
 
-//@ts-ignore
-function rand(min, max) {
+function rand(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-//@ts-ignore
-function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
     const angleInRadians = (angleInDegrees * Math.PI) / 180.0;
     const x = centerX + (radius * Math.cos(angleInRadians));
     const y = centerY + (radius * Math.sin(angleInRadians));
     return [x, y];
 }
 
-//@ts-ignore
-function cartesianToPolar(centerX, centerY, X, Y) {
+function cartesianToPolar(centerX: number, centerY: number, X: number, Y: number) {
     const radians = Math.atan2(Y - centerY, X - centerX);
     return (radians * 180) / Math.PI;
 }
