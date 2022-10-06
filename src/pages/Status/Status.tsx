@@ -17,6 +17,7 @@ import { Chip } from '@mui/material'
 interface StatusProps {
   handleLogout: () => void
   insecure: boolean
+  edition: 'oss' | 'pro'
 }
 
 function createData(
@@ -33,7 +34,7 @@ function createData(
   return { name, version, uptime, clients, users, subs, channels, cpu, rss }
 }
 
-export function Status({ handleLogout, insecure }: StatusProps) {
+export function Status({ handleLogout, insecure, edition }: StatusProps) {
   const { setTitle, showAlert } = useContext(ShellContext)
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
@@ -143,12 +144,20 @@ export function Status({ handleLogout, insecure }: StatusProps) {
               <TableCell sx={{ fontWeight: 'bold' }} align="right">
                 Channels
               </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                CPU %
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                RSS
-              </TableCell>
+              {edition === 'pro' ? (
+                <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                  CPU %
+                </TableCell>
+              ) : (
+                <></>
+              )}
+              {edition === 'pro' ? (
+                <TableCell sx={{ fontWeight: 'bold' }} align="right">
+                  RSS
+                </TableCell>
+              ) : (
+                <></>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -166,8 +175,16 @@ export function Status({ handleLogout, insecure }: StatusProps) {
                 <TableCell align="right">{node.users}</TableCell>
                 <TableCell align="right">{node.subs}</TableCell>
                 <TableCell align="right">{node.channels}</TableCell>
-                <TableCell align="right">{node.cpu}</TableCell>
-                <TableCell align="right">{node.rss}</TableCell>
+                {edition === 'pro' ? (
+                  <TableCell align="right">{node.cpu}</TableCell>
+                ) : (
+                  <></>
+                )}
+                {edition === 'pro' ? (
+                  <TableCell align="right">{node.rss}</TableCell>
+                ) : (
+                  <></>
+                )}
               </TableRow>
             ))}
           </TableBody>

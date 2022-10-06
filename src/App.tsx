@@ -160,6 +160,7 @@ function App({
                       <Status
                         handleLogout={handleLogout}
                         insecure={isInsecure}
+                        edition={edition}
                       />
                     }
                   />
@@ -171,6 +172,7 @@ function App({
                     <Actions
                       handleLogout={handleLogout}
                       insecure={isInsecure}
+                      edition={edition}
                     />
                   }
                 />

@@ -33,9 +33,10 @@ import 'ace-builds/src-noconflict/ext-language_tools'
 interface ActionsProps {
   handleLogout: () => void
   insecure: boolean
+  edition: 'oss' | 'pro'
 }
 
-export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
+export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
   const { setTitle } = useContext(ShellContext)
 
   const settingsContext = useContext(SettingsContext)
@@ -269,6 +270,36 @@ export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
     FormElem = <></>
   }
 
+  const methods = [
+    { value: 'publish', name: 'Publish' },
+    { value: 'broadcast', name: 'Broadcast' },
+    { value: 'presence', name: 'Presence' },
+    { value: 'presence_stats', name: 'Presence Stats' },
+    { value: 'history', name: 'History' },
+    { value: 'history_remove', name: 'History Remove' },
+    { value: 'subscribe', name: 'Subscribe' },
+    { value: 'unsubscribe', name: 'Unsubscribe' },
+    { value: 'disconnect', name: 'Disconnect' },
+    { value: 'info', name: 'Info' },
+    { value: 'rpc', name: 'RPC' },
+    { value: 'channels', name: 'Channels' },
+  ]
+
+  const proMethods = [
+    { value: 'connections', name: 'Connections' },
+    { value: 'update_user_status', name: 'Update user status' },
+    { value: 'get_user_status', name: 'Get user status' },
+    { value: 'delete_user_status', name: 'Delete user status' },
+    { value: 'block_user', name: 'Block user' },
+    { value: 'unblock_user', name: 'Unblock user' },
+    { value: 'revoke_token', name: 'Revoke token' },
+    { value: 'invalidate_user_tokens', name: 'Invalidate user tokens' },
+  ]
+
+  if (edition === 'pro') {
+    methods.push(...proMethods)
+  }
+
   return (
     <Box className="max-w-8xl mx-auto p-8">
       <FormControl fullWidth sx={{}}>
@@ -280,32 +311,11 @@ export const Actions = ({ handleLogout, insecure }: ActionsProps) => {
           label="Method"
           onChange={handleMethodChange}
         >
-          <optgroup label="OSS">
-            <option value={'publish'}>Publish</option>
-            <option value={'broadcast'}>Broadcast</option>
-            <option value={'presence'}>Presence</option>
-            <option value={'presence_stats'}>Presence Stats</option>
-            <option value={'history'}>History</option>
-            <option value={'history_remove'}>History Remove</option>
-            <option value={'subscribe'}>Subscribe</option>
-            <option value={'unsubscribe'}>Unsubscribe</option>
-            <option value={'disconnect'}>Disconnect</option>
-            <option value={'info'}>Info</option>
-            <option value={'rpc'}>RPC</option>
-            <option value={'channels'}>Channels</option>
-          </optgroup>
-          <optgroup label="PRO">
-            <option value={'connections'}>Connections</option>
-            <option value={'update_user_status'}>Update user status</option>
-            <option value={'get_user_status'}>Get user status</option>
-            <option value={'delete_user_status'}>Delete user status</option>
-            <option value={'block_user'}>Block user</option>
-            <option value={'unblock_user'}>Unblock user</option>
-            <option value={'revoke_token'}>Revoke token</option>
-            <option value={'invalidate_user_tokens'}>
-              Invalidate user tokens
+          {methods.map(m => (
+            <option key={m.value} value={m.value}>
+              {m.name}
             </option>
-          </optgroup>
+          ))}
         </Select>
       </FormControl>
       {FormElem}
