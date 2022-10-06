@@ -39,18 +39,18 @@ function cartesianToPolar(
 
 //@ts-ignore
 function Segment(
-  ctx,
-  X,
-  Y,
-  x,
-  y,
-  radius,
-  r,
-  w,
-  rotate,
-  speed,
-  angleDiff,
-  segmentColor
+  ctx: any,
+  X: any,
+  Y: any,
+  x: any,
+  y: any,
+  radius: any,
+  r: any,
+  w: any,
+  rotate: any,
+  speed: any,
+  angleDiff: any,
+  segmentColor: any
 ): any {
   //@ts-ignore
   this.ctx = ctx
@@ -60,17 +60,17 @@ function Segment(
 
 //@ts-ignore
 Segment.prototype.init = function init(
-  X,
-  Y,
-  x,
-  y,
-  rad,
-  r,
-  w,
-  rotate,
-  speed,
-  angleDiff,
-  segColor
+  X: any,
+  Y: any,
+  x: any,
+  y: any,
+  rad: any,
+  r: any,
+  w: any,
+  rotate: any,
+  speed: any,
+  angleDiff: any,
+  segColor: any
 ) {
   this.X = X
   this.Y = Y
@@ -88,9 +88,9 @@ Segment.prototype.init = function init(
 
 //@ts-ignore
 Segment.prototype.drawSegment = function drawSegment(
-  fromAngle,
-  toAngle,
-  rotateAngle
+  fromAngle: any,
+  toAngle: any,
+  rotateAngle: any
 ) {
   this.ctx.translate(this.x, this.y)
   this.ctx.rotate((rotateAngle * Math.PI) / 180)
@@ -242,11 +242,10 @@ function drawLogo(
 
   //@ts-ignore
   window.requestAnimationFrame =
-    window.requestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    //@ts-ignore
-    window.webkitRequestAnimationFrame ||
-    window.msRequestAnimationFrame ||
+    window.requestAnimationFrame || //@ts-ignore
+    window.mozRequestAnimationFrame || //@ts-ignore
+    window.webkitRequestAnimationFrame || //@ts-ignore
+    window.msRequestAnimationFrame || //@ts-ignore
     function requestAnimationFrame(cb) {
       setTimeout(cb, 17)
     }
@@ -259,6 +258,7 @@ function drawLogo(
 
   //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -274,8 +274,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -291,8 +291,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -308,8 +308,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -325,8 +325,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -342,8 +342,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
@@ -359,8 +359,8 @@ function drawLogo(
       segmentColor
     )
   )
-  //@ts-ignore
   segments.push(
+    //@ts-ignore
     new Segment(
       ctx,
       X,
