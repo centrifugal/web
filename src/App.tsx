@@ -133,9 +133,7 @@ function App({
         setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
-      .catch(e => {
-        console.log(e)
-      })
+      .catch(e => {})
   }
 
   return (
