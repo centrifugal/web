@@ -4,7 +4,7 @@ import localforage from 'localforage'
 import Box from '@mui/material/Box'
 import UILink from '@mui/material/Link'
 
-import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
+// import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { globalUrlPrefix } from 'config/url'
@@ -29,7 +29,7 @@ function App({
   }),
 }: AppProps) {
   const [persistedStorage] = useState(persistedStorageProp)
-  const [appNeedsUpdate, setAppNeedsUpdate] = useState(false)
+  // const [appNeedsUpdate, setAppNeedsUpdate] = useState(false)
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
   const [userSettings, setUserSettings] = useState<UserSettings>({
     colorMode: 'light',
@@ -44,13 +44,13 @@ function App({
     localStorage.getItem('edition') === 'pro' ? 'pro' : 'oss'
   )
 
-  const handleServiceWorkerUpdate = () => {
-    setAppNeedsUpdate(true)
-  }
+  // const handleServiceWorkerUpdate = () => {
+  //   setAppNeedsUpdate(true)
+  // }
 
-  useEffect(() => {
-    serviceWorkerRegistration.register({ onUpdate: handleServiceWorkerUpdate })
-  }, [])
+  // useEffect(() => {
+  //   serviceWorkerRegistration.register({ onUpdate: handleServiceWorkerUpdate })
+  // }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -144,7 +144,7 @@ function App({
         <SettingsContext.Provider value={settingsContextValue}>
           {hasLoadedSettings ? (
             <Shell
-              appNeedsUpdate={appNeedsUpdate}
+              // appNeedsUpdate={appNeedsUpdate}
               handleLogin={handleLogin}
               handleLogout={handleLogout}
               authenticated={isAuthenticated}

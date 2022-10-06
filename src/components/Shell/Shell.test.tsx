@@ -7,7 +7,7 @@ const ShellStub = (overrides: Partial<ShellProps> = {}) => {
   return (
     <Router>
       <Shell
-        appNeedsUpdate={false}
+        // appNeedsUpdate={false}
         handleLogin={(password: string) => {}}
         handleLogout={() => {}}
         authenticated={true}
