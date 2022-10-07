@@ -1167,9 +1167,9 @@ export const InvalidateUserTokensForm = ({
         type="number"
         id="text"
         autoComplete="off"
-        helperText="Unix seconds"
+        helperText="Unix seconds, zero value tells server to use current time"
         onChange={event => setBefore(parseInt(event.target.value))}
-        value={exp}
+        value={before}
       />
       <TextField
         margin="normal"
