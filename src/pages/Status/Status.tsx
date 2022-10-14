@@ -1,4 +1,5 @@
 import { useEffect, useContext, useState } from 'react'
+import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Table from '@mui/material/Table'
@@ -8,11 +9,18 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
+import CircularProgress from '@mui/material/CircularProgress'
 
 import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { Chip } from '@mui/material'
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  '&:nth-of-type(odd)': {
+    backgroundColor: theme.palette.action.hover,
+  },
+}))
 
 interface StatusProps {
   handleLogout: () => void
@@ -23,7 +31,7 @@ interface StatusProps {
 function createData(
   name: string,
   version: string,
-  uptime: string,
+  uptime: number,
   clients: number,
   users: number,
   subs: number,
@@ -39,6 +47,7 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   const handleInfo = function (result: any) {
     const rows: any[] = []
@@ -52,7 +61,7 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
         createData(
           node.name,
           node.version,
-          HumanSeconds(node.uptime || 0),
+          node.uptime || 0,
           node.num_clients,
           node.num_users,
           node.num_subs,
@@ -100,6 +109,7 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
             return
           }
           handleInfo(data.result)
+          setLoading(false)
         })
         .catch(e => {
           showAlert('Error connecting to server', { severity: 'error' })
@@ -115,81 +125,95 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
     return () => clearInterval(interval)
   }, [setTitle, handleLogout, insecure, showAlert])
 
+  const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
+
   return (
     <Box className="max-w-8xl mx-auto p-8">
-      <Typography variant="h5" sx={{ mb: 1 }}>
-        Nodes running: <Chip label={numNodes} sx={{ fontSize: '1em' }} /> Total
-        clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />
-      </Typography>
-      <TableContainer sx={{ mt: 4 }} component={Paper}>
-        <Table aria-label="simple table">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Node name</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Version
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Uptime
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Clients
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Users
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Subs
-              </TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                Channels
-              </TableCell>
-              {edition === 'pro' ? (
-                <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                  CPU %
-                </TableCell>
-              ) : (
-                <></>
-              )}
-              {edition === 'pro' ? (
-                <TableCell sx={{ fontWeight: 'bold' }} align="right">
-                  RSS
-                </TableCell>
-              ) : (
-                <></>
-              )}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {nodes.map(node => (
-              <TableRow
-                key={node.name}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
-                <TableCell component="th" scope="row">
-                  {node.name}
-                </TableCell>
-                <TableCell align="right">{node.version}</TableCell>
-                <TableCell align="right">{node.uptime}</TableCell>
-                <TableCell align="right">{node.clients}</TableCell>
-                <TableCell align="right">{node.users}</TableCell>
-                <TableCell align="right">{node.subs}</TableCell>
-                <TableCell align="right">{node.channels}</TableCell>
-                {edition === 'pro' ? (
-                  <TableCell align="right">{node.cpu}</TableCell>
-                ) : (
-                  <></>
-                )}
-                {edition === 'pro' ? (
-                  <TableCell align="right">{node.rss}</TableCell>
-                ) : (
-                  <></>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      {loading ? (
+        <Box>
+          <CircularProgress disableShrink color="secondary" />
+        </Box>
+      ) : (
+        <Box>
+          <Typography variant="h5" sx={{ mb: 1 }}>
+            Nodes running: <Chip label={numNodes} sx={{ fontSize: '1em' }} />{' '}
+            Total clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />
+          </Typography>
+          <TableContainer sx={{ mt: 4 }} component={Paper}>
+            <Table aria-label="simple table">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={headCellSx}>Node name</TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Version
+                  </TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Uptime
+                  </TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Clients
+                  </TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Users
+                  </TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Subs
+                  </TableCell>
+                  <TableCell sx={headCellSx} align="right">
+                    Channels
+                  </TableCell>
+                  {edition === 'pro' ? (
+                    <TableCell sx={headCellSx} align="right">
+                      CPU %
+                    </TableCell>
+                  ) : (
+                    <></>
+                  )}
+                  {edition === 'pro' ? (
+                    <TableCell sx={headCellSx} align="right">
+                      RSS
+                    </TableCell>
+                  ) : (
+                    <></>
+                  )}
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {nodes
+                  .sort((a, b) => (a.uptime > b.uptime ? 1 : -1))
+                  .map(node => (
+                    <StyledTableRow
+                      key={node.name}
+                      sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                    >
+                      <TableCell component="th" scope="row">
+                        {node.name}
+                      </TableCell>
+                      <TableCell align="right">{node.version}</TableCell>
+                      <TableCell align="right">
+                        {HumanSeconds(node.uptime)}
+                      </TableCell>
+                      <TableCell align="right">{node.clients}</TableCell>
+                      <TableCell align="right">{node.users}</TableCell>
+                      <TableCell align="right">{node.subs}</TableCell>
+                      <TableCell align="right">{node.channels}</TableCell>
+                      {edition === 'pro' ? (
+                        <TableCell align="right">{node.cpu}</TableCell>
+                      ) : (
+                        <></>
+                      )}
+                      {edition === 'pro' ? (
+                        <TableCell align="right">{node.rss}</TableCell>
+                      ) : (
+                        <></>
+                      )}
+                    </StyledTableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
+      )}
     </Box>
   )
 }
