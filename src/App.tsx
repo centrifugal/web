@@ -13,6 +13,7 @@ import { Status } from 'pages/Status/index'
 import { Settings } from 'pages/Settings'
 import { Actions } from 'pages/Actions'
 import { Tracing } from 'pages/Tracing'
+import { Analytics } from 'pages/Analytics'
 import { UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
@@ -176,6 +177,20 @@ function App({
                 />
                 {edition === 'pro' ? (
                   <Route path={routes.TRACING} element={<Tracing />} />
+                ) : (
+                  <></>
+                )}
+                {edition === 'pro' ? (
+                  <Route
+                    path={routes.ANALYTICS}
+                    element={
+                      <Analytics
+                        handleLogout={handleLogout}
+                        insecure={isInsecure}
+                        edition={edition}
+                      />
+                    }
+                  />
                 ) : (
                   <></>
                 )}

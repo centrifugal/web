@@ -5,4 +5,5 @@ export enum routes {
   SETTINGS = '/settings',
   ACTIONS = '/actions',
   TRACING = '/tracing',
+  ANALYTICS = '/analytics',
 }

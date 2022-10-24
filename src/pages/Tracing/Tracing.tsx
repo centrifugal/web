@@ -175,7 +175,7 @@ export const Tracing = () => {
       className="max-w-8xl mx-auto p-8"
     >
       <FormControl>
-        <FormLabel>Choose what to trace</FormLabel>
+        <FormLabel>Real-time tracing of user or channel events</FormLabel>
         <RadioGroup
           row
           aria-labelledby="row-radio-buttons-group-label"

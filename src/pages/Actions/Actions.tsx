@@ -302,6 +302,9 @@ export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
 
   return (
     <Box className="max-w-8xl mx-auto p-8">
+      <Typography color="text.secondary" sx={{ mb: 2 }}>
+        Execute server API command
+      </Typography>
       <FormControl fullWidth sx={{}}>
         <InputLabel htmlFor="grouped-native-select">Method</InputLabel>
         <Select
@@ -321,7 +324,7 @@ export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
       {FormElem}
       {request && response ? (
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={4}>
+          <Grid item xs={12} md={4} xl={4}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               Request
             </Typography>
@@ -329,7 +332,7 @@ export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
               {JSON.stringify(request, undefined, 2)}
             </SyntaxHighlighter>
           </Grid>
-          <Grid item xs={8}>
+          <Grid item xs={12} md={8} xl={8}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               Response{' '}
               {!response.error ? (
@@ -365,12 +368,7 @@ export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
       <Box sx={{ position: 'relative' }}>
-        <Button
-          type="submit"
-          variant="contained"
-          // sx={buttonSx}
-          disabled={loading}
-        >
+        <Button type="submit" variant="contained" disabled={loading}>
           {text}
         </Button>
         {loading && (
