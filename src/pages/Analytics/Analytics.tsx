@@ -2,6 +2,7 @@ import { useContext, useEffect, useState, useCallback } from 'react'
 import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import CircularProgress from '@mui/material/CircularProgress'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -21,6 +22,13 @@ import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
 import LastPageIcon from '@mui/icons-material/LastPage'
 import { useTheme } from '@mui/material/styles'
 import Link from '@mui/material/Link'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import FormControl from '@mui/material/FormControl'
+import Radio from '@mui/material/Radio'
+import RadioGroup from '@mui/material/RadioGroup'
 
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
@@ -37,6 +45,115 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.action.hover,
   },
 }))
+
+interface IntervalDialogProps {
+  open: boolean
+  initial: number
+  includeIntervals: boolean
+  includePastSnapshots: boolean
+  closeFunc: null | ((value: number) => void)
+}
+
+function IntervalDialog(props: IntervalDialogProps) {
+  const { open, initial, includeIntervals, includePastSnapshots, closeFunc } =
+    props
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!closeFunc) {
+      return
+    }
+    closeFunc(parseInt((event.target as HTMLInputElement).value))
+  }
+
+  const handleClose = (
+    event: React.SyntheticEvent<unknown>,
+    reason?: string
+  ) => {
+    if (!closeFunc) {
+      return
+    }
+    if (reason !== 'backdropClick') {
+      closeFunc(initial)
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={handleClose}>
+      <DialogTitle>Select an interval to aggregate over</DialogTitle>
+      <DialogContent>
+        <Box component="form" sx={{ display: 'flex', flexWrap: 'wrap' }}>
+          <FormControl>
+            <RadioGroup
+              row
+              aria-labelledby="demo-row-radio-buttons-group-label"
+              name="row-radio-buttons-group"
+              defaultValue={initial.toString()}
+              onChange={handleChange}
+            >
+              {includePastSnapshots ? (
+                <Box>
+                  <Typography>Snapshot at:</Typography>
+                  <FormControlLabel
+                    value={'0'}
+                    control={<Radio />}
+                    label="now"
+                  />
+                  <FormControlLabel
+                    value={'-5'}
+                    control={<Radio />}
+                    label="5 min ago"
+                  />
+                  <FormControlLabel
+                    value={'-60'}
+                    control={<Radio />}
+                    label="1 hour ago"
+                  />
+                  <FormControlLabel
+                    value={'-1439'}
+                    control={<Radio />}
+                    label="1 day ago"
+                  />
+                </Box>
+              ) : (
+                <></>
+              )}
+              {includeIntervals ? (
+                <Box>
+                  <Typography>Sum over:</Typography>
+                  <FormControlLabel
+                    value={'1'}
+                    control={<Radio />}
+                    label="last 1 min"
+                  />
+                  <FormControlLabel
+                    value={'5'}
+                    control={<Radio />}
+                    label="last 5 min"
+                  />
+                  <FormControlLabel
+                    value={'60'}
+                    control={<Radio />}
+                    label="last 1 hour"
+                  />
+                  <FormControlLabel
+                    value={'1440'}
+                    control={<Radio />}
+                    label="last 1 day"
+                  />
+                </Box>
+              ) : (
+                <></>
+              )}
+            </RadioGroup>
+          </FormControl>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
 
 interface TablePaginationActionsProps {
   count: number
@@ -124,7 +241,7 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   const [reloading, setReloading] = useState(true)
   const [enabled, setEnabled] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<null | any>(null)
-  const localStorageRequestKey = 'centrifugo_analytics_request'
+  const localStorageRequestKey = 'centrifugo_analytics_request_v1'
 
   let savedReq: any
   if (localStorage.getItem(localStorageRequestKey) === null) {
@@ -135,18 +252,18 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
       numPublications: {
         lastMinutes: 60,
       },
-      clientDistribution: {
-        lastMinutes: 5,
+      clientNames: {
+        lastMinutes: 0,
       },
-      transportDistribution: {
-        lastMinutes: 5,
+      transports: {
+        lastMinutes: 0,
       },
       userConnections: {
-        lastMinutes: 1,
+        lastMinutes: 0,
         user: '',
       },
-      channelSubscribers: {
-        lastMinutes: 1,
+      channelSubscriptions: {
+        lastMinutes: 0,
         channel: '',
       },
       userOps: {
@@ -177,13 +294,54 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   }
   const [request, setRequest] = useState(savedReq)
 
+  const [intervalDialogOpen, setIntervalDialogOpen] = useState(false)
+  const [intervalDialogInitial, setIntervalDialogInitial] = useState(0)
+  const [intervalDialogField, setIntervalDialogField] = useState('')
+  const [intervalDialogIncludeIntervals, setIntervalDialogIncludeIntervals] =
+    useState(false)
+  const [intervalDialogIncludeSnapshots, setIntervalDialogIncludeSnapshots] =
+    useState(false)
+
   const [userConnectionsUser, setUserConnectionsUser] = useState(
     request.userConnections.user
   )
+  const [userConnectionsPage, setUserConnectionsPage] = useState(0)
+  const [userConnectionsRowsPerPage, setUserConnectionsRowsPerPage] =
+    useState(10)
+  const userConnectionsEmptyRows =
+    userConnectionsPage > 0
+      ? Math.max(
+          0,
+          (1 + userConnectionsPage) * userConnectionsRowsPerPage -
+            analyticsData.userConnections.length
+        )
+      : 0
 
-  const [channelSubscribersChannel, setChannelSubscribersChannel] = useState(
-    request.channelSubscribers.channel
-  )
+  const [channelSubscriptionsChannel, setchannelSubscriptionsChannel] =
+    useState(request.channelSubscriptions.channel)
+  const [channelSubscriptionsPage, setChannelSubscriptionsPage] = useState(0)
+  const [channelSubscriptionsRowsPerPage, setChannelSubscriptionsRowsPerPage] =
+    useState(10)
+  const channelSubscriptionsEmptyRows =
+    channelSubscriptionsPage > 0
+      ? Math.max(
+          0,
+          (1 + channelSubscriptionsPage) * channelSubscriptionsRowsPerPage -
+            analyticsData.channelSubscriptions.length
+        )
+      : 0
+
+  const [userOpsUser, setUserOpsUser] = useState(request.userOps.user)
+  const [userOpsOp, setUserOpsOp] = useState(request.userOps.op)
+  const [userOpsPage, setUserOpsPage] = useState(0)
+  const [userOpsRowsPerPage, setUserOpsRowsPerPage] = useState(10)
+  const userOpsEmptyRows =
+    userOpsPage > 0
+      ? Math.max(
+          0,
+          (1 + userOpsPage) * userOpsRowsPerPage - analyticsData.userOps.length
+        )
+      : 0
 
   const [channelPublicationsChannel, setChannelPublicationsChannel] = useState(
     request.channelPublications.channel
@@ -191,17 +349,33 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   const [channelPublicationsSource, setChannelPublicationsSource] = useState(
     request.channelPublications.source
   )
-
-  const [userOpsPage, setUserOpsPage] = useState(0)
-  const [userOpsRowsPerPage, setUserOpsRowsPerPage] = useState(10)
-  const [userOpsUser, setUserOpsUser] = useState(request.userOps.user)
-  const [userOpsOp, setUserOpsOp] = useState(request.userOps.op)
+  const [channelPublicationsPage, setChannelPublicationsPage] = useState(0)
+  const [channelPublicationsRowsPerPage, setChannelPublicationsRowsPerPage] =
+    useState(10)
+  const channelPublicationsEmptyRows =
+    channelPublicationsPage > 0
+      ? Math.max(
+          0,
+          (1 + channelPublicationsPage) * channelPublicationsRowsPerPage -
+            analyticsData.channelPublications.length
+        )
+      : 0
 
   const [userErrorsUser, setUserErrorsUser] = useState(request.userErrors.user)
   const [userErrorsOp, setUserErrorsOp] = useState(request.userErrors.op)
   const [userErrorsError, setUserErrorsError] = useState(
     request.userErrors.error
   )
+  const [userErrorsPage, setUserErrorsPage] = useState(0)
+  const [userErrorsRowsPerPage, setUserErrorsRowsPerPage] = useState(10)
+  const userErrorsEmptyRows =
+    userErrorsPage > 0
+      ? Math.max(
+          0,
+          (1 + userErrorsPage) * userErrorsRowsPerPage -
+            analyticsData.userErrors.length
+        )
+      : 0
 
   const [userDisconnectsUser, setUserDisconnectsUser] = useState(
     request.userDisconnects.user
@@ -212,6 +386,17 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   const [userDisconnectsDisconnect, setUserDisconnectsDisconnect] = useState(
     request.userDisconnects.disconnect
   )
+  const [userDisconnectsPage, setUserDisconnectsPage] = useState(0)
+  const [userDisconnectsRowsPerPage, setUserDisconnectsRowsPerPage] =
+    useState(10)
+  const userDisconnectsEmptyRows =
+    userDisconnectsPage > 0
+      ? Math.max(
+          0,
+          (1 + userDisconnectsPage) * userDisconnectsRowsPerPage -
+            analyticsData.userDisconnects.length
+        )
+      : 0
 
   const handleUserOpsChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -225,6 +410,76 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   ) => {
     setUserOpsRowsPerPage(parseInt(event.target.value, 10))
     setUserOpsPage(0)
+  }
+
+  const handleChannelPublicationsChangePage = (
+    event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setChannelPublicationsPage(newPage)
+  }
+
+  const handleChannelPublicationsChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setChannelPublicationsRowsPerPage(parseInt(event.target.value, 10))
+    setChannelPublicationsPage(0)
+  }
+
+  const handleUserConnectionsChangePage = (
+    event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setUserConnectionsPage(newPage)
+  }
+
+  const handleUserConnectionsChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setUserConnectionsRowsPerPage(parseInt(event.target.value, 10))
+    setUserConnectionsPage(0)
+  }
+
+  const handleChannelSubscriptionsChangePage = (
+    event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setChannelSubscriptionsPage(newPage)
+  }
+
+  const handleChannelSubscriptionsChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setChannelSubscriptionsRowsPerPage(parseInt(event.target.value, 10))
+    setChannelSubscriptionsPage(0)
+  }
+
+  const handleUserErrorsChangePage = (
+    event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setUserErrorsPage(newPage)
+  }
+
+  const handleUserErrorsChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setUserErrorsRowsPerPage(parseInt(event.target.value, 10))
+    setUserErrorsPage(0)
+  }
+
+  const handleUserDisconnectsChangePage = (
+    event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
+    setUserDisconnectsPage(newPage)
+  }
+
+  const handleUserDisconnectsChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setUserDisconnectsRowsPerPage(parseInt(event.target.value, 10))
+    setUserDisconnectsPage(0)
   }
 
   useEffect(() => {
@@ -279,13 +534,19 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
     [handleLogout, insecure, showAlert, request]
   )
 
+  const [didFetch, setDidFetch] = useState(false)
+
   useEffect(() => {
+    if (didFetch) {
+      return
+    }
+    setDidFetch(true)
     const interval = setInterval(function () {
       askFullAnalyticsData()
     }, 60000)
     askFullAnalyticsData()
     return () => clearInterval(interval)
-  }, [setTitle, askFullAnalyticsData, handleLogout, insecure, showAlert])
+  }, [askFullAnalyticsData, handleLogout, insecure, showAlert, didFetch])
 
   const handleReloadClick = (e: any) => {
     e.preventDefault()
@@ -296,25 +557,16 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   const headCellSx = { fontWeight: 'bold', p: 1.5 }
   const widgetCellSx = { p: 1.5 }
 
-  // Avoid a layout jump when reaching the last page with empty rows.
-  const userOpsEmptyRows =
-    userOpsPage > 0
-      ? Math.max(
-          0,
-          (1 + userOpsPage) * userOpsRowsPerPage - analyticsData.userOps.length
-        )
-      : 0
-
   let allClients: number
   let allTransports: number
-  if (analyticsData && analyticsData.clientDistribution) {
-    allClients = analyticsData.clientDistribution.reduce(
+  if (analyticsData && analyticsData.clientNames) {
+    allClients = analyticsData.clientNames.reduce(
       (a: number, v: any) => (a = a + v.count),
       0
     )
   }
-  if (analyticsData && analyticsData.transportDistribution) {
-    allTransports = analyticsData.transportDistribution.reduce(
+  if (analyticsData && analyticsData.transports) {
+    allTransports = analyticsData.transports.reduce(
       (a: number, v: any) => (a = a + v.count),
       0
     )
@@ -345,12 +597,12 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
     saveAndMakeRequest(shallow)
   }
 
-  const handleChannelSubscribersSubmit = (
+  const handlechannelSubscriptionsSubmit = (
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
     let shallow = Object.assign({}, request)
-    shallow.channelSubscribers.channel = channelSubscribersChannel
+    shallow.channelSubscriptions.channel = channelSubscriptionsChannel
     saveAndMakeRequest(shallow)
   }
 
@@ -389,6 +641,34 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
   const widgetCardSx = { p: 1, height: '100%' }
   const noDataSx = { mt: 3 }
 
+  const humanizeMinutes = (mins: number): string => {
+    if (mins === 0) {
+      return 'now'
+    } else if (mins === 1) {
+      return 'in last 1 min'
+    } else if (mins === 5) {
+      return 'in last 5 min'
+    } else if (mins === 60) {
+      return 'in last 1 hour'
+    } else if (mins === 1440) {
+      return 'in last 1 day'
+    } else if (mins === -5) {
+      return '5 min ago'
+    } else if (mins === -60) {
+      return '1 hour ago'
+    } else if (mins === -1439) {
+      return '1 day ago'
+    }
+    return '?'
+  }
+
+  const intervalDialogClose = (value: number) => {
+    setIntervalDialogOpen(false)
+    let shallow = Object.assign({}, request)
+    shallow[intervalDialogField].lastMinutes = value
+    saveAndMakeRequest(shallow)
+  }
+
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
@@ -397,6 +677,13 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
         </Box>
       ) : (
         <Box>
+          <IntervalDialog
+            open={intervalDialogOpen}
+            initial={intervalDialogInitial}
+            includeIntervals={intervalDialogIncludeIntervals}
+            includePastSnapshots={intervalDialogIncludeSnapshots}
+            closeFunc={intervalDialogClose}
+          />
           {enabled ? (
             <Box>
               <Typography color="text.secondary" gutterBottom>
@@ -423,9 +710,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Unique users in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 hour
+                        Unique users
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.numUniqueUsers.lastMinutes
+                            )
+                            setIntervalDialogField('numUniqueUsers')
+                            setIntervalDialogIncludeSnapshots(true)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.numUniqueUsers.lastMinutes)}
                         </Button>
                       </Typography>
                       {analyticsData.numUniqueUsers !== undefined ? (
@@ -448,9 +747,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Publications in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 hour
+                        Publications
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.numPublications.lastMinutes
+                            )
+                            setIntervalDialogField('numPublications')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.numPublications.lastMinutes)}
                         </Button>
                       </Typography>
                       {analyticsData.numUniqueUsers !== undefined ? (
@@ -473,19 +784,31 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Client distribution in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 min
+                        Client names
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.clientNames.lastMinutes
+                            )
+                            setIntervalDialogField('clientNames')
+                            setIntervalDialogIncludeSnapshots(true)
+                            setIntervalDialogIncludeIntervals(false)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.clientNames.lastMinutes)}
                         </Button>
                       </Typography>
-                      {analyticsData.clientDistribution !== undefined ? (
+                      {analyticsData.clientNames !== undefined ? (
                         <Box>
                           <Typography
                             variant="h5"
                             component="div"
                             color="#8ab200"
                           >
-                            {analyticsData.clientDistribution.map(
+                            {analyticsData.clientNames.map(
                               (clientCount: any) => (
                                 <Box component="span" key={clientCount.name}>
                                   <Chip
@@ -521,19 +844,31 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Transport distribution in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 min
+                        Transports
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.transports.lastMinutes
+                            )
+                            setIntervalDialogField('transports')
+                            setIntervalDialogIncludeSnapshots(true)
+                            setIntervalDialogIncludeIntervals(false)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.transports.lastMinutes)}
                         </Button>
                       </Typography>
-                      {analyticsData.transportDistribution !== undefined ? (
+                      {analyticsData.transports !== undefined ? (
                         <Box>
                           <Typography
                             variant="h5"
                             component="div"
                             color="#8ab200"
                           >
-                            {analyticsData.transportDistribution.map(
+                            {analyticsData.transports.map(
                               (transportCount: any) => (
                                 <Box component="span" key={transportCount.name}>
                                   <Chip
@@ -567,9 +902,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        User connections in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 min
+                        User connections
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.userConnections.lastMinutes
+                            )
+                            setIntervalDialogField('userConnections')
+                            setIntervalDialogIncludeSnapshots(true)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.userConnections.lastMinutes)}
                         </Button>
                       </Typography>
 
@@ -617,30 +964,71 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {analyticsData.userConnections.map(
-                                  (elem: any) => (
-                                    <StyledTableRow
-                                      key={elem.user}
-                                      sx={{
-                                        '&:last-child td, &:last-child th': {
-                                          border: 0,
-                                        },
-                                      }}
+                                {(userConnectionsRowsPerPage > 0
+                                  ? analyticsData.userConnections.slice(
+                                      userConnectionsPage *
+                                        userConnectionsRowsPerPage,
+                                      userConnectionsPage *
+                                        userConnectionsRowsPerPage +
+                                        userConnectionsRowsPerPage
+                                    )
+                                  : analyticsData.userConnections
+                                ).map((elem: any) => (
+                                  <StyledTableRow
+                                    key={elem.user}
+                                    sx={{
+                                      '&:last-child td, &:last-child th': {
+                                        border: 0,
+                                      },
+                                    }}
+                                  >
+                                    <TableCell
+                                      sx={widgetCellSx}
+                                      component="th"
+                                      scope="row"
                                     >
-                                      <TableCell
-                                        sx={widgetCellSx}
-                                        component="th"
-                                        scope="row"
-                                      >
-                                        {elem.user}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.count}
-                                      </TableCell>
-                                    </StyledTableRow>
-                                  )
+                                      {elem.user}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.count}
+                                    </TableCell>
+                                  </StyledTableRow>
+                                ))}
+                                {userConnectionsEmptyRows > 0 && (
+                                  <TableRow
+                                    style={{
+                                      height: 45 * userConnectionsEmptyRows - 1,
+                                    }}
+                                  >
+                                    <TableCell colSpan={3} />
+                                  </TableRow>
                                 )}
                               </TableBody>
+                              {analyticsData.userConnections.length >
+                              userConnectionsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[1]}
+                                      colSpan={3}
+                                      count={
+                                        analyticsData.userConnections.length
+                                      }
+                                      rowsPerPage={userConnectionsRowsPerPage}
+                                      page={userConnectionsPage}
+                                      onPageChange={
+                                        handleUserConnectionsChangePage
+                                      }
+                                      onRowsPerPageChange={
+                                        handleUserConnectionsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
@@ -658,15 +1046,29 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Channel subscribers in
-                        <Button size="large" sx={{ p: 1 }}>
-                          1 min
+                        Channel subscriptions
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.channelSubscriptions.lastMinutes
+                            )
+                            setIntervalDialogField('channelSubscriptions')
+                            setIntervalDialogIncludeSnapshots(true)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(
+                            request.channelSubscriptions.lastMinutes
+                          )}
                         </Button>
                       </Typography>
 
                       <Box
                         component="form"
-                        onSubmit={handleChannelSubscribersSubmit}
+                        onSubmit={handlechannelSubscriptionsSubmit}
                       >
                         <Grid
                           container
@@ -685,9 +1087,11 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                               id="text"
                               autoComplete="off"
                               onChange={event =>
-                                setChannelSubscribersChannel(event.target.value)
+                                setchannelSubscriptionsChannel(
+                                  event.target.value
+                                )
                               }
-                              value={channelSubscribersChannel}
+                              value={channelSubscriptionsChannel}
                             />
                             <Button type="submit" sx={{ display: 'none' }}>
                               Submit
@@ -695,8 +1099,8 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                           </Grid>
                         </Grid>
                       </Box>
-                      {analyticsData.channelSubscribers &&
-                      analyticsData.channelSubscribers.length > 0 ? (
+                      {analyticsData.channelSubscriptions &&
+                      analyticsData.channelSubscriptions.length > 0 ? (
                         <Box>
                           <TableContainer sx={{ mt: 4 }}>
                             <Table aria-label="simple table">
@@ -707,30 +1111,75 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {analyticsData.channelSubscribers.map(
-                                  (elem: any) => (
-                                    <StyledTableRow
-                                      key={elem.channel}
-                                      sx={{
-                                        '&:last-child td, &:last-child th': {
-                                          border: 0,
-                                        },
-                                      }}
+                                {(channelSubscriptionsRowsPerPage > 0
+                                  ? analyticsData.channelSubscriptions.slice(
+                                      channelSubscriptionsPage *
+                                        channelSubscriptionsRowsPerPage,
+                                      channelSubscriptionsPage *
+                                        channelSubscriptionsRowsPerPage +
+                                        channelSubscriptionsRowsPerPage
+                                    )
+                                  : analyticsData.channelSubscriptions
+                                ).map((elem: any) => (
+                                  <StyledTableRow
+                                    key={elem.channel}
+                                    sx={{
+                                      '&:last-child td, &:last-child th': {
+                                        border: 0,
+                                      },
+                                    }}
+                                  >
+                                    <TableCell
+                                      sx={widgetCellSx}
+                                      component="th"
+                                      scope="row"
                                     >
-                                      <TableCell
-                                        sx={widgetCellSx}
-                                        component="th"
-                                        scope="row"
-                                      >
-                                        {elem.channel}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.count}
-                                      </TableCell>
-                                    </StyledTableRow>
-                                  )
+                                      {elem.channel}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.count}
+                                    </TableCell>
+                                  </StyledTableRow>
+                                ))}
+                                {channelSubscriptionsEmptyRows > 0 && (
+                                  <TableRow
+                                    style={{
+                                      height:
+                                        45 * channelSubscriptionsEmptyRows - 1,
+                                    }}
+                                  >
+                                    <TableCell colSpan={3} />
+                                  </TableRow>
                                 )}
                               </TableBody>
+                              {analyticsData.channelSubscriptions.length >
+                              channelSubscriptionsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[1]}
+                                      colSpan={3}
+                                      count={
+                                        analyticsData.channelSubscriptions
+                                          .length
+                                      }
+                                      rowsPerPage={
+                                        channelSubscriptionsRowsPerPage
+                                      }
+                                      page={channelSubscriptionsPage}
+                                      onPageChange={
+                                        handleChannelSubscriptionsChangePage
+                                      }
+                                      onRowsPerPageChange={
+                                        handleChannelSubscriptionsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
@@ -748,9 +1197,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Users commands without errors in
-                        <Button size="large" sx={{ p: 1 }}>
-                          5 min
+                        Users commands without errors
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.userOps.lastMinutes
+                            )
+                            setIntervalDialogField('userOps')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.userOps.lastMinutes)}
                         </Button>
                       </Typography>
 
@@ -819,9 +1280,9 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                         userOpsRowsPerPage
                                     )
                                   : analyticsData.userOps
-                                ).map((row: any) => (
+                                ).map((elem: any) => (
                                   <StyledTableRow
-                                    key={row.user + row.op}
+                                    key={elem.user + elem.op}
                                     sx={{
                                       '&:last-child td, &:last-child th': {
                                         border: 0,
@@ -833,13 +1294,13 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                       component="th"
                                       scope="row"
                                     >
-                                      {row.user}
+                                      {elem.user}
                                     </TableCell>
                                     <TableCell sx={widgetCellSx}>
-                                      {row.op}
+                                      {elem.op}
                                     </TableCell>
                                     <TableCell sx={widgetCellSx}>
-                                      {row.count}
+                                      {elem.count}
                                     </TableCell>
                                   </StyledTableRow>
                                 ))}
@@ -849,36 +1310,31 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                       height: 45 * userOpsEmptyRows - 1,
                                     }}
                                   >
-                                    <TableCell colSpan={6} />
+                                    <TableCell colSpan={3} />
                                   </TableRow>
                                 )}
                               </TableBody>
-                              <TableFooter>
-                                <TableRow>
-                                  <TablePagination
-                                    rowsPerPageOptions={[
-                                      10,
-                                      25,
-                                      { label: 'All', value: -1 },
-                                    ]}
-                                    colSpan={3}
-                                    count={analyticsData.userOps.length}
-                                    rowsPerPage={userOpsRowsPerPage}
-                                    page={userOpsPage}
-                                    SelectProps={{
-                                      inputProps: {
-                                        'aria-label': 'rows per page',
-                                      },
-                                      native: true,
-                                    }}
-                                    onPageChange={handleUserOpsChangePage}
-                                    onRowsPerPageChange={
-                                      handleUserOpsChangeRowsPerPage
-                                    }
-                                    ActionsComponent={TablePaginationActions}
-                                  />
-                                </TableRow>
-                              </TableFooter>
+                              {analyticsData.userOps.length >
+                              userOpsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[1]}
+                                      colSpan={3}
+                                      count={analyticsData.userOps.length}
+                                      rowsPerPage={userOpsRowsPerPage}
+                                      page={userOpsPage}
+                                      onPageChange={handleUserOpsChangePage}
+                                      onRowsPerPageChange={
+                                        handleUserOpsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
@@ -896,9 +1352,23 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Channel publications in
-                        <Button size="large" sx={{ p: 1 }}>
-                          5 min
+                        Channel publications
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.channelPublications.lastMinutes
+                            )
+                            setIntervalDialogField('channelPublications')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(
+                            request.channelPublications.lastMinutes
+                          )}
                         </Button>
                       </Typography>
 
@@ -964,33 +1434,77 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {analyticsData.channelPublications.map(
-                                  (elem: any) => (
-                                    <StyledTableRow
-                                      key={elem.channel + elem.source}
-                                      sx={{
-                                        '&:last-child td, &:last-child th': {
-                                          border: 0,
-                                        },
-                                      }}
+                                {(channelPublicationsRowsPerPage > 0
+                                  ? analyticsData.channelPublications.slice(
+                                      channelPublicationsPage *
+                                        channelPublicationsRowsPerPage,
+                                      channelPublicationsPage *
+                                        channelPublicationsRowsPerPage +
+                                        channelPublicationsRowsPerPage
+                                    )
+                                  : analyticsData.channelPublications
+                                ).map((elem: any) => (
+                                  <StyledTableRow
+                                    key={elem.channel + elem.source}
+                                    sx={{
+                                      '&:last-child td, &:last-child th': {
+                                        border: 0,
+                                      },
+                                    }}
+                                  >
+                                    <TableCell
+                                      sx={widgetCellSx}
+                                      component="th"
+                                      scope="row"
                                     >
-                                      <TableCell
-                                        sx={widgetCellSx}
-                                        component="th"
-                                        scope="row"
-                                      >
-                                        {elem.channel}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.source}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.count}
-                                      </TableCell>
-                                    </StyledTableRow>
-                                  )
+                                      {elem.channel}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.source}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.count}
+                                    </TableCell>
+                                  </StyledTableRow>
+                                ))}
+                                {channelPublicationsEmptyRows > 0 && (
+                                  <TableRow
+                                    style={{
+                                      height:
+                                        45 * channelPublicationsEmptyRows - 1,
+                                    }}
+                                  >
+                                    <TableCell colSpan={3} />
+                                  </TableRow>
                                 )}
                               </TableBody>
+                              {analyticsData.channelPublications.length >
+                              channelPublicationsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[10]}
+                                      colSpan={3}
+                                      count={
+                                        analyticsData.channelPublications.length
+                                      }
+                                      rowsPerPage={
+                                        channelPublicationsRowsPerPage
+                                      }
+                                      page={channelPublicationsPage}
+                                      onPageChange={
+                                        handleChannelPublicationsChangePage
+                                      }
+                                      onRowsPerPageChange={
+                                        handleChannelPublicationsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
@@ -1008,9 +1522,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Users with command errors in
-                        <Button size="large" sx={{ p: 1 }}>
-                          5 min
+                        Users with command errors
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.userErrors.lastMinutes
+                            )
+                            setIntervalDialogField('userErrors')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.userErrors.lastMinutes)}
                         </Button>
                       </Typography>
 
@@ -1088,7 +1614,14 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {analyticsData.userErrors.map((elem: any) => (
+                                {(userErrorsRowsPerPage > 0
+                                  ? analyticsData.userErrors.slice(
+                                      userErrorsPage * userErrorsRowsPerPage,
+                                      userErrorsPage * userErrorsRowsPerPage +
+                                        userErrorsRowsPerPage
+                                    )
+                                  : analyticsData.userErrors
+                                ).map((elem: any) => (
                                   <StyledTableRow
                                     key={elem.user + elem.op + elem.error}
                                     sx={{
@@ -1115,7 +1648,37 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                     </TableCell>
                                   </StyledTableRow>
                                 ))}
+                                {userErrorsEmptyRows > 0 && (
+                                  <TableRow
+                                    style={{
+                                      height: 45 * userErrorsEmptyRows - 1,
+                                    }}
+                                  >
+                                    <TableCell colSpan={4} />
+                                  </TableRow>
+                                )}
                               </TableBody>
+                              {analyticsData.userErrors.length >
+                              userErrorsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[10]}
+                                      colSpan={4}
+                                      count={analyticsData.userErrors.length}
+                                      rowsPerPage={userErrorsRowsPerPage}
+                                      page={userErrorsPage}
+                                      onPageChange={handleUserErrorsChangePage}
+                                      onRowsPerPageChange={
+                                        handleUserErrorsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
@@ -1133,9 +1696,21 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                         color="text.secondary"
                         gutterBottom
                       >
-                        Users with disconnects after commands in
-                        <Button size="large" sx={{ p: 1 }}>
-                          5 min
+                        Users with disconnects after commands
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.userDisconnects.lastMinutes
+                            )
+                            setIntervalDialogField('userDisconnects')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.userDisconnects.lastMinutes)}
                         </Button>
                       </Typography>
 
@@ -1218,38 +1793,77 @@ export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {analyticsData.userDisconnects.map(
-                                  (elem: any) => (
-                                    <StyledTableRow
-                                      key={
-                                        elem.user + elem.op + elem.disconnect
-                                      }
-                                      sx={{
-                                        '&:last-child td, &:last-child th': {
-                                          border: 0,
-                                        },
-                                      }}
+                                {(userDisconnectsRowsPerPage > 0
+                                  ? analyticsData.userDisconnects.slice(
+                                      userDisconnectsPage *
+                                        userDisconnectsRowsPerPage,
+                                      userDisconnectsPage *
+                                        userDisconnectsRowsPerPage +
+                                        userDisconnectsRowsPerPage
+                                    )
+                                  : analyticsData.userDisconnects
+                                ).map((elem: any) => (
+                                  <StyledTableRow
+                                    key={elem.user + elem.op + elem.disconnect}
+                                    sx={{
+                                      '&:last-child td, &:last-child th': {
+                                        border: 0,
+                                      },
+                                    }}
+                                  >
+                                    <TableCell
+                                      sx={widgetCellSx}
+                                      component="th"
+                                      scope="row"
                                     >
-                                      <TableCell
-                                        sx={widgetCellSx}
-                                        component="th"
-                                        scope="row"
-                                      >
-                                        {elem.user}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.op}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.disconnect}
-                                      </TableCell>
-                                      <TableCell sx={widgetCellSx}>
-                                        {elem.count}
-                                      </TableCell>
-                                    </StyledTableRow>
-                                  )
+                                      {elem.user}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.op}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.disconnect}
+                                    </TableCell>
+                                    <TableCell sx={widgetCellSx}>
+                                      {elem.count}
+                                    </TableCell>
+                                  </StyledTableRow>
+                                ))}
+                                {userDisconnectsEmptyRows > 0 && (
+                                  <TableRow
+                                    style={{
+                                      height: 45 * userDisconnectsEmptyRows - 1,
+                                    }}
+                                  >
+                                    <TableCell colSpan={4} />
+                                  </TableRow>
                                 )}
                               </TableBody>
+                              {analyticsData.userDisconnects.length >
+                              userDisconnectsRowsPerPage ? (
+                                <TableFooter>
+                                  <TableRow>
+                                    <TablePagination
+                                      rowsPerPageOptions={[10]}
+                                      colSpan={4}
+                                      count={
+                                        analyticsData.userDisconnects.length
+                                      }
+                                      rowsPerPage={userDisconnectsRowsPerPage}
+                                      page={userDisconnectsPage}
+                                      onPageChange={
+                                        handleUserDisconnectsChangePage
+                                      }
+                                      onRowsPerPageChange={
+                                        handleUserDisconnectsChangeRowsPerPage
+                                      }
+                                      ActionsComponent={TablePaginationActions}
+                                    />
+                                  </TableRow>
+                                </TableFooter>
+                              ) : (
+                                <></>
+                              )}
                             </Table>
                           </TableContainer>
                         </Box>
