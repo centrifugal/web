@@ -6,4 +6,5 @@ export enum routes {
   ACTIONS = '/actions',
   TRACING = '/tracing',
   ANALYTICS = '/analytics',
+  PUSH_NOTIFICATION = '/push',
 }

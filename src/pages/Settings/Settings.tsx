@@ -44,9 +44,7 @@ export const Settings = () => {
 
   const handleDeleteSettingsConfirm = async () => {
     await persistedStorage.clear()
-    delete localStorage.token
-    delete localStorage.insecure
-    delete localStorage.edition
+    localStorage.clear()
     window.location.reload()
   }
 

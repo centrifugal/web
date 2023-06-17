@@ -13,6 +13,7 @@ import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 import QueryStatsIcon from '@mui/icons-material/QueryStats'
+import NotificationsIcon from '@mui/icons-material/Notifications'
 import MenuItem from '@mui/material/MenuItem'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
@@ -70,6 +71,13 @@ const pages = [
     icon: QueryStatsIcon,
     iconColor: '#8ab200',
     to: routes.ANALYTICS,
+    oss: false,
+  },
+  {
+    name: 'Push Notifications',
+    icon: NotificationsIcon,
+    iconColor: '#f44336',
+    to: routes.PUSH_NOTIFICATION,
     oss: false,
   },
 ]

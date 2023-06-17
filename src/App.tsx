@@ -14,6 +14,7 @@ import { Settings } from 'pages/Settings'
 import { Actions } from 'pages/Actions'
 import { Tracing } from 'pages/Tracing'
 import { Analytics } from 'pages/Analytics'
+import { PushNotification } from 'pages/PushNotification'
 import { UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
@@ -185,6 +186,20 @@ function App({
                     path={routes.ANALYTICS}
                     element={
                       <Analytics
+                        handleLogout={handleLogout}
+                        insecure={isInsecure}
+                        edition={edition}
+                      />
+                    }
+                  />
+                ) : (
+                  <></>
+                )}
+                {edition === 'pro' ? (
+                  <Route
+                    path={routes.PUSH_NOTIFICATION}
+                    element={
+                      <PushNotification
                         handleLogout={handleLogout}
                         insecure={isInsecure}
                         edition={edition}

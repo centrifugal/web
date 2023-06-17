@@ -34,7 +34,7 @@ import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { Button, Chip, Grid } from '@mui/material'
 
-interface StatusProps {
+interface AnalyticsProps {
   handleLogout: () => void
   insecure: boolean
   edition: 'oss' | 'pro'
@@ -235,7 +235,11 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   )
 }
 
-export const Analytics = ({ handleLogout, insecure, edition }: StatusProps) => {
+export const Analytics = ({
+  handleLogout,
+  insecure,
+  edition,
+}: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const [loading, setLoading] = useState(true)
   const [reloading, setReloading] = useState(true)
