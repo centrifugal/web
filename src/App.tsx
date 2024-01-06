@@ -4,7 +4,6 @@ import localforage from 'localforage'
 import Box from '@mui/material/Box'
 import UILink from '@mui/material/Link'
 
-// import * as serviceWorkerRegistration from 'serviceWorkerRegistration'
 import { StorageContext } from 'contexts/StorageContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { globalUrlPrefix } from 'config/url'
@@ -15,13 +14,28 @@ import { Actions } from 'pages/Actions'
 import { Tracing } from 'pages/Tracing'
 import { Analytics } from 'pages/Analytics'
 import { PushNotification } from 'pages/PushNotification'
-import { UserSettings } from 'models/settings'
+import { AdminSettings, UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
 import { Typography } from '@mui/material'
+import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
 
 export interface AppProps {
   persistedStorage?: typeof localforage
+}
+
+async function fetchAdminSettings() {
+  try {
+    const response = await fetch(`${globalUrlPrefix}admin/settings`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return data
+  } catch (error) {
+    console.error('There was a problem fetching the data: ', error)
+    return {}
+  }
 }
 
 function App({
@@ -31,10 +45,13 @@ function App({
   }),
 }: AppProps) {
   const [persistedStorage] = useState(persistedStorageProp)
-  // const [appNeedsUpdate, setAppNeedsUpdate] = useState(false)
   const [hasLoadedSettings, setHasLoadedSettings] = useState(false)
+  const [hasLoadedAdminSettings, setHasLoadedAdminSettings] = useState(false)
   const [userSettings, setUserSettings] = useState<UserSettings>({
     colorMode: 'light',
+  })
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>({
+    edition: 'oss',
   })
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('token') ? true : false
@@ -42,17 +59,7 @@ function App({
   const [isInsecure, setIsInsecure] = useState(
     localStorage.getItem('insecure') === 'true'
   )
-  const [edition, setEdition] = useState<'oss' | 'pro'>(
-    localStorage.getItem('edition') === 'pro' ? 'pro' : 'oss'
-  )
-
-  // const handleServiceWorkerUpdate = () => {
-  //   setAppNeedsUpdate(true)
-  // }
-
-  // useEffect(() => {
-  //   serviceWorkerRegistration.register({ onUpdate: handleServiceWorkerUpdate })
-  // }, [])
+  const edition = adminSettings.edition
 
   useEffect(() => {
     ;(async () => {
@@ -71,9 +78,20 @@ function App({
           userSettings
         )
       }
+
       setHasLoadedSettings(true)
     })()
   }, [hasLoadedSettings, persistedStorageProp, userSettings])
+
+  useEffect(() => {
+    ;(async () => {
+      if (hasLoadedSettings) return
+
+      const adminSettings = await fetchAdminSettings()
+      setAdminSettings(adminSettings)
+      setHasLoadedAdminSettings(true)
+    })()
+  }, [hasLoadedSettings])
 
   const settingsContextValue = {
     updateUserSettings: async (changedSettings: Partial<UserSettings>) => {
@@ -92,6 +110,13 @@ function App({
     getUserSettings: () => ({ ...userSettings }),
   }
 
+  const adminSettingsContextValue = {
+    updateAdminSettings: async (newSettings: AdminSettings) => {
+      setAdminSettings(newSettings)
+    },
+    getAdminSettings: () => ({ ...adminSettings }),
+  }
+
   const storageContextValue = {
     getPersistedStorage: () => persistedStorage,
   }
@@ -99,10 +124,8 @@ function App({
   const handleLogout = function () {
     delete localStorage.token
     delete localStorage.insecure
-    delete localStorage.edition
     setIsAuthenticated(false)
     setIsInsecure(false)
-    setEdition('oss')
   }
 
   const handleLogin = function (password: string) {
@@ -128,10 +151,6 @@ function App({
         if (insecure) {
           localStorage.setItem('insecure', 'true')
         }
-        if (data.edition === 'pro') {
-          setEdition('pro')
-          localStorage.setItem('edition', 'pro')
-        }
         setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
@@ -141,81 +160,82 @@ function App({
   return (
     <Router>
       <StorageContext.Provider value={storageContextValue}>
-        <SettingsContext.Provider value={settingsContextValue}>
-          {hasLoadedSettings ? (
-            <Shell
-              // appNeedsUpdate={appNeedsUpdate}
-              handleLogin={handleLogin}
-              handleLogout={handleLogout}
-              authenticated={isAuthenticated}
-              insecure={isInsecure}
-              edition={edition}
-            >
-              <Routes>
-                {[routes.ROOT, routes.INDEX_HTML].map(path => (
-                  <Route
-                    key={path}
-                    path={path}
-                    element={
-                      <Status
-                        handleLogout={handleLogout}
-                        insecure={isInsecure}
-                        edition={edition}
-                      />
-                    }
-                  />
-                ))}
-                <Route path={routes.SETTINGS} element={<Settings />} />
-                <Route
-                  path={routes.ACTIONS}
-                  element={
-                    <Actions
-                      handleLogout={handleLogout}
-                      insecure={isInsecure}
-                      edition={edition}
+        <AdminSettingsContext.Provider value={adminSettingsContextValue}>
+          <SettingsContext.Provider value={settingsContextValue}>
+            {hasLoadedSettings && hasLoadedAdminSettings ? (
+              <Shell
+                handleLogin={handleLogin}
+                handleLogout={handleLogout}
+                authenticated={isAuthenticated}
+                insecure={isInsecure}
+                edition={edition}
+              >
+                <Routes>
+                  {[routes.ROOT, routes.INDEX_HTML].map(path => (
+                    <Route
+                      key={path}
+                      path={path}
+                      element={
+                        <Status
+                          handleLogout={handleLogout}
+                          insecure={isInsecure}
+                          edition={edition}
+                        />
+                      }
                     />
-                  }
-                />
-                {edition === 'pro' ? (
-                  <Route path={routes.TRACING} element={<Tracing />} />
-                ) : (
-                  <></>
-                )}
-                {edition === 'pro' ? (
+                  ))}
+                  <Route path={routes.SETTINGS} element={<Settings />} />
                   <Route
-                    path={routes.ANALYTICS}
+                    path={routes.ACTIONS}
                     element={
-                      <Analytics
+                      <Actions
                         handleLogout={handleLogout}
                         insecure={isInsecure}
                         edition={edition}
                       />
                     }
                   />
-                ) : (
-                  <></>
-                )}
-                {edition === 'pro' ? (
-                  <Route
-                    path={routes.PUSH_NOTIFICATION}
-                    element={
-                      <PushNotification
-                        handleLogout={handleLogout}
-                        insecure={isInsecure}
-                        edition={edition}
-                      />
-                    }
-                  />
-                ) : (
-                  <></>
-                )}
-                <Route path="*" element={<PageNotFound />} />
-              </Routes>
-            </Shell>
-          ) : (
-            <></>
-          )}
-        </SettingsContext.Provider>
+                  {edition === 'pro' ? (
+                    <Route path={routes.TRACING} element={<Tracing />} />
+                  ) : (
+                    <></>
+                  )}
+                  {edition === 'pro' ? (
+                    <Route
+                      path={routes.ANALYTICS}
+                      element={
+                        <Analytics
+                          handleLogout={handleLogout}
+                          insecure={isInsecure}
+                          edition={edition}
+                        />
+                      }
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  {edition === 'pro' ? (
+                    <Route
+                      path={routes.PUSH_NOTIFICATION}
+                      element={
+                        <PushNotification
+                          handleLogout={handleLogout}
+                          insecure={isInsecure}
+                          edition={edition}
+                        />
+                      }
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  <Route path="*" element={<PageNotFound />} />
+                </Routes>
+              </Shell>
+            ) : (
+              <></>
+            )}
+          </SettingsContext.Provider>
+        </AdminSettingsContext.Provider>
       </StorageContext.Provider>
     </Router>
   )

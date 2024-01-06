@@ -17,13 +17,11 @@ import { SettingsContext } from 'contexts/SettingsContext'
 import { AlertOptions } from 'models/shell'
 import { Login } from 'pages/Login/Login'
 
-// import { UpgradeDialog } from './UpgradeDialog'
 import { ShellAppBar } from './ShellAppBar'
 import { NotificationArea } from './NotificationArea'
 import { RouteContent } from './RouteContent'
 
 export interface ShellProps extends PropsWithChildren {
-  // appNeedsUpdate: boolean
   handleLogin: (password: string) => void
   handleLogout: () => void
   authenticated: boolean
@@ -32,7 +30,6 @@ export interface ShellProps extends PropsWithChildren {
 }
 
 export const Shell = ({
-  // appNeedsUpdate,
   handleLogin,
   handleLogout,
   authenticated,
@@ -113,7 +110,6 @@ export const Shell = ({
     <ShellContext.Provider value={shellContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {/* <UpgradeDialog appNeedsUpdate={appNeedsUpdate} /> */}
         {authenticated ? (
           <Box>
             <NotificationArea

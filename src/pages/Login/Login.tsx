@@ -5,11 +5,16 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { red } from '@mui/material/colors'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
+import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
 
 import Canvas from './Canvas'
+
+const redTheme = createTheme({ palette: { primary: red } })
 
 function rand(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min)
@@ -234,7 +239,7 @@ function drawLogo(
   const lines: any[] = []
 
   const segments: any[] = []
-  const radius = Y / 10
+  const radius = Y / 11
   const lw = radius / 16
 
   //@ts-ignore
@@ -416,11 +421,18 @@ export function Login({ handleLogin }: LoginProps) {
   const { setTitle } = useContext(ShellContext)
 
   const [password, setPassword] = useState('')
+  const adminSettingsContext = useContext(AdminSettingsContext)
+
+  const edition = adminSettingsContext.getAdminSettings().edition
+  let nameSuffix = ''
+  if (edition === 'pro') {
+    nameSuffix = ' PRO'
+  }
 
   useEffect(() => {
-    setTitle('Centrifugo')
+    setTitle('Centrifugo' + nameSuffix)
     handleLogin('')
-  }, [setTitle, handleLogin])
+  }, [setTitle, nameSuffix, handleLogin])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -437,11 +449,13 @@ export function Login({ handleLogin }: LoginProps) {
         height: '100vh',
       }}
     >
-      <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-        <LockOutlinedIcon />
-      </Avatar>
+      <ThemeProvider theme={redTheme}>
+        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+      </ThemeProvider>
       <Typography component="h1" variant="h4">
-        CENTRIFUGO
+        {`CENTRIFUGO` + nameSuffix}
       </Typography>
       <Box
         component="form"
@@ -461,16 +475,19 @@ export function Login({ handleLogin }: LoginProps) {
           autoComplete="current-password"
           onChange={event => setPassword(event.target.value)}
           value={password}
-        />
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
           color="primary"
-          sx={{ mt: 3, mb: 2 }}
-        >
-          Log In
-        </Button>
+        />
+        <ThemeProvider theme={redTheme}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3, mb: 2 }}
+          >
+            Log In
+          </Button>
+        </ThemeProvider>
       </Box>
       <MemoCanvas />
     </Box>
