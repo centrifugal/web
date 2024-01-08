@@ -31,13 +31,17 @@ import 'ace-builds/src-noconflict/theme-solarized_light'
 import 'ace-builds/src-noconflict/ext-language_tools'
 
 interface ActionsProps {
-  handleLogout: () => void
-  insecure: boolean
+  signinSilent: () => void
+  authorization: string
   edition: 'oss' | 'pro'
 }
 
-export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
-  const { setTitle } = useContext(ShellContext)
+export const Actions = ({
+  signinSilent,
+  authorization,
+  edition,
+}: ActionsProps) => {
+  const { setTitle, showAlert } = useContext(ShellContext)
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
@@ -56,9 +60,7 @@ export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
 
     const headers: any = {
       Accept: 'application/json',
-    }
-    if (!insecure) {
-      headers.Authorization = `token ${localStorage.getItem('token')}`
+      Authorization: authorization,
     }
 
     const request = {
@@ -78,7 +80,12 @@ export const Actions = ({ handleLogout, insecure, edition }: ActionsProps) => {
         if (!response.ok) {
           setLoading(false)
           if (response.status === 401) {
-            handleLogout()
+            showAlert('Unauthorized', { severity: 'error' })
+            signinSilent()
+            return
+          }
+          if (response.status === 403) {
+            showAlert('Permission denied', { severity: 'error' })
             return
           }
           throw Error(response.status.toString())

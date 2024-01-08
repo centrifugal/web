@@ -21,7 +21,12 @@ import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
-export const Tracing = () => {
+interface TracingProps {
+  signinSilent: () => void
+  authorization: string
+}
+
+export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const [channel, setChannel] = useState('')
   const [user, setUser] = useState('')
@@ -123,7 +128,7 @@ export const Tracing = () => {
       headers: new Headers({
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        Authorization: 'Token ' + localStorage.getItem('token'),
+        Authorization: authorization,
       }),
       mode: 'same-origin',
       signal: abortController.signal,

@@ -16,27 +16,25 @@ import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { AlertOptions } from 'models/shell'
 import { Login } from 'pages/Login/Login'
+import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
 
-// import { UpgradeDialog } from './UpgradeDialog'
+import { useAuth } from 'react-oidc-context'
+
 import { ShellAppBar } from './ShellAppBar'
 import { NotificationArea } from './NotificationArea'
 import { RouteContent } from './RouteContent'
 
 export interface ShellProps extends PropsWithChildren {
-  // appNeedsUpdate: boolean
   handleLogin: (password: string) => void
   handleLogout: () => void
-  authenticated: boolean
-  insecure: boolean
+  passwordAuthenticated: boolean
   edition: 'oss' | 'pro'
 }
 
 export const Shell = ({
-  // appNeedsUpdate,
   handleLogin,
   handleLogout,
-  authenticated,
-  insecure,
+  passwordAuthenticated,
   edition,
   children,
 }: ShellProps) => {
@@ -47,6 +45,32 @@ export const Shell = ({
   const [alertText, setAlertText] = useState('')
   const [numberOfPeers, setNumberOfPeers] = useState(1)
   const [tabHasFocus, setTabHasFocus] = useState(true)
+
+  let authenticated = false
+  const adminSettingsContext = useContext(AdminSettingsContext)
+  const adminSettings = adminSettingsContext.getAdminSettings()
+  const insecure = adminSettings.insecure
+  const useIDP = adminSettings.oidc !== undefined
+  const auth = useAuth()
+  let username = ''
+  if (useIDP) {
+    authenticated = auth.isAuthenticated || adminSettings.insecure
+    if (auth.user?.profile.preferred_username) {
+      username = auth.user?.profile.preferred_username
+    }
+    window.addEventListener('storage', function (e) {
+      if (
+        e.key ===
+        `oidc.user:${adminSettings.oidc?.authority}:${adminSettings.oidc?.client_id}`
+      ) {
+        if (e.oldValue !== null && e.newValue === null) {
+          handleLogout()
+        }
+      }
+    })
+  } else {
+    authenticated = passwordAuthenticated || adminSettings.insecure
+  }
 
   const showAlert = useCallback<
     (message: string, options?: AlertOptions) => void
@@ -113,7 +137,6 @@ export const Shell = ({
     <ShellContext.Provider value={shellContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {/* <UpgradeDialog appNeedsUpdate={appNeedsUpdate} /> */}
         {authenticated ? (
           <Box>
             <NotificationArea
@@ -127,9 +150,12 @@ export const Shell = ({
               title={title}
               insecure={insecure}
               edition={edition}
+              username={username}
             />
             <RouteContent>{children}</RouteContent>
           </Box>
+        ) : auth && auth.isLoading === true ? (
+          <></>
         ) : (
           <Login handleLogin={handleLogin} />
         )}

@@ -5,11 +5,18 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { red } from '@mui/material/colors'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
+import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
+
+import { useAuth } from 'react-oidc-context'
 
 import Canvas from './Canvas'
+
+const redTheme = createTheme({ palette: { primary: red } })
 
 function rand(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min)
@@ -234,7 +241,7 @@ function drawLogo(
   const lines: any[] = []
 
   const segments: any[] = []
-  const radius = Y / 10
+  const radius = Y / 11
   const lw = radius / 16
 
   //@ts-ignore
@@ -413,14 +420,25 @@ const MemoCanvas = React.memo(props => {
 })
 
 export function Login({ handleLogin }: LoginProps) {
+  const auth = useAuth()
+
   const { setTitle } = useContext(ShellContext)
 
   const [password, setPassword] = useState('')
+  const adminSettingsContext = useContext(AdminSettingsContext)
+
+  const adminSettings = adminSettingsContext.getAdminSettings()
+  const edition = adminSettings.edition
+  let nameSuffix = ''
+  if (edition === 'pro') {
+    nameSuffix = ' PRO'
+  }
+
+  const useIDP = adminSettings.oidc !== undefined
 
   useEffect(() => {
-    setTitle('Centrifugo')
-    handleLogin('')
-  }, [setTitle, handleLogin])
+    setTitle('Centrifugo' + nameSuffix)
+  }, [setTitle, nameSuffix])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -437,11 +455,13 @@ export function Login({ handleLogin }: LoginProps) {
         height: '100vh',
       }}
     >
-      <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
-        <LockOutlinedIcon />
-      </Avatar>
+      <ThemeProvider theme={redTheme}>
+        <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
+          <LockOutlinedIcon />
+        </Avatar>
+      </ThemeProvider>
       <Typography component="h1" variant="h4">
-        CENTRIFUGO
+        {`CENTRIFUGO` + nameSuffix}
       </Typography>
       <Box
         component="form"
@@ -450,27 +470,48 @@ export function Login({ handleLogin }: LoginProps) {
         sx={{ mt: 1 }}
       >
         <input hidden type="text" autoComplete="username" />
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="password"
-          label="Password"
-          type="password"
-          id="password"
-          autoComplete="current-password"
-          onChange={event => setPassword(event.target.value)}
-          value={password}
-        />
-        <Button
-          type="submit"
-          fullWidth
-          variant="contained"
-          color="primary"
-          sx={{ mt: 3, mb: 2 }}
-        >
-          Log In
-        </Button>
+        {useIDP ? (
+          <></>
+        ) : (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            onChange={event => setPassword(event.target.value)}
+            value={password}
+            color="primary"
+          />
+        )}
+
+        <ThemeProvider theme={redTheme}>
+          {useIDP ? (
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+              onClick={() => void auth.signinRedirect()}
+            >
+              Log in over {adminSettings.oidc?.display_name}
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+            >
+              Log in
+            </Button>
+          )}
+        </ThemeProvider>
       </Box>
       <MemoCanvas />
     </Box>
