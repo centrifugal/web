@@ -12,6 +12,8 @@ import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
 
+import { useAuth } from 'react-oidc-context'
+
 import Canvas from './Canvas'
 
 const redTheme = createTheme({ palette: { primary: red } })
@@ -418,21 +420,25 @@ const MemoCanvas = React.memo(props => {
 })
 
 export function Login({ handleLogin }: LoginProps) {
+  const auth = useAuth()
+
   const { setTitle } = useContext(ShellContext)
 
   const [password, setPassword] = useState('')
   const adminSettingsContext = useContext(AdminSettingsContext)
 
-  const edition = adminSettingsContext.getAdminSettings().edition
+  const adminSettings = adminSettingsContext.getAdminSettings()
+  const edition = adminSettings.edition
   let nameSuffix = ''
   if (edition === 'pro') {
     nameSuffix = ' PRO'
   }
 
+  const useIDP = adminSettings.oidc !== undefined
+
   useEffect(() => {
     setTitle('Centrifugo' + nameSuffix)
-    handleLogin('')
-  }, [setTitle, nameSuffix, handleLogin])
+  }, [setTitle, nameSuffix])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -464,29 +470,47 @@ export function Login({ handleLogin }: LoginProps) {
         sx={{ mt: 1 }}
       >
         <input hidden type="text" autoComplete="username" />
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="password"
-          label="Password"
-          type="password"
-          id="password"
-          autoComplete="current-password"
-          onChange={event => setPassword(event.target.value)}
-          value={password}
-          color="primary"
-        />
-        <ThemeProvider theme={redTheme}>
-          <Button
-            type="submit"
+        {useIDP ? (
+          <></>
+        ) : (
+          <TextField
+            margin="normal"
+            required
             fullWidth
-            variant="contained"
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            onChange={event => setPassword(event.target.value)}
+            value={password}
             color="primary"
-            sx={{ mt: 3, mb: 2 }}
-          >
-            Log In
-          </Button>
+          />
+        )}
+
+        <ThemeProvider theme={redTheme}>
+          {useIDP ? (
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+              onClick={() => void auth.signinRedirect()}
+            >
+              Log in over {adminSettings.oidc?.display_name}
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+            >
+              Log in
+            </Button>
+          )}
         </ThemeProvider>
       </Box>
       <MemoCanvas />

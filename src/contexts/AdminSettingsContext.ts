@@ -10,6 +10,7 @@ interface AdminSettingsContextProps {
 export const AdminSettingsContext = createContext<AdminSettingsContextProps>({
   updateAdminSettings: () => Promise.resolve(),
   getAdminSettings: () => ({
+    insecure: false,
     edition: 'oss',
   }),
 })

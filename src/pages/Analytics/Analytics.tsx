@@ -35,8 +35,8 @@ import { ShellContext } from 'contexts/ShellContext'
 import { Button, Chip, Grid } from '@mui/material'
 
 interface AnalyticsProps {
-  handleLogout: () => void
-  insecure: boolean
+  signinSilent: () => void
+  authorization: string
   edition: 'oss' | 'pro'
 }
 
@@ -236,8 +236,8 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 }
 
 export const Analytics = ({
-  handleLogout,
-  insecure,
+  signinSilent,
+  authorization,
   edition,
 }: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
@@ -496,9 +496,7 @@ export const Analytics = ({
 
       const headers: any = {
         Accept: 'application/json',
-      }
-      if (!insecure) {
-        headers.Authorization = `token ${localStorage.getItem('token')}`
+        Authorization: authorization,
       }
 
       fetch(`${globalUrlPrefix}admin/analytics`, {
@@ -510,7 +508,12 @@ export const Analytics = ({
         .then(response => {
           if (!response.ok) {
             if (response.status === 401) {
-              handleLogout()
+              showAlert('Unauthorized', { severity: 'error' })
+              signinSilent()
+              return
+            }
+            if (response.status === 403) {
+              showAlert('Permission denied', { severity: 'error' })
               return
             }
             if (response.status === 404) {
@@ -535,7 +538,7 @@ export const Analytics = ({
           console.log(e)
         })
     },
-    [handleLogout, insecure, showAlert, request]
+    [signinSilent, authorization, showAlert, request]
   )
 
   const [didFetch, setDidFetch] = useState(false)
@@ -550,7 +553,7 @@ export const Analytics = ({
     }, 60000)
     askFullAnalyticsData()
     return () => clearInterval(interval)
-  }, [askFullAnalyticsData, handleLogout, insecure, showAlert, didFetch])
+  }, [askFullAnalyticsData, signinSilent, authorization, showAlert, didFetch])
 
   const handleReloadClick = (e: any) => {
     e.preventDefault()

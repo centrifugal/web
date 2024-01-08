@@ -42,6 +42,7 @@ interface ShellAppBarProps {
   title: string
   insecure: boolean
   edition: 'oss' | 'pro'
+  username: string
 }
 
 const pages = [
@@ -87,6 +88,7 @@ export const ShellAppBar = ({
   title,
   insecure,
   edition,
+  username,
 }: ShellAppBarProps) => {
   const location = useLocation()
 
@@ -234,7 +236,13 @@ export const ShellAppBar = ({
           >
             Centrifugo{edition === 'pro' ? ' PRO' : ''}
           </Typography>
-          <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
+          <Box
+            sx={{
+              flexGrow: 1,
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+            }}
+          >
             {pages
               .filter(page => page.oss || edition === 'pro')
               .map(page => {
@@ -259,6 +267,9 @@ export const ShellAppBar = ({
                   </MenuItem>
                 )
               })}
+            <Typography sx={{ marginLeft: 'auto', marginRight: '10px' }}>
+              {username}
+            </Typography>
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>

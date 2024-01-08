@@ -1,3 +1,8 @@
+import { useContext } from 'react'
+import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
+
+import { useAuth } from 'react-oidc-context'
+
 function pad(n) {
   // http://stackoverflow.com/a/3313953/1288429
   return `0${n}`.slice(-2)
@@ -74,4 +79,23 @@ export function RandomString(length) {
     result.push(characters.charAt(Math.floor(Math.random() * charactersLength)))
   }
   return result.join('')
+}
+
+export function RequestHeaders() {
+  const adminSettingsContext = useContext(AdminSettingsContext)
+  const adminSettings = adminSettingsContext.getAdminSettings()
+  const insecure = adminSettings.insecure
+  const useIDP = adminSettings.oidc !== undefined
+  const auth = useAuth()
+  const headers = {
+    Accept: 'application/json',
+  }
+  if (!insecure) {
+    if (useIDP) {
+      headers.Authorization = `Bearer ${auth.user.access_token}`
+    } else {
+      headers.Authorization = `token ${localStorage.getItem('token')}`
+    }
+  }
+  return headers
 }

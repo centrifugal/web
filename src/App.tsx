@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { PropsWithChildren, useContext, useEffect, useState } from 'react'
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import localforage from 'localforage'
 import Box from '@mui/material/Box'
@@ -19,6 +19,11 @@ import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
 import { Typography } from '@mui/material'
 import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
+
+import { useAuth } from 'react-oidc-context'
+
+import { AuthProvider } from 'react-oidc-context'
+import { User, WebStorageStateStore } from 'oidc-client-ts'
 
 export interface AppProps {
   persistedStorage?: typeof localforage
@@ -51,15 +56,35 @@ function App({
     colorMode: 'light',
   })
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
+    insecure: false,
     edition: 'oss',
   })
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('token') ? true : false
   )
-  const [isInsecure, setIsInsecure] = useState(
-    localStorage.getItem('insecure') === 'true'
-  )
   const edition = adminSettings.edition
+  let useIDP = false
+  let oidcConfig: any = null
+  if (adminSettings.oidc) {
+    useIDP = true
+    oidcConfig = {
+      authority: adminSettings.oidc.authority,
+      client_id: adminSettings.oidc.client_id,
+      redirect_uri: adminSettings.oidc.redirect_uri,
+      onSigninCallback: (_user: User | void): void => {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname
+        ) // Clear state from URL.
+      },
+      accessTokenExpiringNotificationTimeInSeconds: 30,
+      userStore: new WebStorageStateStore({ store: window.localStorage }),
+    }
+    if (adminSettings.oidc.scope !== '') {
+      oidcConfig.scope = adminSettings.oidc.scope
+    }
+  }
 
   useEffect(() => {
     ;(async () => {
@@ -121,11 +146,9 @@ function App({
     getPersistedStorage: () => persistedStorage,
   }
 
-  const handleLogout = function () {
+  const handlePasswordLogout = function () {
     delete localStorage.token
-    delete localStorage.insecure
     setIsAuthenticated(false)
-    setIsInsecure(false)
   }
 
   const handleLogin = function (password: string) {
@@ -147,11 +170,6 @@ function App({
       })
       .then(data => {
         localStorage.setItem('token', data.token)
-        const insecure = data.token === 'insecure'
-        if (insecure) {
-          localStorage.setItem('insecure', 'true')
-        }
-        setIsInsecure(insecure)
         setIsAuthenticated(true)
       })
       .catch(e => {})
@@ -163,74 +181,25 @@ function App({
         <AdminSettingsContext.Provider value={adminSettingsContextValue}>
           <SettingsContext.Provider value={settingsContextValue}>
             {hasLoadedSettings && hasLoadedAdminSettings ? (
-              <Shell
-                handleLogin={handleLogin}
-                handleLogout={handleLogout}
-                authenticated={isAuthenticated}
-                insecure={isInsecure}
-                edition={edition}
-              >
-                <Routes>
-                  {[routes.ROOT, routes.INDEX_HTML].map(path => (
-                    <Route
-                      key={path}
-                      path={path}
-                      element={
-                        <Status
-                          handleLogout={handleLogout}
-                          insecure={isInsecure}
-                          edition={edition}
-                        />
-                      }
-                    />
-                  ))}
-                  <Route path={routes.SETTINGS} element={<Settings />} />
-                  <Route
-                    path={routes.ACTIONS}
-                    element={
-                      <Actions
-                        handleLogout={handleLogout}
-                        insecure={isInsecure}
-                        edition={edition}
-                      />
-                    }
+              useIDP ? (
+                <AuthProvider {...oidcConfig}>
+                  <ShellWrapper
+                    handleLogin={handleLogin}
+                    handlePasswordLogout={handlePasswordLogout}
+                    passwordAuthenticated={false}
+                    edition={edition}
                   />
-                  {edition === 'pro' ? (
-                    <Route path={routes.TRACING} element={<Tracing />} />
-                  ) : (
-                    <></>
-                  )}
-                  {edition === 'pro' ? (
-                    <Route
-                      path={routes.ANALYTICS}
-                      element={
-                        <Analytics
-                          handleLogout={handleLogout}
-                          insecure={isInsecure}
-                          edition={edition}
-                        />
-                      }
-                    />
-                  ) : (
-                    <></>
-                  )}
-                  {edition === 'pro' ? (
-                    <Route
-                      path={routes.PUSH_NOTIFICATION}
-                      element={
-                        <PushNotification
-                          handleLogout={handleLogout}
-                          insecure={isInsecure}
-                          edition={edition}
-                        />
-                      }
-                    />
-                  ) : (
-                    <></>
-                  )}
-                  <Route path="*" element={<PageNotFound />} />
-                </Routes>
-              </Shell>
+                </AuthProvider>
+              ) : (
+                <AuthProvider>
+                  <ShellWrapper
+                    handleLogin={handleLogin}
+                    handlePasswordLogout={handlePasswordLogout}
+                    passwordAuthenticated={isAuthenticated}
+                    edition={edition}
+                  />
+                </AuthProvider>
+              )
             ) : (
               <></>
             )}
@@ -238,6 +207,143 @@ function App({
         </AdminSettingsContext.Provider>
       </StorageContext.Provider>
     </Router>
+  )
+}
+
+export interface ShellWrapperProps extends PropsWithChildren {
+  handleLogin: (password: string) => void
+  handlePasswordLogout: () => void
+  passwordAuthenticated: boolean
+  edition: 'oss' | 'pro'
+}
+
+function ShellWrapper({
+  handleLogin,
+  handlePasswordLogout,
+  passwordAuthenticated,
+  edition,
+}: ShellWrapperProps) {
+  const adminSettingsContext = useContext(AdminSettingsContext)
+  const adminSettings = adminSettingsContext.getAdminSettings()
+  const insecure = adminSettings.insecure
+  const useIDP = adminSettings.oidc !== undefined
+  let authorization = ''
+  const auth = useAuth()
+  if (!insecure) {
+    if (useIDP) {
+      authorization = `Bearer ${auth.user?.access_token}`
+    } else {
+      authorization = `token ${localStorage.getItem('token')}`
+    }
+  }
+
+  const handleLogout = () => {
+    if (auth) {
+      auth.removeUser()
+    }
+    handlePasswordLogout()
+  }
+
+  const signinSilent = () => {
+    if (auth) {
+      auth.signinSilent()
+    } else {
+      handleLogout()
+    }
+  }
+
+  const [hasTriedSignin, setHasTriedSignin] = useState(false)
+
+  // automatically sign-in
+  useEffect(() => {
+    if (
+      auth.user &&
+      !auth.isAuthenticated &&
+      !auth.activeNavigator &&
+      !auth.isLoading &&
+      !hasTriedSignin
+    ) {
+      auth.signinRedirect()
+      setHasTriedSignin(true)
+    }
+  }, [auth, hasTriedSignin])
+
+  return (
+    <Shell
+      handleLogin={handleLogin}
+      handleLogout={handleLogout}
+      passwordAuthenticated={passwordAuthenticated}
+      edition={edition}
+    >
+      <Routes>
+        {[routes.ROOT, routes.INDEX_HTML].map(path => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <Status
+                signinSilent={signinSilent}
+                authorization={authorization}
+                edition={edition}
+              />
+            }
+          />
+        ))}
+        <Route path={routes.SETTINGS} element={<Settings />} />
+        <Route
+          path={routes.ACTIONS}
+          element={
+            <Actions
+              signinSilent={signinSilent}
+              authorization={authorization}
+              edition={edition}
+            />
+          }
+        />
+        {edition === 'pro' ? (
+          <Route
+            path={routes.TRACING}
+            element={
+              <Tracing
+                signinSilent={signinSilent}
+                authorization={authorization}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        {edition === 'pro' ? (
+          <Route
+            path={routes.ANALYTICS}
+            element={
+              <Analytics
+                signinSilent={signinSilent}
+                authorization={authorization}
+                edition={edition}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        {edition === 'pro' ? (
+          <Route
+            path={routes.PUSH_NOTIFICATION}
+            element={
+              <PushNotification
+                signinSilent={signinSilent}
+                authorization={authorization}
+                edition={edition}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Shell>
   )
 }
 

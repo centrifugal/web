@@ -23,8 +23,8 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }))
 
 interface StatusProps {
-  handleLogout: () => void
-  insecure: boolean
+  signinSilent: () => void
+  authorization: string
   edition: 'oss' | 'pro'
 }
 
@@ -42,47 +42,68 @@ function createData(
   return { name, version, uptime, clients, users, subs, channels, cpu, rss }
 }
 
-export function Status({ handleLogout, insecure, edition }: StatusProps) {
-  const { setTitle, showAlert } = useContext(ShellContext)
+export function Status({ signinSilent, authorization, edition }: StatusProps) {
+  const { showAlert } = useContext(ShellContext)
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
   const [loading, setLoading] = useState(true)
+  const { setTitle } = useContext(ShellContext)
 
-  const handleInfo = function (result: any) {
-    const rows: any[] = []
-    const resultNodes: any[] = result.nodes
-    setNumNodes(resultNodes.length)
-    let nConns = 0
+  const [visibilityListenerSet, setVisibilityListenerSet] = useState(false)
+  const [visible, setVisible] = useState(document.visibilityState === 'visible')
 
-    resultNodes.forEach(node => {
-      nConns += node.num_clients
-      rows.push(
-        createData(
-          node.name,
-          node.version,
-          node.uptime || 0,
-          node.num_clients,
-          node.num_users,
-          node.num_subs,
-          node.num_channels,
-          node.process ? (node.process.cpu || 0).toFixed(1) : 'n/a',
-          node.process ? HumanSize(node.process.rss) : 'n/a'
-        )
-      )
+  // automatically sign-in
+  useEffect(() => {
+    if (visibilityListenerSet) {
+      return
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        setVisible(false)
+      } else {
+        setVisible(true)
+      }
     })
-
-    setNumConns(nConns)
-    setNodes(rows)
-  }
+    setVisibilityListenerSet(true)
+  }, [visibilityListenerSet])
 
   useEffect(() => {
+    setTitle('Centrifugo | Status')
+  }, [setTitle])
+
+  useEffect(() => {
+    const handleInfo = function (result: any) {
+      const rows: any[] = []
+      const resultNodes: any[] = result.nodes
+      setNumNodes(resultNodes.length)
+      let nConns = 0
+
+      resultNodes.forEach(node => {
+        nConns += node.num_clients
+        rows.push(
+          createData(
+            node.name,
+            node.version,
+            node.uptime || 0,
+            node.num_clients,
+            node.num_users,
+            node.num_subs,
+            node.num_channels,
+            node.process ? (node.process.cpu || 0).toFixed(1) : 'n/a',
+            node.process ? HumanSize(node.process.rss) : 'n/a'
+          )
+        )
+      })
+
+      setNumConns(nConns)
+      setNodes(rows)
+    }
+
     const askInfo = function () {
-      const headers: any = {
+      const headers = {
         Accept: 'application/json',
-      }
-      if (!insecure) {
-        headers.Authorization = `token ${localStorage.getItem('token')}`
+        Authorization: authorization,
       }
 
       fetch(`${globalUrlPrefix}admin/api`, {
@@ -97,7 +118,12 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
         .then(response => {
           if (!response.ok) {
             if (response.status === 401) {
-              handleLogout()
+              showAlert('Unauthorized', { severity: 'error' })
+              signinSilent()
+              return
+            }
+            if (response.status === 403) {
+              showAlert('Permission denied', { severity: 'error' })
               return
             }
             throw Error(response.status.toString())
@@ -117,13 +143,17 @@ export function Status({ handleLogout, insecure, edition }: StatusProps) {
         })
     }
 
+    if (visible) {
+      askInfo()
+    }
     const interval = setInterval(function () {
+      if (!visible) {
+        return
+      }
       askInfo()
     }, 5000)
-    setTitle('Centrifugo')
-    askInfo()
     return () => clearInterval(interval)
-  }, [setTitle, handleLogout, insecure, showAlert])
+  }, [signinSilent, showAlert, authorization, visible])
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
 

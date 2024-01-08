@@ -32,8 +32,8 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 }))
 
 interface PushNotificationProps {
-  handleLogout: () => void
-  insecure: boolean
+  signinSilent: () => void
+  authorization: string
   edition: 'oss' | 'pro'
 }
 
@@ -66,8 +66,8 @@ function createData(
 }
 
 export function PushNotification({
-  handleLogout,
-  insecure,
+  signinSilent,
+  authorization,
   edition,
 }: PushNotificationProps) {
   const savedLimit = localStorage.getItem('push_notifications.devices.limit')
@@ -194,9 +194,7 @@ export function PushNotification({
   const sendPush = function (filter: any) {
     const headers: any = {
       Accept: 'application/json',
-    }
-    if (!insecure) {
-      headers.Authorization = `token ${localStorage.getItem('token')}`
+      Authorization: authorization,
     }
 
     fetch(`${globalUrlPrefix}admin/api`, {
@@ -237,7 +235,12 @@ export function PushNotification({
       .then(response => {
         if (!response.ok) {
           if (response.status === 401) {
-            handleLogout()
+            showAlert('Unauthorized', { severity: 'error' })
+            signinSilent()
+            return
+          }
+          if (response.status === 403) {
+            showAlert('Permission denied', { severity: 'error' })
             return
           }
           throw Error(response.status.toString())
@@ -315,9 +318,7 @@ export function PushNotification({
 
       const headers: any = {
         Accept: 'application/json',
-      }
-      if (!insecure) {
-        headers.Authorization = `token ${localStorage.getItem('token')}`
+        Authorization: authorization,
       }
 
       const params: any = {
@@ -343,7 +344,12 @@ export function PushNotification({
         .then(response => {
           if (!response.ok) {
             if (response.status === 401) {
-              handleLogout()
+              showAlert('Unauthorized', { severity: 'error' })
+              signinSilent()
+              return
+            }
+            if (response.status === 403) {
+              showAlert('Permission denied', { severity: 'error' })
               return
             }
             throw Error(response.status.toString())
@@ -376,9 +382,9 @@ export function PushNotification({
     cursor,
     userIds,
     topicNames,
-    handleLogout,
+    signinSilent,
     showAlert,
-    insecure,
+    authorization,
     getDeviceFilter,
   ])
 
@@ -630,7 +636,6 @@ export function PushNotification({
                     setUserIds(newValue)
                   }}
                   getOptionLabel={option => {
-                    console.log(option)
                     if (option === '') {
                       return 'Include users with empty ID'
                     }
