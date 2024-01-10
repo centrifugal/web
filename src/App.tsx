@@ -244,11 +244,18 @@ function ShellWrapper({
     handlePasswordLogout()
   }
 
+  const [lastSignIn, setLastSignIn] = useState(0)
+
   const signinSilent = () => {
-    if (auth) {
-      auth.signinSilent()
-    } else {
+    if (!auth) {
       handleLogout()
+      return
+    }
+    const now = Date.now()
+    if (now - lastSignIn >= 10000) {
+      // throttle to once in 10 seconds.
+      auth.signinSilent()
+      setLastSignIn(now)
     }
   }
 
