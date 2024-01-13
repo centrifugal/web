@@ -498,7 +498,7 @@ export function Login({ handleLogin }: LoginProps) {
               sx={{ mt: 3, mb: 2 }}
               onClick={() => void auth.signinRedirect()}
             >
-              Log in using {adminSettings.oidc?.display_name}
+              Log in with {adminSettings.oidc?.display_name}
             </Button>
           ) : (
             <Button
