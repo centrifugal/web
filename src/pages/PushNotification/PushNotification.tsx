@@ -37,12 +37,21 @@ interface PushNotificationProps {
   edition: 'oss' | 'pro'
 }
 
+function truncateText(text: String, len: number) {
+  if (text.length > len) {
+    text = text.substring(0, len) + '...'
+  }
+  return text
+}
+
 function createData(
   deviceId: string,
   token: string,
   provider: string,
   platform: string,
   user: string,
+  timezone: string,
+  language: string,
   created_at: number,
   updated_at: number,
   meta: any,
@@ -56,6 +65,8 @@ function createData(
     provider,
     platform,
     user,
+    timezone,
+    language,
     created_at,
     updated_at,
     meta,
@@ -292,6 +303,8 @@ export function PushNotification({
             item.provider,
             item.platform,
             item.user,
+            item.timezone || '',
+            item.language || '',
             item.created_at,
             item.updated_at,
             item.meta,
@@ -520,22 +533,34 @@ export function PushNotification({
                       </Box>
                       <Box>
                         <p style={{ marginBottom: '5px' }}>Topics:</p>
-                        {selectedItem.topics.map(
-                          (item: string, index: number) => (
-                            <Chip
-                              variant="outlined"
-                              key={index}
-                              label={item}
-                              style={{ marginRight: '3px' }}
-                            />
+                        {selectedItem.topics ? (
+                          selectedItem.topics.map(
+                            (item: string, index: number) => (
+                              <Chip
+                                variant="outlined"
+                                key={index}
+                                label={item}
+                                style={{ marginRight: '3px' }}
+                              />
+                            )
                           )
+                        ) : (
+                          <span style={{ fontSize: '0.8em' }}>
+                            Device does not have topics
+                          </span>
                         )}
                       </Box>
                       <Box>
                         <p style={{ marginBottom: '5px' }}>Meta information:</p>
-                        <pre style={{ fontSize: '0.8em' }}>
-                          {JSON.stringify(selectedItem.meta, null, '  ')}
-                        </pre>
+                        {selectedItem.meta ? (
+                          <pre style={{ fontSize: '0.8em' }}>
+                            {JSON.stringify(selectedItem.meta, null, '  ')}
+                          </pre>
+                        ) : (
+                          <span style={{ fontSize: '0.8em' }}>
+                            Device does not have meta
+                          </span>
+                        )}
                       </Box>
                       <Box
                         style={{ marginTop: '20px' }}
@@ -692,6 +717,12 @@ export function PushNotification({
                         User
                       </TableCell>
                       <TableCell sx={headCellSx} align="right">
+                        Timezone
+                      </TableCell>
+                      <TableCell sx={headCellSx} align="right">
+                        Language
+                      </TableCell>
+                      <TableCell sx={headCellSx} align="right">
                         Created
                       </TableCell>
                       <TableCell sx={headCellSx} align="right">
@@ -708,7 +739,9 @@ export function PushNotification({
                         }}
                       >
                         <TableCell component="th" scope="row">
-                          {node.deviceId}
+                          <span onClick={() => handleRowClick(node)}>
+                            {truncateText(node.deviceId, 30)}
+                          </span>
                         </TableCell>
                         <TableCell align="right">
                           <SettingsIcon
@@ -721,6 +754,8 @@ export function PushNotification({
                         <TableCell align="right">{node.provider}</TableCell>
                         <TableCell align="right">{node.platform}</TableCell>
                         <TableCell align="right">{node.user}</TableCell>
+                        <TableCell align="right">{node.timezone}</TableCell>
+                        <TableCell align="right">{node.language}</TableCell>
                         <TableCell align="right">
                           {new Date(node.created_at).toLocaleString()}
                         </TableCell>

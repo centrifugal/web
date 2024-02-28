@@ -247,6 +247,10 @@ function ShellWrapper({
   const [lastSignIn, setLastSignIn] = useState(0)
 
   const signinSilent = () => {
+    if (!useIDP) {
+      handleLogout()
+      return
+    }
     if (!auth) {
       handleLogout()
       return
