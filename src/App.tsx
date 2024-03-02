@@ -331,7 +331,6 @@ function ShellWrapper({
               <Analytics
                 signinSilent={signinSilent}
                 authorization={authorization}
-                edition={edition}
               />
             }
           />

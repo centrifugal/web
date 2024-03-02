@@ -37,7 +37,6 @@ import { Button, Chip, Grid } from '@mui/material'
 interface AnalyticsProps {
   signinSilent: () => void
   authorization: string
-  edition: 'oss' | 'pro'
 }
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
@@ -235,17 +234,13 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   )
 }
 
-export const Analytics = ({
-  signinSilent,
-  authorization,
-  edition,
-}: AnalyticsProps) => {
+export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const [loading, setLoading] = useState(true)
   const [reloading, setReloading] = useState(true)
   const [enabled, setEnabled] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<null | any>(null)
-  const localStorageRequestKey = 'centrifugo_analytics_request_v1'
+  const localStorageRequestKey = 'centrifugo_analytics_request_v2'
 
   let savedReq: any
   if (localStorage.getItem(localStorageRequestKey) === null) {
@@ -291,6 +286,15 @@ export const Analytics = ({
         user: '',
         op: '',
         disconnect: '',
+      },
+      numPushNotifications: {
+        lastMinutes: 60,
+      },
+      pushPlatforms: {
+        lastMinutes: 0,
+      },
+      pushStats: {
+        analyticsUid: '',
       },
     }
   } else {
@@ -401,6 +405,10 @@ export const Analytics = ({
             analyticsData.userDisconnects.length
         )
       : 0
+
+  const [pushStatsAnalyticsUID, setpushStatsAnalyticsUID] = useState(
+    request.pushStats.analyticsUid
+  )
 
   const handleUserOpsChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -566,6 +574,7 @@ export const Analytics = ({
 
   let allClients: number
   let allTransports: number
+  let allPlatforms: number
   if (analyticsData && analyticsData.clientNames) {
     allClients = analyticsData.clientNames.reduce(
       (a: number, v: any) => (a = a + v.count),
@@ -574,6 +583,12 @@ export const Analytics = ({
   }
   if (analyticsData && analyticsData.transports) {
     allTransports = analyticsData.transports.reduce(
+      (a: number, v: any) => (a = a + v.count),
+      0
+    )
+  }
+  if (analyticsData && analyticsData.pushPlatforms) {
+    allPlatforms = analyticsData.pushPlatforms.reduce(
       (a: number, v: any) => (a = a + v.count),
       0
     )
@@ -592,6 +607,15 @@ export const Analytics = ({
     let shallow = Object.assign({}, request)
     shallow.userOps.user = userOpsUser
     shallow.userOps.op = userOpsOp
+    saveAndMakeRequest(shallow)
+  }
+
+  const handlePushStatsSubmit = (
+    event: React.SyntheticEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault()
+    let shallow = Object.assign({}, request)
+    shallow.pushStats.analyticsUid = pushStatsAnalyticsUID
     saveAndMakeRequest(shallow)
   }
 
@@ -1876,6 +1900,197 @@ export const Analytics = ({
                         </Box>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} md={3} xl={3}>
+                  <Card sx={widgetCardSx}>
+                    <CardContent>
+                      <Typography
+                        variant="h6"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        Push notifications
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.numPushNotifications.lastMinutes
+                            )
+                            setIntervalDialogField('numPushNotifications')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(
+                            request.numPushNotifications.lastMinutes
+                          )}
+                        </Button>
+                      </Typography>
+                      {analyticsData.numPushNotifications !== undefined ? (
+                        <Box>
+                          <Typography variant="h3" component="div">
+                            {analyticsData.numPushNotifications}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Box sx={noDataSx}>No data</Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={6} md={3} xl={3}>
+                  <Card sx={widgetCardSx}>
+                    <CardContent>
+                      <Typography
+                        variant="h6"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        Push by platform
+                        <Button
+                          size="large"
+                          sx={{ p: 1 }}
+                          onClick={() => {
+                            setIntervalDialogInitial(
+                              request.pushPlatforms.lastMinutes
+                            )
+                            setIntervalDialogField('pushPlatforms')
+                            setIntervalDialogIncludeSnapshots(false)
+                            setIntervalDialogIncludeIntervals(true)
+                            setIntervalDialogOpen(true)
+                          }}
+                        >
+                          {humanizeMinutes(request.pushPlatforms.lastMinutes)}
+                        </Button>
+                      </Typography>
+                      {analyticsData.pushPlatforms !== undefined ? (
+                        <Box>
+                          <Typography
+                            variant="h5"
+                            component="div"
+                            color="#8ab200"
+                          >
+                            {analyticsData.pushPlatforms.map(
+                              (platformCount: any) => (
+                                <Box component="span" key={platformCount.name}>
+                                  <Chip
+                                    label={
+                                      (platformCount.name
+                                        ? platformCount.name
+                                        : '?') +
+                                      ' ' +
+                                      platformCount.count.toString() +
+                                      ' (' +
+                                      (
+                                        (platformCount.count * 100) /
+                                        allPlatforms
+                                      ).toFixed(1) +
+                                      '%)'
+                                    }
+                                    sx={{ fontSize: '0.6em', mb: 1 }}
+                                  />{' '}
+                                </Box>
+                              )
+                            )}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Box sx={noDataSx}>No data</Box>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={6} xl={6}>
+                  <Card sx={widgetCardSx}>
+                    <CardContent>
+                      <Typography
+                        variant="h6"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        Individual push stats/rates
+                      </Typography>
+                      <Box
+                        component="form"
+                        onSubmit={handlePushStatsSubmit}
+                        sx={{ mb: 2 }}
+                      >
+                        <Grid
+                          container
+                          spacing={0}
+                          columnSpacing={4}
+                          sx={{ mt: 0 }}
+                        >
+                          <Grid item xs={12}>
+                            <TextField
+                              margin="none"
+                              variant="standard"
+                              fullWidth
+                              name="uid"
+                              label="Analytics UID"
+                              type="text"
+                              id="text"
+                              autoComplete="off"
+                              onChange={event =>
+                                setpushStatsAnalyticsUID(event.target.value)
+                              }
+                              value={pushStatsAnalyticsUID}
+                            />
+                            <Button type="submit" sx={{ display: 'none' }}>
+                              Submit
+                            </Button>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                      {analyticsData.pushStats !== undefined ? (
+                        <Box>
+                          <Typography
+                            variant="h5"
+                            component="span"
+                            sx={{ mr: 3 }}
+                          >
+                            <Typography component="span" color="text.secondary">
+                              SENT:{' '}
+                            </Typography>
+                            {analyticsData.pushStats.sent}
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            component="span"
+                            sx={{ mr: 3 }}
+                          >
+                            <Typography component="span" color="text.secondary">
+                              DELIVERED:{' '}
+                            </Typography>
+                            {analyticsData.pushStats.delivered} (
+                            {(
+                              (analyticsData.pushStats.delivered * 100) /
+                              (analyticsData.pushStats.sent || 1)
+                            ).toFixed(1)}
+                            %)
+                          </Typography>
+                          <Typography variant="h5" component="span">
+                            <Typography component="span" color="text.secondary">
+                              INTERACTED:{' '}
+                            </Typography>
+                            {analyticsData.pushStats.interacted} (
+                            {(
+                              (analyticsData.pushStats.interacted * 100) /
+                              (analyticsData.pushStats.delivered || 1)
+                            ).toFixed(1)}
+                            %)
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Box sx={noDataSx}>
+                          TIP: to collect push delivered/interacted stats use
+                          update push status Centrifugo server API
+                        </Box>
                       )}
                     </CardContent>
                   </Card>

@@ -68,17 +68,17 @@ const pages = [
     oss: false,
   },
   {
-    name: 'Analytics',
-    icon: QueryStatsIcon,
-    iconColor: '#8ab200',
-    to: routes.ANALYTICS,
-    oss: false,
-  },
-  {
     name: 'Push Notifications',
     icon: NotificationsIcon,
     iconColor: '#f44336',
     to: routes.PUSH_NOTIFICATION,
+    oss: false,
+  },
+  {
+    name: 'Analytics',
+    icon: QueryStatsIcon,
+    iconColor: '#8ab200',
+    to: routes.ANALYTICS,
     oss: false,
   },
 ]
