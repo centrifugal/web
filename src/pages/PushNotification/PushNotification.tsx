@@ -51,7 +51,7 @@ function createData(
   platform: string,
   user: string,
   timezone: string,
-  language: string,
+  locale: string,
   created_at: number,
   updated_at: number,
   meta: any,
@@ -66,7 +66,7 @@ function createData(
     platform,
     user,
     timezone,
-    language,
+    locale,
     created_at,
     updated_at,
     meta,
@@ -304,7 +304,7 @@ export function PushNotification({
             item.platform,
             item.user,
             item.timezone || '',
-            item.language || '',
+            item.locale || '',
             item.created_at,
             item.updated_at,
             item.meta,
@@ -755,7 +755,7 @@ export function PushNotification({
                         <TableCell align="right">{node.platform}</TableCell>
                         <TableCell align="right">{node.user}</TableCell>
                         <TableCell align="right">{node.timezone}</TableCell>
-                        <TableCell align="right">{node.language}</TableCell>
+                        <TableCell align="right">{node.locale}</TableCell>
                         <TableCell align="right">
                           {new Date(node.created_at).toLocaleString()}
                         </TableCell>
