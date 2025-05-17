@@ -16,6 +16,7 @@ import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { Chip } from '@mui/material'
+import { InfoOutlined } from '@mui/icons-material'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': { backgroundColor: theme.palette.action.hover },
@@ -273,7 +274,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
               <TableBody>
                 {nodes
                   .slice()
-                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .sort((a, b) => a.uptime - b.uptime)
                   .map(node => (
                     <Fragment key={node.name}>
                       <StyledTableRow
@@ -303,11 +304,31 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                         <TableRow>
                           <TableCell colSpan={9} sx={{ padding: '6px 16px' }}>
                             <Typography variant="caption" color="textSecondary">
-                              Aggregations over <b>{node.interval}s</b>{' '}
+                              <b>{node.interval}s</b> aggregations{' '}
                               <Tooltip title="Metrics in this row are aggregated once in the specified interval (determined by node.info_metrics_aggregate_interval server option).">
-                                <span style={{ cursor: 'help' }}>ℹ️</span>
-                              </Tooltip>{' '}
-                              &nbsp; Clients:&nbsp;
+                                <InfoOutlined fontSize="small" />
+                              </Tooltip>
+                              &nbsp;Incoming frames:{' '}
+                              <b>
+                                {(
+                                  node.messagesReceived / node.interval
+                                ).toFixed(1)}
+                                /s
+                              </b>
+                              &nbsp;| Outgoing frames:{' '}
+                              <b>
+                                {(node.messagesSent / node.interval).toFixed(1)}
+                                /s
+                              </b>
+                              &nbsp;| Connect: <b>{node.connectRate}/s</b>
+                              &nbsp;| Subscribe: <b>{node.subscribeRate}/s</b>
+                              &nbsp;| Server API: <b>{node.apiRate}/s</b>
+                              &nbsp;| Publications:{' '}
+                              <b>
+                                {(node.publications / node.interval).toFixed(1)}
+                                /s
+                              </b>
+                              &nbsp;| Clients by name:&nbsp;
                               <b>
                                 {Object.keys(node.connectionsByClient).length >
                                 0
@@ -317,27 +338,6 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                                       )
                                       .join(', ')
                                   : '-'}
-                              </b>
-                              &nbsp;| Client incoming frames rate:{' '}
-                              <b>
-                                {(
-                                  node.messagesReceived / node.interval
-                                ).toFixed(1)}
-                                /s
-                              </b>
-                              &nbsp;| Client outgoing frames rate:{' '}
-                              <b>
-                                {(node.messagesSent / node.interval).toFixed(1)}
-                                /s
-                              </b>
-                              &nbsp;| Connect rate: <b>{node.connectRate}/s</b>
-                              &nbsp;| Subscribe rate:{' '}
-                              <b>{node.subscribeRate}/s</b>
-                              &nbsp;| Server API rate: <b>{node.apiRate}/s</b>
-                              &nbsp;| Publication rate:{' '}
-                              <b>
-                                {(node.publications / node.interval).toFixed(1)}
-                                /s
                               </b>
                             </Typography>
                           </TableCell>

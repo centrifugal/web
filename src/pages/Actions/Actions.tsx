@@ -1,17 +1,23 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import FormControl from '@mui/material/FormControl'
-import InputLabel from '@mui/material/InputLabel'
-import Select, { SelectChangeEvent } from '@mui/material/Select'
-import { Grid } from '@mui/material'
+import {
+  Autocomplete,
+  Card,
+  CardContent,
+  Divider,
+  Grid,
+  IconButton,
+} from '@mui/material'
 import { green, red } from '@mui/material/colors'
 import CircularProgress from '@mui/material/CircularProgress'
 import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 
 import AceEditor from 'react-ace'
 
@@ -36,74 +42,112 @@ interface ActionsProps {
   edition: 'oss' | 'pro'
 }
 
+interface MethodOption {
+  value: string
+  name: string
+  category: string
+}
+
+// Define method lists outside component to avoid recreation
+const coreMethods: MethodOption[] = [
+  { value: 'publish', name: 'Publish', category: 'OSS' },
+  { value: 'broadcast', name: 'Broadcast', category: 'OSS' },
+  { value: 'presence', name: 'Presence', category: 'OSS' },
+  { value: 'presence_stats', name: 'Presence Stats', category: 'OSS' },
+  { value: 'history', name: 'History', category: 'OSS' },
+  { value: 'history_remove', name: 'History Remove', category: 'OSS' },
+  { value: 'subscribe', name: 'Subscribe', category: 'OSS' },
+  { value: 'unsubscribe', name: 'Unsubscribe', category: 'OSS' },
+  { value: 'disconnect', name: 'Disconnect', category: 'OSS' },
+  { value: 'info', name: 'Info', category: 'OSS' },
+  { value: 'rpc', name: 'RPC', category: 'OSS' },
+  { value: 'channels', name: 'Channels', category: 'OSS' },
+]
+
+const proMethods: MethodOption[] = [
+  { value: 'connections', name: 'Connections', category: 'PRO' },
+  { value: 'update_user_status', name: 'Update user status', category: 'PRO' },
+  { value: 'get_user_status', name: 'Get user status', category: 'PRO' },
+  { value: 'delete_user_status', name: 'Delete user status', category: 'PRO' },
+  { value: 'block_user', name: 'Block user', category: 'PRO' },
+  { value: 'unblock_user', name: 'Unblock user', category: 'PRO' },
+  { value: 'revoke_token', name: 'Revoke token', category: 'PRO' },
+  {
+    value: 'invalidate_user_tokens',
+    name: 'Invalidate user tokens',
+    category: 'PRO',
+  },
+]
+
 export const Actions = ({
   signinSilent,
   authorization,
   edition,
 }: ActionsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
-
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
-  const [method, setMethod] = useState('publish')
-  const [loading, setLoading] = useState(false)
+
+  const [method, setMethod] = useState<string>('publish')
+  const [loading, setLoading] = useState<boolean>(false)
   const [request, setRequest] = useState<any | null>(null)
   const [response, setResponse] = useState<any | null>(null)
 
-  let codeStyle = solarizedLight
-  if (colorMode === 'dark') {
-    codeStyle = a11yDark
-  }
+  // Choose code style based on theme
+  const codeStyle = useMemo(
+    () => (colorMode === 'dark' ? a11yDark : solarizedLight),
+    [colorMode]
+  )
 
+  // Combine method options, memoized on edition
+  const methodOptions = useMemo<MethodOption[]>(
+    () => (edition === 'pro' ? [...coreMethods, ...proMethods] : coreMethods),
+    [edition]
+  )
+
+  // Send API request
   const sendRequest = (params: any) => {
     setLoading(true)
-
-    const headers: any = {
-      Accept: 'application/json',
-      Authorization: authorization,
-    }
-
-    const request = {
-      method: method,
-      params: params,
-    }
-
-    setRequest(request)
+    setRequest({ method, params })
 
     fetch(`${globalUrlPrefix}admin/api`, {
       method: 'POST',
-      headers: headers,
-      body: JSON.stringify(request),
+      headers: {
+        Accept: 'application/json',
+        Authorization: authorization,
+      },
+      body: JSON.stringify({ method, params }),
       mode: 'same-origin',
     })
-      .then(response => {
-        if (!response.ok) {
+      .then(res => {
+        if (!res.ok) {
           setLoading(false)
-          if (response.status === 401) {
+          if (res.status === 401) {
             showAlert('Unauthorized', { severity: 'error' })
             signinSilent()
-            return
+            return Promise.reject()
           }
-          if (response.status === 403) {
+          if (res.status === 403) {
             showAlert('Permission denied', { severity: 'error' })
-            return
+            return Promise.reject()
           }
-          throw Error(response.status.toString())
+          return Promise.reject(new Error(res.status.toString()))
         }
-        return response.json()
+        return res.json()
       })
       .then(data => {
         setResponse(data)
         setLoading(false)
       })
-      .catch(e => {
-        console.log(e)
+      .catch(err => {
+        console.error(err)
         setLoading(false)
       })
   }
 
-  const handleMethodChange = (event: SelectChangeEvent) => {
-    setMethod(event.target.value)
+  // Handle method selection change
+  const handleMethodChange = (_: any, option: MethodOption | null) => {
+    setMethod(option?.value || 'publish')
     setRequest(null)
     setResponse(null)
   }
@@ -112,199 +156,34 @@ export const Actions = ({
     setTitle('Centrifugo | Actions')
   }, [setTitle])
 
-  let FormElem
-  if (method === 'publish') {
-    FormElem = (
-      <PublishForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'broadcast') {
-    FormElem = (
-      <BroadcastForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'presence') {
-    FormElem = (
-      <PresenceForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'presence_stats') {
-    FormElem = (
-      <PresenceStatsForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'history') {
-    FormElem = (
-      <HistoryForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'history_remove') {
-    FormElem = (
-      <HistoryRemoveForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'subscribe') {
-    FormElem = (
-      <SubscribeForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'unsubscribe') {
-    FormElem = (
-      <UnsubscribeForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'disconnect') {
-    FormElem = (
-      <DisconnectForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'info') {
-    FormElem = (
-      <InfoForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'rpc') {
-    FormElem = (
-      <RpcForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'channels') {
-    FormElem = (
-      <ChannelsForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'connections') {
-    FormElem = (
-      <ConnectionsForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'update_user_status') {
-    FormElem = (
-      <UpdateUserStatusForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'get_user_status') {
-    FormElem = (
-      <GetUserStatusForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'delete_user_status') {
-    FormElem = (
-      <DeleteUserStatusForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'block_user') {
-    FormElem = (
-      <BlockUserForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'unblock_user') {
-    FormElem = (
-      <UnblockUserForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'revoke_token') {
-    FormElem = (
-      <RevokeTokenForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else if (method === 'invalidate_user_tokens') {
-    FormElem = (
-      <InvalidateUserTokensForm
-        colorMode={colorMode}
-        loading={loading}
-        sendRequest={sendRequest}
-      />
-    )
-  } else {
-    FormElem = <></>
+  // Map of form components
+  const formProps = { colorMode, loading, sendRequest }
+  const formMap: Record<string, JSX.Element> = {
+    publish: <PublishForm {...formProps} />,
+    broadcast: <BroadcastForm {...formProps} />,
+    presence: <PresenceForm {...formProps} />,
+    presence_stats: <PresenceStatsForm {...formProps} />,
+    history: <HistoryForm {...formProps} />,
+    history_remove: <HistoryRemoveForm {...formProps} />,
+    subscribe: <SubscribeForm {...formProps} />,
+    unsubscribe: <UnsubscribeForm {...formProps} />,
+    disconnect: <DisconnectForm {...formProps} />,
+    info: <InfoForm {...formProps} />,
+    rpc: <RpcForm {...formProps} />,
+    channels: <ChannelsForm {...formProps} />,
+    connections: <ConnectionsForm {...formProps} />,
+    update_user_status: <UpdateUserStatusForm {...formProps} />,
+    get_user_status: <GetUserStatusForm {...formProps} />,
+    delete_user_status: <DeleteUserStatusForm {...formProps} />,
+    block_user: <BlockUserForm {...formProps} />,
+    unblock_user: <UnblockUserForm {...formProps} />,
+    revoke_token: <RevokeTokenForm {...formProps} />,
+    invalidate_user_tokens: <InvalidateUserTokensForm {...formProps} />,
   }
+  const FormElem = formMap[method] || null
 
-  const methods = [
-    { value: 'publish', name: 'Publish' },
-    { value: 'broadcast', name: 'Broadcast' },
-    { value: 'presence', name: 'Presence' },
-    { value: 'presence_stats', name: 'Presence Stats' },
-    { value: 'history', name: 'History' },
-    { value: 'history_remove', name: 'History Remove' },
-    { value: 'subscribe', name: 'Subscribe' },
-    { value: 'unsubscribe', name: 'Unsubscribe' },
-    { value: 'disconnect', name: 'Disconnect' },
-    { value: 'info', name: 'Info' },
-    { value: 'rpc', name: 'RPC' },
-    { value: 'channels', name: 'Channels' },
-  ]
-
-  const proMethods = [
-    { value: 'connections', name: 'Connections' },
-    { value: 'update_user_status', name: 'Update user status' },
-    { value: 'get_user_status', name: 'Get user status' },
-    { value: 'delete_user_status', name: 'Delete user status' },
-    { value: 'block_user', name: 'Block user' },
-    { value: 'unblock_user', name: 'Unblock user' },
-    { value: 'revoke_token', name: 'Revoke token' },
-    { value: 'invalidate_user_tokens', name: 'Invalidate user tokens' },
-  ]
-
-  if (edition === 'pro') {
-    methods.push(...proMethods)
+  const copyToClipboard = (text: string) => () => {
+    navigator.clipboard.writeText(text)
   }
 
   return (
@@ -313,50 +192,95 @@ export const Actions = ({
         Execute server API command
       </Typography>
       <FormControl fullWidth sx={{}}>
-        <InputLabel htmlFor="grouped-native-select">Method</InputLabel>
-        <Select
-          fullWidth
-          native
-          defaultValue={method}
-          label="Method"
+        <Autocomplete
+          value={methodOptions.find((opt: any) => opt.value === method) || null}
           onChange={handleMethodChange}
-        >
-          {methods.map(m => (
-            <option key={m.value} value={m.value}>
-              {m.name}
-            </option>
-          ))}
-        </Select>
+          options={methodOptions}
+          // {...(edition === 'pro'
+          //   ? { groupBy: (opt: MethodOption) => opt.category }
+          //   : {})}
+          getOptionLabel={(opt: MethodOption) => opt.name}
+          renderInput={params => (
+            <TextField
+              {...params}
+              label="Method"
+              variant="outlined"
+              fullWidth
+            />
+          )}
+        />
       </FormControl>
       {FormElem}
       {request && response ? (
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={4} xl={4}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Request
-            </Typography>
-            <SyntaxHighlighter language="json" style={codeStyle}>
-              {JSON.stringify(request, undefined, 2)}
-            </SyntaxHighlighter>
+          <Grid item xs={12} md={4}>
+            <Card>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="h6">Request</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={copyToClipboard(JSON.stringify(request, null, 2))}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Divider sx={{ my: 1 }} />
+                <SyntaxHighlighter language="json" style={codeStyle}>
+                  {JSON.stringify(request, null, 2)}
+                </SyntaxHighlighter>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid item xs={12} md={8} xl={8}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Response{' '}
-              {!response.error ? (
-                <Box component="span" sx={{ color: green[500] }}>
-                  OK
+          <Grid item xs={12} md={8}>
+            <Card>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography variant="h6">
+                    Response{' '}
+                    {!response.error ? (
+                      <Box component="span" sx={{ color: green[500] }}>
+                        OK
+                      </Box>
+                    ) : (
+                      <Box component="span" sx={{ color: red[500] }}>
+                        ERROR
+                      </Box>
+                    )}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={copyToClipboard(
+                      JSON.stringify(
+                        !response.error ? response.result : response.error,
+                        null,
+                        2
+                      )
+                    )}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
                 </Box>
-              ) : (
-                <Box component="span" sx={{ color: red[500] }}>
-                  ERROR
-                </Box>
-              )}
-            </Typography>
-            <SyntaxHighlighter language="json" style={codeStyle}>
-              {!response.error
-                ? JSON.stringify(response.result, undefined, 2)
-                : JSON.stringify(response.error, undefined, 2)}
-            </SyntaxHighlighter>
+                <Divider sx={{ my: 1 }} />
+                <SyntaxHighlighter language="json" style={codeStyle}>
+                  {!response.error
+                    ? JSON.stringify(response.result, null, 2)
+                    : JSON.stringify(response.error, null, 2)}
+                </SyntaxHighlighter>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
       ) : (
