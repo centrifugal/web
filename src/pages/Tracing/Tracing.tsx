@@ -9,7 +9,7 @@ import FormLabel from '@mui/material/FormLabel'
 import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
-import { green, red } from '@mui/material/colors'
+import { green, red, blue } from '@mui/material/colors'
 import { compileExpression } from 'filtrex'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
@@ -77,6 +77,16 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     },
   }
 
+  const downloadButtonSx = {
+    ...{
+      ml: 2,
+      bgcolor: blue[500],
+      '&:hover': {
+        bgcolor: blue[700],
+      },
+    },
+  }
+
   const filterSx = {
     ...(!isValidFilter && {
       input: {
@@ -106,6 +116,38 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const handleStopButtonClick = () => {
     setRunning(false)
     stopStream()
+  }
+
+  const handleDownloadClick = () => {
+    if (messages.length === 0) {
+      showAlert('No trace data to download', { severity: 'warning' })
+      return
+    }
+
+    const ndjsonLines = messages.map(msg =>
+      JSON.stringify({
+        timestamp: msg.time,
+        ...msg.json,
+      })
+    )
+
+    const dataStr = ndjsonLines.join('\n')
+    const dataBlob = new Blob([dataStr], { type: 'application/x-ndjson' })
+    const url = URL.createObjectURL(dataBlob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `centrifugo-trace-${traceType}-${
+      new Date().toISOString().split('T')[0]
+    }.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    showAlert(`Downloaded ${messages.length} trace messages`, {
+      severity: 'success',
+    })
   }
 
   const stopStream = function () {
@@ -292,6 +334,15 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             onClick={handleStopButtonClick}
           >
             Stop
+          </Button>
+        )}
+        {messages.length > 0 && (
+          <Button
+            variant="contained"
+            sx={downloadButtonSx}
+            onClick={handleDownloadClick}
+          >
+            Download ({messages.length})
           </Button>
         )}
       </Box>

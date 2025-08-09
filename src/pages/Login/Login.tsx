@@ -506,7 +506,15 @@ export function Login({ handleLogin }: LoginProps) {
               fullWidth
               variant="contained"
               color="primary"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{
+                mt: 3,
+                mb: 2,
+                '&.Mui-disabled': {
+                  backgroundColor: '#ccc',
+                  color: '#666',
+                },
+              }}
+              disabled={password.trim() === ''}
             >
               Log in
             </Button>
