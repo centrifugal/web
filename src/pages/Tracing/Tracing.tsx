@@ -10,7 +10,6 @@ import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import { green, red, blue } from '@mui/material/colors'
-import { compileExpression } from 'filtrex'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
   a11yDark,
@@ -33,13 +32,21 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const [filter, setFilter] = useState('')
   const [isValidFilter, setIsValidFilter] = useState(true)
   const streamCancelRef = useRef<(() => void) | null>(null)
-  const filterExprRef = useRef<((v: any) => boolean) | null>(null)
+  const filterExpressionRef = useRef<string | null>(null)
   const [traceType, setTraceType] = useState('user')
   const [running, setRunning] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
+  const celJsRef = useRef<any>(null)
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
+
+  // Load CEL-JS dynamically as it's an ESM module
+  useEffect(() => {
+    import('cel-js').then(module => {
+      celJsRef.current = module
+    })
+  }, [])
 
   let codeStyle = solarizedLight
   if (colorMode === 'dark') {
@@ -105,9 +112,31 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     }
     setRunning(true)
     if (filter) {
-      filterExprRef.current = compileExpression(filter)
+      if (!celJsRef.current) {
+        showAlert('CEL library not loaded yet, please try again', {
+          severity: 'warning',
+        })
+        setRunning(false)
+        return
+      }
+      try {
+        // Parse to validate the expression
+        const result = celJsRef.current.parse(filter)
+        if (!result.isSuccess) {
+          showAlert('Invalid CEL expression: ' + result.error, {
+            severity: 'error',
+          })
+          setRunning(false)
+          return
+        }
+        filterExpressionRef.current = filter
+      } catch (error) {
+        showAlert('Invalid CEL expression', { severity: 'error' })
+        setRunning(false)
+        return
+      }
     } else {
-      filterExprRef.current = null
+      filterExpressionRef.current = null
     }
     startStream(traceType, traceType === 'user' ? user : channel)
     setMessages([])
@@ -203,8 +232,18 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   }
 
   const processStreamData = function (data: any) {
-    if (filterExprRef.current !== null) {
-      if (!filterExprRef.current(data)) {
+    if (filterExpressionRef.current !== null && celJsRef.current) {
+      try {
+        const result = celJsRef.current.evaluate(
+          filterExpressionRef.current,
+          data
+        )
+        if (!result) {
+          return
+        }
+      } catch (error) {
+        // If filter evaluation fails, skip this message
+        console.warn('Filter evaluation error:', error)
         return
       }
     }
@@ -279,21 +318,22 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         id="text"
         helperText={
           <span>
-            Optionally filter tracing messages on the client side by using{' '}
-            <Link
-              href="https://www.npmjs.com/package/filtrex/v/2.2.3"
-              target={'_blank'}
-            >
-              filtrex v2.2.3
-            </Link>{' '}
-            as an expression language
+            Optionally filter tracing messages on the client side using{' '}
+            <Link href="https://cel.dev/" target={'_blank'}>
+              CEL expressions
+            </Link>
+            . Example: <code>type == "pub" && pub.data.input == "hello"</code>
           </span>
         }
         onChange={event => {
           setFilter(event.target.value)
-          if (event.target.value) {
+          if (event.target.value && celJsRef.current) {
             try {
-              compileExpression(event.target.value)
+              const result = celJsRef.current.parse(event.target.value)
+              if (!result.isSuccess) {
+                setIsValidFilter(false)
+                return
+              }
             } catch {
               setIsValidFilter(false)
               return
