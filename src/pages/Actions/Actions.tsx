@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useMemo } from 'react'
+import { useContext, useEffect, useState, useMemo, type JSX } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
@@ -213,7 +213,12 @@ export const Actions = ({
       {FormElem}
       {request && response ? (
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={4}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 4,
+            }}
+          >
             <Card>
               <CardContent>
                 <Box
@@ -238,7 +243,12 @@ export const Actions = ({
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={8}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 8,
+            }}
+          >
             <Card>
               <CardContent>
                 <Box
@@ -552,9 +562,8 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
         onChange={event => setLimit(parseInt(event.target.value))}
         value={limit}
       />
-
       <Grid container spacing={2}>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <TextField
             margin="normal"
             fullWidth
@@ -573,7 +582,7 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
             value={offset}
           />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <TextField
             margin="normal"
             fullWidth
@@ -587,7 +596,6 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
           />
         </Grid>
       </Grid>
-
       <FormGroup>
         <FormControlLabel
           control={
