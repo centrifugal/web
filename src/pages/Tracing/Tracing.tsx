@@ -431,7 +431,7 @@ function FetchEventTarget(url: string, options: any) {
             //@ts-ignore
             return reader
               .read()
-              .then(({ done, value }) => {
+              .then(({ done, value }: any) => {
                 // When no more data needs to be consumed, close the stream
                 if (done) {
                   eventTarget.dispatchEvent(new CloseEvent('close'))
