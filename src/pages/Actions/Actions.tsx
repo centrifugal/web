@@ -19,7 +19,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 
-import AceEditor from 'react-ace'
+import Editor from '@monaco-editor/react'
 
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
@@ -30,11 +30,6 @@ import {
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
-
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/theme-monokai'
-import 'ace-builds/src-noconflict/theme-solarized_light'
-import 'ace-builds/src-noconflict/ext-language_tools'
 
 interface ActionsProps {
   signinSilent: () => void
@@ -337,23 +332,58 @@ interface AceFieldProps {
 
 export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
   return (
-    <AceEditor
-      mode="json"
-      theme={colorMode === 'dark' ? 'monokai' : 'solarized_light'}
-      width="100%"
-      height="300px"
-      showGutter={false}
-      onChange={onChange}
-      name="data-editor-publish"
-      fontSize={18}
-      tabSize={2}
-      showPrintMargin={false}
-      placeholder="Data*"
-      setOptions={{
-        useWorker: false,
+    <div
+      style={{
+        border: colorMode === 'dark'
+          ? '1px solid rgba(255, 255, 255, 0.23)'
+          : '1px solid rgba(0, 0, 0, 0.23)',
+        borderRadius: '4px',
+        overflow: 'hidden'
       }}
-      editorProps={{ $blockScrolling: true }}
-    />
+    >
+      <Editor
+        language="json"
+        theme={colorMode === 'dark' ? 'vs-dark' : 'vs-light'}
+        width="100%"
+        height="300px"
+        onChange={(value) => onChange(value || '')}
+        onMount={(editor, monaco) => {
+          // Stop schema fetching/usage
+          monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+            enableSchemaRequest: false,
+            schemas: [],          // no schemas applied
+            validate: true,       // keep validation if you want; set to false to silence all
+            allowComments: true,
+          });
+
+          // 🔑 Kill JSON completions (this removes the `$schema` key suggestion)
+          monaco.languages.json.jsonDefaults.setModeConfiguration({
+            completionItems: false,
+          });
+        }}
+        options={{
+          fontSize: 18,
+          tabSize: 2,
+          insertSpaces: true,
+          lineNumbers: 'off',
+          glyphMargin: false,
+          folding: false,
+          lineDecorationsWidth: 0,
+          lineNumbersMinChars: 0,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+
+          // Extra belts & suspenders (optional)
+          quickSuggestions: false,
+          suggestOnTriggerCharacters: false,
+          inlineSuggest: { enabled: false },
+          parameterHints: { enabled: false },
+          hover: { enabled: false },
+          suggest: { showSnippets: false, showKeywords: false },
+        }}
+      />
+    </div>
   )
 }
 
