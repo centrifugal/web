@@ -87,6 +87,8 @@ export const Actions = ({
   const [loading, setLoading] = useState<boolean>(false)
   const [request, setRequest] = useState<any | null>(null)
   const [response, setResponse] = useState<any | null>(null)
+  const [executedAt, setExecutedAt] = useState<string | null>(null)
+  const [responseKey, setResponseKey] = useState<number>(0)
 
   // Choose code style based on theme
   const codeStyle = useMemo(
@@ -132,6 +134,8 @@ export const Actions = ({
       })
       .then(data => {
         setResponse(data)
+        setExecutedAt(new Date().toLocaleTimeString())
+        setResponseKey(prev => prev + 1)
         setLoading(false)
       })
       .catch(err => {
@@ -145,6 +149,8 @@ export const Actions = ({
     setMethod(option?.value || 'publish')
     setRequest(null)
     setResponse(null)
+    setExecutedAt(null)
+    setResponseKey(0)
   }
 
   useEffect(() => {
@@ -244,7 +250,26 @@ export const Actions = ({
               md: 8,
             }}
           >
-            <Card>
+            <Card
+              key={responseKey}
+              sx={{
+                '@keyframes responseUpdate': {
+                  '0%': {
+                    backgroundColor:
+                      colorMode === 'dark'
+                        ? 'rgba(76, 175, 80, 0.1)'
+                        : 'rgba(76, 175, 80, 0.05)',
+                    transform: 'scale(1.01)',
+                  },
+                  '100%': {
+                    backgroundColor: 'transparent',
+                    transform: 'scale(1)',
+                  },
+                },
+                animation:
+                  responseKey > 0 ? 'responseUpdate 0.6s ease-out' : 'none',
+              }}
+            >
               <CardContent>
                 <Box
                   sx={{
@@ -253,18 +278,25 @@ export const Actions = ({
                     alignItems: 'center',
                   }}
                 >
-                  <Typography variant="h6">
-                    Response{' '}
-                    {!response.error ? (
-                      <Box component="span" sx={{ color: green[500] }}>
-                        OK
-                      </Box>
-                    ) : (
-                      <Box component="span" sx={{ color: red[500] }}>
-                        ERROR
-                      </Box>
+                  <Box>
+                    <Typography variant="h6">
+                      Response{' '}
+                      {!response.error ? (
+                        <Box component="span" sx={{ color: green[500] }}>
+                          OK
+                        </Box>
+                      ) : (
+                        <Box component="span" sx={{ color: red[500] }}>
+                          ERROR
+                        </Box>
+                      )}
+                    </Typography>
+                    {executedAt && (
+                      <Typography variant="caption" color="text.secondary">
+                        Executed at {executedAt}
+                      </Typography>
                     )}
-                  </Typography>
+                  </Box>
                   <IconButton
                     size="small"
                     onClick={copyToClipboard(
@@ -334,11 +366,12 @@ export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
   return (
     <div
       style={{
-        border: colorMode === 'dark'
-          ? '1px solid rgba(255, 255, 255, 0.23)'
-          : '1px solid rgba(0, 0, 0, 0.23)',
+        border:
+          colorMode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.23)'
+            : '1px solid rgba(0, 0, 0, 0.23)',
         borderRadius: '4px',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
       <Editor
@@ -346,20 +379,20 @@ export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
         theme={colorMode === 'dark' ? 'vs-dark' : 'vs-light'}
         width="100%"
         height="300px"
-        onChange={(value) => onChange(value || '')}
+        onChange={value => onChange(value || '')}
         onMount={(editor, monaco) => {
           // Stop schema fetching/usage
           monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
             enableSchemaRequest: false,
-            schemas: [],          // no schemas applied
-            validate: true,       // keep validation if you want; set to false to silence all
+            schemas: [], // no schemas applied
+            validate: true, // keep validation if you want; set to false to silence all
             allowComments: true,
-          });
+          })
 
           // 🔑 Kill JSON completions (this removes the `$schema` key suggestion)
           monaco.languages.json.jsonDefaults.setModeConfiguration({
             completionItems: false,
-          });
+          })
         }}
         options={{
           fontSize: 18,
