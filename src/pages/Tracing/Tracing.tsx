@@ -180,7 +180,14 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
 
   const stopStream = function () {
     if (streamCancelRef.current) {
-      streamCancelRef.current()
+      try {
+        streamCancelRef.current()
+      } catch (error) {
+        // Ignore AbortError when manually stopping the stream
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.warn('Error stopping stream:', error)
+        }
+      }
       streamCancelRef.current = null
     }
     setRunning(false)
@@ -422,35 +429,55 @@ function FetchEventTarget(url: string, options: any) {
         start(controller) {
           function pump() {
             //@ts-ignore
-            return reader.read().then(({ done, value }) => {
-              // When no more data needs to be consumed, close the stream
-              if (done) {
-                eventTarget.dispatchEvent(new CloseEvent('close'))
-                controller.close()
-                return
-              }
-              streamBuf += utf8decoder.decode(value)
-              while (streamPos < streamBuf.length) {
-                if (streamBuf[streamPos] === '\n') {
-                  const line = streamBuf.substring(0, streamPos)
-                  eventTarget.dispatchEvent(
-                    new MessageEvent('message', { data: JSON.parse(line) })
-                  )
-                  streamBuf = streamBuf.substring(streamPos + 1)
-                  streamPos = 0
-                } else {
-                  streamPos += 1
+            return reader
+              .read()
+              .then(({ done, value }) => {
+                // When no more data needs to be consumed, close the stream
+                if (done) {
+                  eventTarget.dispatchEvent(new CloseEvent('close'))
+                  controller.close()
+                  return
                 }
-              }
-              pump()
-            })
+                streamBuf += utf8decoder.decode(value)
+                while (streamPos < streamBuf.length) {
+                  if (streamBuf[streamPos] === '\n') {
+                    const line = streamBuf.substring(0, streamPos)
+                    eventTarget.dispatchEvent(
+                      new MessageEvent('message', { data: JSON.parse(line) })
+                    )
+                    streamBuf = streamBuf.substring(streamPos + 1)
+                    streamPos = 0
+                  } else {
+                    streamPos += 1
+                  }
+                }
+                pump()
+              })
+              .catch((error: any) => {
+                // Handle AbortError gracefully during stream reading
+                if (error instanceof Error && error.name === 'AbortError') {
+                  eventTarget.dispatchEvent(new CloseEvent('close'))
+                  controller.close()
+                } else {
+                  eventTarget.dispatchEvent(
+                    new CustomEvent('error', { detail: error })
+                  )
+                  controller.error(error)
+                }
+              })
           }
           return pump()
         },
       })
     })
-    .catch(error => {
-      eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }))
+    .catch((error: any) => {
+      // Don't dispatch error events for AbortError as it's expected when stopping
+      if (error instanceof Error && error.name !== 'AbortError') {
+        eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }))
+      } else {
+        // Dispatch close event for abort operations
+        eventTarget.dispatchEvent(new CloseEvent('close'))
+      }
     })
   return eventTarget
 }
