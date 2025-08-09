@@ -221,7 +221,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       className="max-w-8xl mx-auto p-8"
     >
       <FormControl>
-        <FormLabel>Real-time connection tracing</FormLabel>
+        <FormLabel>
+          {traceType === 'user'
+            ? 'Real-time user connections tracing'
+            : 'Real-time channel tracing'}
+        </FormLabel>
         <RadioGroup
           row
           aria-labelledby="row-radio-buttons-group-label"
