@@ -137,9 +137,8 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
 
     const link = document.createElement('a')
     link.href = url
-    link.download = `centrifugo-trace-${traceType}-${
-      new Date().toISOString().split('T')[0]
-    }.json`
+    const now = new Date().toISOString()
+    link.download = `centrifugo-trace-${traceType}-${now}.json`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
