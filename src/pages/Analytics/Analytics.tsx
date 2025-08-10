@@ -733,7 +733,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 )}
               </Typography>
               <Grid container spacing={2} sx={{ mt: 0 }}>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -770,7 +776,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -807,7 +819,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -867,7 +885,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -925,7 +949,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -961,7 +991,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={12}>
+                          <Grid size={12}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1069,7 +1099,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -1107,7 +1143,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={12}>
+                          <Grid size={12}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1220,7 +1256,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -1253,7 +1295,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={6}>
+                          <Grid size={6}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1269,7 +1311,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={userOpsUser}
                             />
                           </Grid>
-                          <Grid item xs={6}>
+                          <Grid size={6}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1375,7 +1417,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={theme => ({ p: 1, height: '100%' })}>
                     <CardContent>
                       <Typography
@@ -1413,7 +1461,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={6}>
+                          <Grid size={6}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1431,7 +1479,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={channelPublicationsChannel}
                             />
                           </Grid>
-                          <Grid item xs={6}>
+                          <Grid size={6}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1545,7 +1593,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -1578,7 +1632,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1594,7 +1648,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={userErrorsUser}
                             />
                           </Grid>
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1610,7 +1664,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={userErrorsOp}
                             />
                           </Grid>
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1719,7 +1773,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -1755,7 +1815,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1771,7 +1831,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={userDisconnectsUser}
                             />
                           </Grid>
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1787,7 +1847,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                               value={userDisconnectsOp}
                             />
                           </Grid>
-                          <Grid item xs={4}>
+                          <Grid size={4}>
                             <TextField
                               margin="none"
                               variant="standard"
@@ -1904,7 +1964,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -1943,7 +2009,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={6} md={3} xl={3}>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -2005,7 +2077,13 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     </CardContent>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={6} xl={6}>
+                <Grid
+                  size={{
+                    xs: 12,
+                    md: 6,
+                    xl: 6,
+                  }}
+                >
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
@@ -2026,7 +2104,7 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           columnSpacing={4}
                           sx={{ mt: 0 }}
                         >
-                          <Grid item xs={12}>
+                          <Grid size={12}>
                             <TextField
                               margin="none"
                               variant="standard"

@@ -15,8 +15,14 @@ import Tooltip from '@mui/material/Tooltip'
 import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
-import { Chip } from '@mui/material'
-import { InfoOutlined } from '@mui/icons-material'
+import { SettingsContext } from 'contexts/SettingsContext'
+import { Card, CardContent } from '@mui/material'
+import {
+  InfoOutlined,
+  Storage,
+  Person,
+  Subscriptions,
+} from '@mui/icons-material'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': { backgroundColor: theme.palette.action.hover },
@@ -73,9 +79,13 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   //   edition = 'oss'
   // }
   const { showAlert } = useContext(ShellContext)
+  const settingsContext = useContext(SettingsContext)
+  const colorMode = settingsContext.getUserSettings().colorMode
+  const isDarkTheme = colorMode === 'dark'
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
+  const [numSubs, setNumSubs] = useState(0)
   const [loading, setLoading] = useState(true)
   const { setTitle } = useContext(ShellContext)
 
@@ -98,9 +108,11 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
     const handleInfo = (result: any) => {
       const rows: any[] = []
       let totalConns = 0
+      let totalSubs = 0
 
       result.nodes.forEach((node: any) => {
         totalConns += node.num_clients
+        totalSubs += node.num_subs
         const items = node.metrics?.items || {}
         const interval = node.metrics?.interval || 1
 
@@ -184,6 +196,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
       setNumNodes(result.nodes.length)
       setNumConns(totalConns)
+      setNumSubs(totalSubs)
       setNodes(rows)
       setLoading(false)
     }
@@ -224,6 +237,14 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
 
+  // Theme-aware card styling
+  const cardSx = {
+    bgcolor: isDarkTheme ? '#121212' : '#f5f5f5',
+    color: isDarkTheme ? 'white' : '#333',
+  }
+
+  const accentColor = isDarkTheme ? '#FE5E5E' : '#d32f2f'
+
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
@@ -232,11 +253,108 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         </Box>
       ) : (
         <Box>
-          <Typography variant="h5" sx={{ mb: 1 }}>
-            Nodes running: <Chip label={numNodes} sx={{ fontSize: '1em' }} />{' '}
-            Total clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />
-          </Typography>
-          <TableContainer component={Paper} sx={{ mt: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card elevation={2} sx={cardSx}>
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Storage sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      NODES RUNNING:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: accentColor }}
+                    >
+                      {numNodes}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card elevation={2} sx={cardSx}>
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Person sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      TOTAL CLIENTS:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: accentColor }}
+                    >
+                      {numConns}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card elevation={2} sx={cardSx}>
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Subscriptions sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      TOTAL SUBS:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: accentColor }}
+                    >
+                      {numSubs}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          <TableContainer component={Paper}>
             <Table aria-label="detailed status table">
               <TableHead>
                 <TableRow>

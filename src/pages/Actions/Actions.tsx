@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useMemo } from 'react'
+import { useContext, useEffect, useState, useMemo, type JSX } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
@@ -19,7 +19,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 
-import AceEditor from 'react-ace'
+import Editor from '@monaco-editor/react'
 
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
@@ -30,11 +30,6 @@ import {
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
-
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/theme-monokai'
-import 'ace-builds/src-noconflict/theme-solarized_light'
-import 'ace-builds/src-noconflict/ext-language_tools'
 
 interface ActionsProps {
   signinSilent: () => void
@@ -92,6 +87,8 @@ export const Actions = ({
   const [loading, setLoading] = useState<boolean>(false)
   const [request, setRequest] = useState<any | null>(null)
   const [response, setResponse] = useState<any | null>(null)
+  const [executedAt, setExecutedAt] = useState<string | null>(null)
+  const [responseKey, setResponseKey] = useState<number>(0)
 
   // Choose code style based on theme
   const codeStyle = useMemo(
@@ -137,6 +134,8 @@ export const Actions = ({
       })
       .then(data => {
         setResponse(data)
+        setExecutedAt(new Date().toLocaleTimeString())
+        setResponseKey(prev => prev + 1)
         setLoading(false)
       })
       .catch(err => {
@@ -150,6 +149,8 @@ export const Actions = ({
     setMethod(option?.value || 'publish')
     setRequest(null)
     setResponse(null)
+    setExecutedAt(null)
+    setResponseKey(0)
   }
 
   useEffect(() => {
@@ -213,7 +214,12 @@ export const Actions = ({
       {FormElem}
       {request && response ? (
         <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid item xs={12} md={4}>
+          <Grid
+            size={{
+              xs: 12,
+              md: 4,
+            }}
+          >
             <Card>
               <CardContent>
                 <Box
@@ -238,8 +244,32 @@ export const Actions = ({
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={8}>
-            <Card>
+          <Grid
+            size={{
+              xs: 12,
+              md: 8,
+            }}
+          >
+            <Card
+              key={responseKey}
+              sx={{
+                '@keyframes responseUpdate': {
+                  '0%': {
+                    backgroundColor:
+                      colorMode === 'dark'
+                        ? 'rgba(76, 175, 80, 0.1)'
+                        : 'rgba(76, 175, 80, 0.05)',
+                    transform: 'scale(1.01)',
+                  },
+                  '100%': {
+                    backgroundColor: 'transparent',
+                    transform: 'scale(1)',
+                  },
+                },
+                animation:
+                  responseKey > 0 ? 'responseUpdate 0.6s ease-out' : 'none',
+              }}
+            >
               <CardContent>
                 <Box
                   sx={{
@@ -248,18 +278,25 @@ export const Actions = ({
                     alignItems: 'center',
                   }}
                 >
-                  <Typography variant="h6">
-                    Response{' '}
-                    {!response.error ? (
-                      <Box component="span" sx={{ color: green[500] }}>
-                        OK
-                      </Box>
-                    ) : (
-                      <Box component="span" sx={{ color: red[500] }}>
-                        ERROR
-                      </Box>
+                  <Box>
+                    <Typography variant="h6">
+                      Response{' '}
+                      {!response.error ? (
+                        <Box component="span" sx={{ color: green[500] }}>
+                          OK
+                        </Box>
+                      ) : (
+                        <Box component="span" sx={{ color: red[500] }}>
+                          ERROR
+                        </Box>
+                      )}
+                    </Typography>
+                    {executedAt && (
+                      <Typography variant="caption" color="text.secondary">
+                        Executed at {executedAt}
+                      </Typography>
                     )}
-                  </Typography>
+                  </Box>
                   <IconButton
                     size="small"
                     onClick={copyToClipboard(
@@ -327,23 +364,59 @@ interface AceFieldProps {
 
 export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
   return (
-    <AceEditor
-      mode="json"
-      theme={colorMode === 'dark' ? 'monokai' : 'solarized_light'}
-      width="100%"
-      height="300px"
-      showGutter={false}
-      onChange={onChange}
-      name="data-editor-publish"
-      fontSize={18}
-      tabSize={2}
-      showPrintMargin={false}
-      placeholder="Data*"
-      setOptions={{
-        useWorker: false,
+    <div
+      style={{
+        border:
+          colorMode === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.23)'
+            : '1px solid rgba(0, 0, 0, 0.23)',
+        borderRadius: '4px',
+        overflow: 'hidden',
       }}
-      editorProps={{ $blockScrolling: true }}
-    />
+    >
+      <Editor
+        language="json"
+        theme={colorMode === 'dark' ? 'vs-dark' : 'vs-light'}
+        width="100%"
+        height="300px"
+        onChange={value => onChange(value || '')}
+        onMount={(editor, monaco) => {
+          // Stop schema fetching/usage
+          monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+            enableSchemaRequest: false,
+            schemas: [], // no schemas applied
+            validate: true, // keep validation if you want; set to false to silence all
+            allowComments: true,
+          })
+
+          // 🔑 Kill JSON completions (this removes the `$schema` key suggestion)
+          monaco.languages.json.jsonDefaults.setModeConfiguration({
+            completionItems: false,
+          })
+        }}
+        options={{
+          fontSize: 18,
+          tabSize: 2,
+          insertSpaces: true,
+          lineNumbers: 'off',
+          glyphMargin: false,
+          folding: false,
+          lineDecorationsWidth: 0,
+          lineNumbersMinChars: 0,
+          minimap: { enabled: false },
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+
+          // Extra belts & suspenders (optional)
+          quickSuggestions: false,
+          suggestOnTriggerCharacters: false,
+          inlineSuggest: { enabled: false },
+          parameterHints: { enabled: false },
+          hover: { enabled: false },
+          suggest: { showSnippets: false, showKeywords: false },
+        }}
+      />
+    </div>
   )
 }
 
@@ -552,9 +625,8 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
         onChange={event => setLimit(parseInt(event.target.value))}
         value={limit}
       />
-
       <Grid container spacing={2}>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <TextField
             margin="normal"
             fullWidth
@@ -573,7 +645,7 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
             value={offset}
           />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={6}>
           <TextField
             margin="normal"
             fullWidth
@@ -587,7 +659,6 @@ export const HistoryForm = ({ colorMode, loading, sendRequest }: FormProps) => {
           />
         </Grid>
       </Grid>
-
       <FormGroup>
         <FormControlLabel
           control={

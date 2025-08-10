@@ -9,8 +9,7 @@ import FormLabel from '@mui/material/FormLabel'
 import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
-import { green, red } from '@mui/material/colors'
-import { compileExpression } from 'filtrex'
+import { green, red, blue } from '@mui/material/colors'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
   a11yDark,
@@ -33,13 +32,21 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const [filter, setFilter] = useState('')
   const [isValidFilter, setIsValidFilter] = useState(true)
   const streamCancelRef = useRef<(() => void) | null>(null)
-  const filterExprRef = useRef<((v: any) => boolean) | null>(null)
+  const filterExpressionRef = useRef<string | null>(null)
   const [traceType, setTraceType] = useState('user')
   const [running, setRunning] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
+  const celJsRef = useRef<any>(null)
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
+
+  // Load CEL-JS dynamically as it's an ESM module
+  useEffect(() => {
+    import('cel-js').then(module => {
+      celJsRef.current = module
+    })
+  }, [])
 
   let codeStyle = solarizedLight
   if (colorMode === 'dark') {
@@ -77,6 +84,16 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     },
   }
 
+  const downloadButtonSx = {
+    ...{
+      ml: 2,
+      bgcolor: blue[500],
+      '&:hover': {
+        bgcolor: blue[700],
+      },
+    },
+  }
+
   const filterSx = {
     ...(!isValidFilter && {
       input: {
@@ -95,9 +112,31 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     }
     setRunning(true)
     if (filter) {
-      filterExprRef.current = compileExpression(filter)
+      if (!celJsRef.current) {
+        showAlert('CEL library not loaded yet, please try again', {
+          severity: 'warning',
+        })
+        setRunning(false)
+        return
+      }
+      try {
+        // Parse to validate the expression
+        const result = celJsRef.current.parse(filter)
+        if (!result.isSuccess) {
+          showAlert('Invalid CEL expression: ' + result.error, {
+            severity: 'error',
+          })
+          setRunning(false)
+          return
+        }
+        filterExpressionRef.current = filter
+      } catch (error) {
+        showAlert('Invalid CEL expression', { severity: 'error' })
+        setRunning(false)
+        return
+      }
     } else {
-      filterExprRef.current = null
+      filterExpressionRef.current = null
     }
     startStream(traceType, traceType === 'user' ? user : channel)
     setMessages([])
@@ -108,9 +147,47 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     stopStream()
   }
 
+  const handleDownloadClick = () => {
+    if (messages.length === 0) {
+      showAlert('No trace data to download', { severity: 'warning' })
+      return
+    }
+
+    const ndjsonLines = messages.map(msg =>
+      JSON.stringify({
+        timestamp: msg.time,
+        ...msg.json,
+      })
+    )
+
+    const dataStr = ndjsonLines.join('\n')
+    const dataBlob = new Blob([dataStr], { type: 'application/x-ndjson' })
+    const url = URL.createObjectURL(dataBlob)
+
+    const link = document.createElement('a')
+    link.href = url
+    const now = new Date().toISOString()
+    link.download = `centrifugo-trace-${traceType}-${now}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    showAlert(`Downloaded ${messages.length} trace messages`, {
+      severity: 'success',
+    })
+  }
+
   const stopStream = function () {
     if (streamCancelRef.current) {
-      streamCancelRef.current()
+      try {
+        streamCancelRef.current()
+      } catch (error) {
+        // Ignore AbortError when manually stopping the stream
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.warn('Error stopping stream:', error)
+        }
+      }
       streamCancelRef.current = null
     }
     setRunning(false)
@@ -162,8 +239,18 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   }
 
   const processStreamData = function (data: any) {
-    if (filterExprRef.current !== null) {
-      if (!filterExprRef.current(data)) {
+    if (filterExpressionRef.current !== null && celJsRef.current) {
+      try {
+        const result = celJsRef.current.evaluate(
+          filterExpressionRef.current,
+          data
+        )
+        if (!result) {
+          return
+        }
+      } catch (error) {
+        // If filter evaluation fails, skip this message
+        console.warn('Filter evaluation error:', error)
         return
       }
     }
@@ -180,7 +267,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       className="max-w-8xl mx-auto p-8"
     >
       <FormControl>
-        <FormLabel>Real-time connection tracing</FormLabel>
+        <FormLabel>
+          {traceType === 'user'
+            ? 'Real-time user connections tracing'
+            : 'Real-time channel tracing'}
+        </FormLabel>
         <RadioGroup
           row
           aria-labelledby="row-radio-buttons-group-label"
@@ -234,21 +325,22 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         id="text"
         helperText={
           <span>
-            Optionally filter tracing messages on the client side by using{' '}
-            <Link
-              href="https://www.npmjs.com/package/filtrex/v/2.2.3"
-              target={'_blank'}
-            >
-              filtrex v2.2.3
-            </Link>{' '}
-            as an expression language
+            Optionally filter tracing messages on the client side using{' '}
+            <Link href="https://cel.dev/" target={'_blank'}>
+              CEL expressions
+            </Link>
+            . Example: <code>type == "pub" && pub.data.input == "hello"</code>
           </span>
         }
         onChange={event => {
           setFilter(event.target.value)
-          if (event.target.value) {
+          if (event.target.value && celJsRef.current) {
             try {
-              compileExpression(event.target.value)
+              const result = celJsRef.current.parse(event.target.value)
+              if (!result.isSuccess) {
+                setIsValidFilter(false)
+                return
+              }
             } catch {
               setIsValidFilter(false)
               return
@@ -294,6 +386,15 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             Stop
           </Button>
         )}
+        {messages.length > 0 && (
+          <Button
+            variant="contained"
+            sx={downloadButtonSx}
+            onClick={handleDownloadClick}
+          >
+            Download ({messages.length})
+          </Button>
+        )}
       </Box>
       <Box sx={{ mt: 2 }}>
         {messages.map((message, i) => (
@@ -328,35 +429,55 @@ function FetchEventTarget(url: string, options: any) {
         start(controller) {
           function pump() {
             //@ts-ignore
-            return reader.read().then(({ done, value }) => {
-              // When no more data needs to be consumed, close the stream
-              if (done) {
-                eventTarget.dispatchEvent(new CloseEvent('close'))
-                controller.close()
-                return
-              }
-              streamBuf += utf8decoder.decode(value)
-              while (streamPos < streamBuf.length) {
-                if (streamBuf[streamPos] === '\n') {
-                  const line = streamBuf.substring(0, streamPos)
-                  eventTarget.dispatchEvent(
-                    new MessageEvent('message', { data: JSON.parse(line) })
-                  )
-                  streamBuf = streamBuf.substring(streamPos + 1)
-                  streamPos = 0
-                } else {
-                  streamPos += 1
+            return reader
+              .read()
+              .then(({ done, value }: any) => {
+                // When no more data needs to be consumed, close the stream
+                if (done) {
+                  eventTarget.dispatchEvent(new CloseEvent('close'))
+                  controller.close()
+                  return
                 }
-              }
-              pump()
-            })
+                streamBuf += utf8decoder.decode(value)
+                while (streamPos < streamBuf.length) {
+                  if (streamBuf[streamPos] === '\n') {
+                    const line = streamBuf.substring(0, streamPos)
+                    eventTarget.dispatchEvent(
+                      new MessageEvent('message', { data: JSON.parse(line) })
+                    )
+                    streamBuf = streamBuf.substring(streamPos + 1)
+                    streamPos = 0
+                  } else {
+                    streamPos += 1
+                  }
+                }
+                pump()
+              })
+              .catch((error: any) => {
+                // Handle AbortError gracefully during stream reading
+                if (error instanceof Error && error.name === 'AbortError') {
+                  eventTarget.dispatchEvent(new CloseEvent('close'))
+                  controller.close()
+                } else {
+                  eventTarget.dispatchEvent(
+                    new CustomEvent('error', { detail: error })
+                  )
+                  controller.error(error)
+                }
+              })
           }
           return pump()
         },
       })
     })
-    .catch(error => {
-      eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }))
+    .catch((error: any) => {
+      // Don't dispatch error events for AbortError as it's expected when stopping
+      if (error instanceof Error && error.name !== 'AbortError') {
+        eventTarget.dispatchEvent(new CustomEvent('error', { detail: error }))
+      } else {
+        // Dispatch close event for abort operations
+        eventTarget.dispatchEvent(new CloseEvent('close'))
+      }
     })
   return eventTarget
 }
