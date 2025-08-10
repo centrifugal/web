@@ -76,6 +76,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
+  const [numSubs, setNumSubs] = useState(0)
   const [loading, setLoading] = useState(true)
   const { setTitle } = useContext(ShellContext)
 
@@ -98,9 +99,11 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
     const handleInfo = (result: any) => {
       const rows: any[] = []
       let totalConns = 0
+      let totalSubs = 0
 
       result.nodes.forEach((node: any) => {
         totalConns += node.num_clients
+        totalSubs += node.num_subs
         const items = node.metrics?.items || {}
         const interval = node.metrics?.interval || 1
 
@@ -184,6 +187,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
       setNumNodes(result.nodes.length)
       setNumConns(totalConns)
+      setNumSubs(totalSubs)
       setNodes(rows)
       setLoading(false)
     }
@@ -234,7 +238,8 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         <Box>
           <Typography variant="h5" sx={{ mb: 1 }}>
             Nodes running: <Chip label={numNodes} sx={{ fontSize: '1em' }} />{' '}
-            Total clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />
+            Total clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />{' '}
+            Total subs: <Chip label={numSubs} sx={{ fontSize: '1em' }} />
           </Typography>
           <TableContainer component={Paper} sx={{ mt: 4 }}>
             <Table aria-label="detailed status table">
