@@ -15,8 +15,13 @@ import Tooltip from '@mui/material/Tooltip'
 import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
-import { Chip } from '@mui/material'
-import { InfoOutlined } from '@mui/icons-material'
+import { Card, CardContent } from '@mui/material'
+import {
+  InfoOutlined,
+  Storage,
+  Person,
+  Subscriptions,
+} from '@mui/icons-material'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': { backgroundColor: theme.palette.action.hover },
@@ -236,12 +241,126 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         </Box>
       ) : (
         <Box>
-          <Typography variant="h5" sx={{ mb: 1 }}>
-            Nodes running: <Chip label={numNodes} sx={{ fontSize: '1em' }} />{' '}
-            Total clients: <Chip label={numConns} sx={{ fontSize: '1em' }} />{' '}
-            Total subs: <Chip label={numSubs} sx={{ fontSize: '1em' }} />
-          </Typography>
-          <TableContainer component={Paper} sx={{ mt: 4 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card
+                elevation={2}
+                sx={{
+                  bgcolor: '#121212',
+                  color: 'white',
+                }}
+              >
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Storage sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      NODES RUNNING:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                    >
+                      {numNodes}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card
+                elevation={2}
+                sx={{
+                  bgcolor: '#121212',
+                  color: 'white',
+                }}
+              >
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Person sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      TOTAL CLIENTS:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                    >
+                      {numConns}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+
+            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
+              <Card
+                elevation={2}
+                sx={{
+                  bgcolor: '#121212',
+                  color: 'white',
+                }}
+              >
+                <CardContent
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    py: 3,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Subscriptions sx={{ fontSize: 28, opacity: 0.9 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        opacity: 0.9,
+                      }}
+                    >
+                      TOTAL SUBS:
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                    >
+                      {numSubs}
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Box>
+
+          <TableContainer component={Paper}>
             <Table aria-label="detailed status table">
               <TableHead>
                 <TableRow>
