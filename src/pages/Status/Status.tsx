@@ -15,6 +15,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
+import { SettingsContext } from 'contexts/SettingsContext'
 import { Card, CardContent } from '@mui/material'
 import {
   InfoOutlined,
@@ -78,6 +79,9 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   //   edition = 'oss'
   // }
   const { showAlert } = useContext(ShellContext)
+  const settingsContext = useContext(SettingsContext)
+  const colorMode = settingsContext.getUserSettings().colorMode
+  const isDarkTheme = colorMode === 'dark'
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
@@ -233,6 +237,14 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
 
+  // Theme-aware card styling
+  const cardSx = {
+    bgcolor: isDarkTheme ? '#121212' : '#f5f5f5',
+    color: isDarkTheme ? 'white' : '#333',
+  }
+
+  const accentColor = isDarkTheme ? '#FE5E5E' : '#d32f2f'
+
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
@@ -243,13 +255,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         <Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card
-                elevation={2}
-                sx={{
-                  bgcolor: '#121212',
-                  color: 'white',
-                }}
-              >
+              <Card elevation={2} sx={cardSx}>
                 <CardContent
                   sx={{
                     display: 'flex',
@@ -272,7 +278,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                     </Typography>
                     <Typography
                       variant="h6"
-                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                      sx={{ fontWeight: 'bold', color: accentColor }}
                     >
                       {numNodes}
                     </Typography>
@@ -282,13 +288,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
             </Box>
 
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card
-                elevation={2}
-                sx={{
-                  bgcolor: '#121212',
-                  color: 'white',
-                }}
-              >
+              <Card elevation={2} sx={cardSx}>
                 <CardContent
                   sx={{
                     display: 'flex',
@@ -311,7 +311,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                     </Typography>
                     <Typography
                       variant="h6"
-                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                      sx={{ fontWeight: 'bold', color: accentColor }}
                     >
                       {numConns}
                     </Typography>
@@ -321,13 +321,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
             </Box>
 
             <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card
-                elevation={2}
-                sx={{
-                  bgcolor: '#121212',
-                  color: 'white',
-                }}
-              >
+              <Card elevation={2} sx={cardSx}>
                 <CardContent
                   sx={{
                     display: 'flex',
@@ -350,7 +344,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                     </Typography>
                     <Typography
                       variant="h6"
-                      sx={{ fontWeight: 'bold', color: '#FE5E5E' }}
+                      sx={{ fontWeight: 'bold', color: accentColor }}
                     >
                       {numSubs}
                     </Typography>
