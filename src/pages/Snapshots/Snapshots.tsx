@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useContext, useEffect, useState, useCallback } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -41,18 +41,21 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [loading, setLoading] = useState<boolean>(true)
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | null>(null)
   const [notEnabled, setNotEnabled] = useState<boolean>(false)
   const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false)
+  const [createDialogParentId, setCreateDialogParentId] = useState<string | undefined>()
+  const [createDialogPrefilled, setCreateDialogPrefilled] = useState<any>(undefined)
   const [nextCursor, setNextCursor] = useState<string>('')
 
   const fetchSnapshots = useCallback(async (cursor?: string) => {
     try {
       const url = new URL(`${globalUrlPrefix}admin/api/snapshots`, window.location.origin)
-      url.searchParams.append('limit', '200')
+      url.searchParams.append('limit', '10')
       if (cursor) {
         url.searchParams.append('cursor', cursor)
       }
@@ -134,8 +137,23 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
       setTitle('Snapshots')
       setCurrentSnapshot(null) // Clear snapshot data when going back to list
       fetchSnapshots()
+      
+      // Check if we need to open create dialog with prefilled data
+      if (location.state?.openCreateDialog) {
+        const prefilledData = location.state.prefilledData
+        setCreateDialogOpen(true)
+        setCreateDialogParentId(prefilledData?.parentSnapshotId)
+        setCreateDialogPrefilled({
+          type: prefilledData?.type,
+          filterType: prefilledData?.filterType,
+          value: prefilledData?.value
+        })
+        
+        // Clear the state to prevent reopening on subsequent renders
+        navigate(location.pathname, { replace: true, state: {} })
+      }
     }
-  }, [id, setTitle]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, setTitle, location.state]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreateSnapshot = async (snapshotData: any) => {
     try {
@@ -163,10 +181,30 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
       navigate(`/snapshots/${data.snapshot_id}`)
       
       setCreateDialogOpen(false)
+      // Clear parent ID and prefilled data
+      setCreateDialogParentId(undefined)
+      setCreateDialogPrefilled(undefined)
     } catch (error) {
       console.error('Failed to create snapshot:', error)
       showAlert('Failed to create snapshot', { severity: 'error' })
     }
+  }
+
+  const handleCloseCreateDialog = () => {
+    setCreateDialogOpen(false)
+    // Clear parent ID and prefilled data when dialog is closed
+    setCreateDialogParentId(undefined)
+    setCreateDialogPrefilled(undefined)
+  }
+
+  const handleCreateConnectionsSnapshot = (channelName: string, parentSnapshotId: string) => {
+    setCreateDialogOpen(true)
+    setCreateDialogParentId(parentSnapshotId)
+    setCreateDialogPrefilled({
+      type: 'connections',
+      filterType: 'channel',
+      value: channelName
+    })
   }
 
   const handleLoadMore = () => {
@@ -234,6 +272,7 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
               snapshot={currentSnapshot}
               authorization={authorization}
               signinSilent={signinSilent}
+              onCreateConnectionsSnapshot={handleCreateConnectionsSnapshot}
             />
           </CardContent>
         </Card>
@@ -264,8 +303,10 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
       <CreateSnapshotDialog
         open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
+        onClose={handleCloseCreateDialog}
         onSubmit={handleCreateSnapshot}
+        parentSnapshotId={createDialogParentId}
+        prefilledData={createDialogPrefilled}
       />
     </Box>
   )

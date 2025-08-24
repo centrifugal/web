@@ -30,7 +30,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 
 import { globalUrlPrefix } from 'config/url'
 
-const CONNECTIONS_PAGE_SIZE = 1000
+const CONNECTIONS_PAGE_SIZE = 500
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
@@ -63,16 +63,12 @@ interface ConnectionsTableProps {
   snapshotId: string
   authorization: string
   signinSilent: () => void
-  filterType?: string
-  filterValue?: string
 }
 
 export const ConnectionsTable = ({
   snapshotId,
   authorization,
-  signinSilent,
-  filterType,
-  filterValue,
+  signinSilent
 }: ConnectionsTableProps) => {
   const [connections, setConnections] = useState<ConnectionInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -96,9 +92,6 @@ export const ConnectionsTable = ({
       }
       if (query) {
         url.searchParams.append('q', query)
-      }
-      if (filterType && filterValue) {
-        url.searchParams.append(filterType, filterValue)
       }
 
       const response = await fetch(url.toString(), {
@@ -161,11 +154,11 @@ export const ConnectionsTable = ({
       setError('Failed to load connections data')
       setLoading(false)
     }
-  }, [snapshotId, authorization, signinSilent, filterType, filterValue])
+  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchConnections()
-  }, [snapshotId, authorization, signinSilent, filterType, filterValue])
+  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
     if (searchQuery !== searchApplied) {
@@ -213,17 +206,6 @@ export const ConnectionsTable = ({
 
   const formatConnectedAt = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString()
-  }
-
-  const formatChannels = (channels?: Record<string, string>) => {
-    if (!channels || Object.keys(channels).length === 0) {
-      return 'None'
-    }
-    const channelNames = Object.keys(channels)
-    if (channelNames.length <= 3) {
-      return channelNames.join(', ')
-    }
-    return `${channelNames.slice(0, 3).join(', ')} +${channelNames.length - 3} more`
   }
 
   const PaginationControls = ({ position }: { position: 'top' | 'bottom' }) => {

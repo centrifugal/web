@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -20,18 +20,43 @@ interface CreateSnapshotDialogProps {
   open: boolean
   onClose: () => void
   onSubmit: (data: any) => void
+  parentSnapshotId?: string
+  prefilledData?: {
+    type?: 'channels' | 'connections'
+    filterType?: 'user' | 'channel'
+    value?: string
+  }
 }
 
 export const CreateSnapshotDialog = ({ 
   open, 
   onClose, 
-  onSubmit 
+  onSubmit,
+  parentSnapshotId,
+  prefilledData
 }: CreateSnapshotDialogProps) => {
   const [snapshotType, setSnapshotType] = useState<'channels' | 'connections'>('channels')
   const [channelPattern, setChannelPattern] = useState<string>('')
   const [connectionFilterType, setConnectionFilterType] = useState<'user' | 'channel'>('user')
   const [connectionValue, setConnectionValue] = useState<string>('')
   const [jsonPreview, setJsonPreview] = useState<string>('')
+
+  // Pre-fill form when dialog opens with prefilled data
+  useEffect(() => {
+    if (open && prefilledData) {
+      if (prefilledData.type) {
+        setSnapshotType(prefilledData.type)
+      }
+      if (prefilledData.type === 'connections') {
+        if (prefilledData.filterType) {
+          setConnectionFilterType(prefilledData.filterType)
+        }
+        if (prefilledData.value) {
+          setConnectionValue(prefilledData.value)
+        }
+      }
+    }
+  }, [open, prefilledData])
 
   useEffect(() => {
     updateJsonPreview()
@@ -73,7 +98,8 @@ export const CreateSnapshotDialog = ({
     const data = {
       kind: snapshotType,
       filter,
-      requested_by: 'admin'
+      requested_by: 'admin',
+      ...(parentSnapshotId && { parent_snapshot_id: parentSnapshotId })
     }
 
     onSubmit(data)

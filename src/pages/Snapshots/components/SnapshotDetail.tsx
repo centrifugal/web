@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -7,7 +7,6 @@ import {
   LinearProgress,
   Card,
   CardContent,
-  Divider,
   Button,
   Alert,
 } from '@mui/material'
@@ -43,6 +42,7 @@ interface SnapshotDetailProps {
   snapshot: Snapshot
   authorization: string
   signinSilent: () => void
+  onCreateConnectionsSnapshot?: (channelName: string, parentSnapshotId: string) => void
 }
 
 const getStatusColor = (status: string) => {
@@ -102,7 +102,8 @@ const formatDuration = (startDate: string, endDate?: string) => {
 export const SnapshotDetail = ({ 
   snapshot: initialSnapshot, 
   authorization, 
-  signinSilent 
+  signinSilent,
+  onCreateConnectionsSnapshot
 }: SnapshotDetailProps) => {
   const [snapshot, setSnapshot] = useState<Snapshot>(initialSnapshot)
   const [pollingActive, setPollingActive] = useState<boolean>(false)
@@ -138,19 +139,22 @@ export const SnapshotDetail = ({
   }, [snapshot.snapshot_id, authorization, signinSilent])
 
   const handleCreateConnectionsSnapshot = (channelName: string) => {
-    // Navigate to main snapshots page with the create dialog pre-filled
-    // We'll pass this data via URL state
-    navigate('/snapshots', {
-      state: {
-        openCreateDialog: true,
-        prefilledData: {
-          type: 'connections',
-          filterType: 'channel',
-          value: channelName,
-          parentSnapshotId: snapshot.snapshot_id
+    if (onCreateConnectionsSnapshot) {
+      onCreateConnectionsSnapshot(channelName, snapshot.snapshot_id)
+    } else {
+      // Fallback to navigation if callback not provided
+      navigate('/snapshots', {
+        state: {
+          openCreateDialog: true,
+          prefilledData: {
+            type: 'connections',
+            filterType: 'channel',
+            value: channelName,
+            parentSnapshotId: snapshot.snapshot_id
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   // Start polling if snapshot is running or queued
@@ -384,8 +388,6 @@ export const SnapshotDetail = ({
                 snapshotId={snapshot.snapshot_id}
                 authorization={authorization}
                 signinSilent={signinSilent}
-                filterType={snapshot.filter.connections?.user ? 'user' : 'channel'}
-                filterValue={snapshot.filter.connections?.user || snapshot.filter.connections?.channel}
               />
             )}
           </CardContent>

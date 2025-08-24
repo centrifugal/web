@@ -25,7 +25,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 
 import { globalUrlPrefix } from 'config/url'
 
-const CHANNELS_PAGE_SIZE = 1000
+const CHANNELS_PAGE_SIZE = 500
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
@@ -140,11 +140,11 @@ export const ChannelsTable = ({
       setError('Failed to load channels data')
       setLoading(false)
     }
-  }, [snapshotId, authorization, signinSilent])
+  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchChannels()
-  }, [snapshotId, authorization, signinSilent])
+  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
     if (searchQuery !== searchApplied) {
