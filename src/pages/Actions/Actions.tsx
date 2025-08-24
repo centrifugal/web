@@ -134,7 +134,7 @@ export const Actions = ({
       })
       .then(data => {
         setResponse(data)
-        setExecutedAt(new Date().toLocaleTimeString())
+        setExecutedAt(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 }))
         setResponseKey(prev => prev + 1)
         setLoading(false)
       })
