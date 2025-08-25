@@ -307,7 +307,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             ? 'Real-time user connections tracing'
             : traceType === 'channel'
             ? 'Real-time channel tracing'
-            : 'Real-time individual client tracing'}
+            : 'Real-time individual client tracing (note, Centrifugo client ID changes on every reconnect)'}
         </FormLabel>
         <RadioGroup
           row
