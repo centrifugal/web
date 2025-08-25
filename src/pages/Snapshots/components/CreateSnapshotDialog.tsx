@@ -14,7 +14,10 @@ import {
   Typography,
   Box,
   Paper,
+  Tooltip,
+  IconButton,
 } from '@mui/material'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 
 interface CreateSnapshotDialogProps {
   open: boolean
@@ -129,29 +132,34 @@ export const CreateSnapshotDialog = ({
       maxWidth="md"
       fullWidth
     >
-      <DialogTitle>Create New Snapshot</DialogTitle>
+      <DialogTitle>
+        <Box display="flex" alignItems="center" gap={1}>
+          Create New Snapshot
+          <Tooltip title="Channels: Take snapshot of all channels matching pattern. Connections: Take snapshot of connections for specific user or channel.">
+            <IconButton size="small">
+              <HelpOutlineIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 3 }}>
-          <FormControl component="fieldset">
-            <FormLabel component="legend" sx={{ mb: 2 }}>
-              Snapshot Type
-            </FormLabel>
-            <RadioGroup
-              value={snapshotType}
-              onChange={(e) => setSnapshotType(e.target.value as 'channels' | 'connections')}
-            >
-              <FormControlLabel 
-                value="channels" 
-                control={<Radio />} 
-                label="Channels - Take snapshot of all channels matching pattern" 
-              />
-              <FormControlLabel 
-                value="connections" 
-                control={<Radio />} 
-                label="Connections - Take snapshot of connections for specific user or channel" 
-              />
-            </RadioGroup>
-          </FormControl>
+          <RadioGroup
+            value={snapshotType}
+            onChange={(e) => setSnapshotType(e.target.value as 'channels' | 'connections')}
+            row
+          >
+            <FormControlLabel 
+              value="channels" 
+              control={<Radio />} 
+              label="Channels"
+            />
+            <FormControlLabel 
+              value="connections" 
+              control={<Radio />} 
+              label="Connections"
+            />
+          </RadioGroup>
         </Box>
 
         {snapshotType === 'channels' ? (
@@ -170,26 +178,31 @@ export const CreateSnapshotDialog = ({
           </Box>
         ) : (
           <Box sx={{ mb: 3 }}>
-            <FormControl component="fieldset" sx={{ mb: 2 }}>
-              <FormLabel component="legend">Filter By</FormLabel>
-              <RadioGroup
-                value={connectionFilterType}
-                onChange={(e) => setConnectionFilterType(e.target.value as 'user' | 'channel')}
-                row
-              >
-                <FormControlLabel value="user" control={<Radio />} label="User ID" />
-                <FormControlLabel value="channel" control={<Radio />} label="Channel" />
-              </RadioGroup>
+            <FormControl fullWidth>
+              <FormLabel sx={{ mb: 1 }}>Filter By</FormLabel>
+              <Box display="flex" alignItems="center" gap={2}>
+                <FormControl component="fieldset">
+                  <RadioGroup
+                    value={connectionFilterType}
+                    onChange={(e) => setConnectionFilterType(e.target.value as 'user' | 'channel')}
+                    row
+                  >
+                    <FormControlLabel value="user" control={<Radio />} label="User ID" />
+                    <FormControlLabel value="channel" control={<Radio />} label="Channel" />
+                  </RadioGroup>
+                </FormControl>
+                <TextField
+                  value={connectionValue}
+                  onChange={(e) => setConnectionValue(e.target.value)}
+                  placeholder={connectionFilterType === 'user' ? 'Enter user ID' : 'Enter channel name'}
+                  label={connectionFilterType === 'user' ? 'User ID' : 'Channel Name'}
+                  variant="outlined"
+                  sx={{ flex: 1 }}
+                  required
+                  helperText={connectionFilterType === 'user' ? 'Enter the specific user ID to filter connections' : 'Enter the channel name to filter connections'}
+                />
+              </Box>
             </FormControl>
-            <TextField
-              value={connectionValue}
-              onChange={(e) => setConnectionValue(e.target.value)}
-              placeholder={connectionFilterType === 'user' ? 'Enter user ID' : 'Enter channel name'}
-              label={connectionFilterType === 'user' ? 'User ID' : 'Channel Name'}
-              variant="outlined"
-              fullWidth
-              required
-            />
           </Box>
         )}
 

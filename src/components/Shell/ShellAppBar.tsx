@@ -71,7 +71,7 @@ const pages = [
   {
     name: 'Snapshots',
     icon: CameraAltIcon,
-    iconColor: '#e387f3',
+    iconColor: '#f387b6',
     to: routes.SNAPSHOTS,
     oss: false,
   },
