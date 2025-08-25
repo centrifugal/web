@@ -179,8 +179,8 @@ export const ChannelsTable = ({
   }
 
   const handleTraceChannel = (channelName: string) => {
-    // Navigate to tracing page with pre-filled channel
-    const url = `/tracing?channel=${encodeURIComponent(channelName)}`
+    // Navigate to tracing page with pre-filled channel using hash routing
+    const url = `#/tracing?channel=${encodeURIComponent(channelName)}`
     window.open(url, '_blank')
   }
 

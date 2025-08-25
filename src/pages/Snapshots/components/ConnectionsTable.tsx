@@ -208,8 +208,8 @@ export const ConnectionsTable = ({
   }
 
   const handleTraceConnection = (clientId: string) => {
-    // Navigate to tracing page with pre-filled client ID
-    const url = `/tracing?client=${encodeURIComponent(clientId)}`
+    // Navigate to tracing page with pre-filled client ID using hash routing
+    const url = `#/tracing?client_id=${encodeURIComponent(clientId)}`
     window.open(url, '_blank')
   }
 

@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import Link from '@mui/material/Link'
 import Box from '@mui/material/Box'
 import Radio from '@mui/material/Radio'
@@ -36,10 +37,12 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const [traceType, setTraceType] = useState('user')
   const [running, setRunning] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
+  const [clientId, setClientId] = useState('')
   const celJsRef = useRef<any>(null)
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
+  const location = useLocation()
 
   // Load CEL-JS dynamically as it's an ESM module
   useEffect(() => {
@@ -57,12 +60,44 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     setTitle('Centrifugo | Tracing')
   }, [setTitle])
 
+  // Parse URL parameters to pre-fill form
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search)
+    const clientIdParam = searchParams.get('client_id')
+    const channelParam = searchParams.get('channel')
+
+    if (clientIdParam) {
+      // Pre-select Client radio and set client_id value
+      setTraceType('client')
+      setClientId(clientIdParam)
+    } else if (channelParam) {
+      // Pre-select Channel radio and set channel value
+      setTraceType('channel')
+      setChannel(channelParam)
+    }
+  }, [location.search])
+
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (running) {
       setRunning(false)
     }
     setFilter('')
-    setTraceType((event.target as HTMLInputElement).value)
+    
+    // Clear input fields when switching types
+    const newTraceType = (event.target as HTMLInputElement).value
+    if (newTraceType !== traceType) {
+      setUser('')
+      setChannel('')
+      setClientId('')
+    }
+    
+    setTraceType(newTraceType)
+    
+    // Clear URL parameters when user manually changes trace type
+    if (window.location.hash.includes('?')) {
+      const newHash = window.location.hash.split('?')[0]
+      window.history.replaceState({}, '', window.location.pathname + newHash)
+    }
   }
 
   const buttonSx = {
@@ -138,7 +173,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     } else {
       filterExpressionRef.current = null
     }
-    startStream(traceType, traceType === 'user' ? user : channel)
+    startStream(traceType, traceType === 'user' ? user : traceType === 'channel' ? channel : clientId)
     setMessages([])
   }
 
@@ -270,13 +305,15 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         <FormLabel>
           {traceType === 'user'
             ? 'Real-time user connections tracing'
-            : 'Real-time channel tracing'}
+            : traceType === 'channel'
+            ? 'Real-time channel tracing'
+            : 'Real-time individual client tracing'}
         </FormLabel>
         <RadioGroup
           row
           aria-labelledby="row-radio-buttons-group-label"
           name="row-radio-buttons-group"
-          defaultValue={'user'}
+          value={traceType}
           onChange={handleChange}
         >
           <FormControlLabel value="user" control={<Radio />} label="User" />
@@ -284,6 +321,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             value="channel"
             control={<Radio />}
             label="Channel"
+          />
+          <FormControlLabel
+            value="client"
+            control={<Radio />}
+            label="Client"
           />
         </RadioGroup>
       </FormControl>
@@ -301,7 +343,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           autoComplete="off"
           disabled={running}
         />
-      ) : (
+      ) : traceType === 'channel' ? (
         <TextField
           margin="normal"
           required
@@ -312,6 +354,20 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           id="text"
           onChange={event => setChannel(event.target.value)}
           value={channel}
+          autoComplete="off"
+          disabled={running}
+        />
+      ) : (
+        <TextField
+          margin="normal"
+          required
+          fullWidth
+          name="clientId"
+          label="Client ID"
+          type="text"
+          id="text"
+          onChange={event => setClientId(event.target.value)}
+          value={clientId}
           autoComplete="off"
           disabled={running}
         />
