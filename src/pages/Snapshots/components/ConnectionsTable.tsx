@@ -79,7 +79,7 @@ interface ConnectionsTableProps {
 export const ConnectionsTable = ({
   snapshotId,
   authorization,
-  signinSilent
+  signinSilent,
 }: ConnectionsTableProps) => {
   const [connections, setConnections] = useState<ConnectionInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -90,86 +90,100 @@ export const ConnectionsTable = ({
   const [searchApplied, setSearchApplied] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [total, setTotal] = useState<number | null>(null)
-  const [selectedConnection, setSelectedConnection] = useState<ConnectionInfo | null>(null)
-  const [connectionTokenExpanded, setConnectionTokenExpanded] = useState<boolean>(false)
-  const [subscriptionTokensExpanded, setSubscriptionTokensExpanded] = useState<boolean>(false)
+  const [selectedConnection, setSelectedConnection] =
+    useState<ConnectionInfo | null>(null)
+  const [connectionTokenExpanded, setConnectionTokenExpanded] =
+    useState<boolean>(false)
+  const [subscriptionTokensExpanded, setSubscriptionTokensExpanded] =
+    useState<boolean>(false)
   const [channelsExpanded, setChannelsExpanded] = useState<boolean>(false)
   const [metaExpanded, setMetaExpanded] = useState<boolean>(false)
 
-  const fetchConnections = useCallback(async (cursor?: string, query?: string, reset: boolean = false, direction: 'next' | 'prev' | 'first' = 'first') => {
-    try {
-      setLoading(true)
-      const url = new URL(`${globalUrlPrefix}admin/api/snapshots/${snapshotId}/connections`, window.location.origin)
-      url.searchParams.append('limit', CONNECTIONS_PAGE_SIZE.toString())
-      
-      if (cursor) {
-        url.searchParams.append('cursor', cursor)
-      }
-      if (query) {
-        url.searchParams.append('q', query)
-      }
+  const fetchConnections = useCallback(
+    async (
+      cursor?: string,
+      query?: string,
+      reset: boolean = false,
+      direction: 'next' | 'prev' | 'first' = 'first'
+    ) => {
+      try {
+        setLoading(true)
+        const url = new URL(
+          `${globalUrlPrefix}admin/api/snapshots/${snapshotId}/connections`,
+          window.location.origin
+        )
+        url.searchParams.append('limit', CONNECTIONS_PAGE_SIZE.toString())
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: authorization,
-        },
-      })
+        if (cursor) {
+          url.searchParams.append('cursor', cursor)
+        }
+        if (query) {
+          url.searchParams.append('q', query)
+        }
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          signinSilent()
+        const response = await fetch(url.toString(), {
+          headers: {
+            Authorization: authorization,
+          },
+        })
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            signinSilent()
+            return
+          }
+          if (response.status === 404) {
+            setError('Snapshot not found')
+            return
+          }
+          if (response.status === 409) {
+            setError('Snapshot not completed yet')
+            return
+          }
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // Handle null connections response (might indicate end of data or error)
+        if (data.connections === null && direction === 'next') {
+          // If we get null on next, there might be no more data
+          setNextCursor('')
+          setError('')
+          setLoading(false)
           return
         }
-        if (response.status === 404) {
-          setError('Snapshot not found')
-          return
-        }
-        if (response.status === 409) {
-          setError('Snapshot not completed yet')
-          return
-        }
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
 
-      const data = await response.json()
-      
-      // Handle null connections response (might indicate end of data or error)
-      if (data.connections === null && direction === 'next') {
-        // If we get null on next, there might be no more data
-        setNextCursor('')
+        setConnections(data.connections || [])
+        setNextCursor(data.next_cursor || '')
+
+        // Update cursor tracking based on direction
+        if (direction === 'next') {
+          // Always save current position when going next (including empty string for first page)
+          setPrevCursors(prev => [...prev, currentCursor])
+        } else if (direction === 'prev') {
+          setPrevCursors(prev => prev.slice(0, -1))
+        } else if (direction === 'first' || reset) {
+          setPrevCursors([])
+        }
+
+        setCurrentCursor(cursor || '')
+
+        // Total is only included in first page
+        if (data.total !== undefined) {
+          setTotal(data.total)
+        }
+
         setError('')
         setLoading(false)
-        return
+      } catch (error) {
+        console.error('Failed to fetch connections:', error)
+        setError('Failed to load connections data')
+        setLoading(false)
       }
-      
-      setConnections(data.connections || [])
-      setNextCursor(data.next_cursor || '')
-      
-      // Update cursor tracking based on direction
-      if (direction === 'next') {
-        // Always save current position when going next (including empty string for first page)
-        setPrevCursors(prev => [...prev, currentCursor])
-      } else if (direction === 'prev') {
-        setPrevCursors(prev => prev.slice(0, -1))
-      } else if (direction === 'first' || reset) {
-        setPrevCursors([])
-      }
-      
-      setCurrentCursor(cursor || '')
-      
-      // Total is only included in first page
-      if (data.total !== undefined) {
-        setTotal(data.total)
-      }
-      
-      setError('')
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch connections:', error)
-      setError('Failed to load connections data')
-      setLoading(false)
-    }
-  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
+    },
+    [snapshotId, authorization, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
+  ) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchConnections()
@@ -232,7 +246,6 @@ export const ConnectionsTable = ({
 
   interface ChannelContext {
     source?: number
-    subscribed_at_ms?: number
   }
 
   interface ConnectionTokenInfo {
@@ -257,48 +270,60 @@ export const ConnectionsTable = ({
 
   const getSourceName = (source?: number): string => {
     switch (source) {
-      case 0: return 'unknown'
-      case 1: return 'connection token'
-      case 2: return 'connect proxy'
-      case 3: return 'subscription token'
-      case 4: return 'subscribe proxy'
-      case 5: return 'user limited'
-      case 6: return 'client allowed'
-      case 7: return 'client insecure'
-      case 8: return 'uni connect'
-      case 9: return 'user personal'
-      case 10: return 'server api'
-      case 11: return 'connection cap'
-      case 12: return 'expression'
-      case 13: return 'stream proxy'
-      default: return `unknown (${source})`
+      case 0:
+        return 'unknown'
+      case 1:
+        return 'connection token'
+      case 2:
+        return 'connect proxy'
+      case 3:
+        return 'subscription token'
+      case 4:
+        return 'subscribe proxy'
+      case 5:
+        return 'user limited'
+      case 6:
+        return 'client allowed'
+      case 7:
+        return 'client insecure'
+      case 8:
+        return 'uni connect'
+      case 9:
+        return 'user personal'
+      case 10:
+        return 'server api'
+      case 11:
+        return 'connection cap'
+      case 12:
+        return 'expression'
+      case 13:
+        return 'stream proxy'
+      default:
+        return `unknown (${source})`
     }
   }
 
   const getChannelSubscriptions = (connection: ConnectionInfo) => {
     const state = parseConnectionState(connection.state)
-    
+
     if (state?.channels && Object.keys(state.channels).length > 0) {
       // Use real channels from state
       return Object.entries(state.channels).map(([channel, context]) => ({
         channel,
-        subscribedAt: context.subscribed_at_ms ? new Date(context.subscribed_at_ms) : new Date(),
         source: context.source,
-        sourceName: getSourceName(context.source)
+        sourceName: getSourceName(context.source),
       }))
     }
-    
+
     // Fallback to old channels field if state is not available
     if (connection.channels && Object.keys(connection.channels).length > 0) {
-      const baseTime = Date.now() - (Math.random() * 3600000)
       return Object.keys(connection.channels).map((channel, index) => ({
         channel,
-        subscribedAt: new Date(baseTime + (index * 60000 + Math.random() * 300000)),
         source: undefined,
-        sourceName: undefined
+        sourceName: undefined,
       }))
     }
-    
+
     return []
   }
 
@@ -316,15 +341,17 @@ export const ConnectionsTable = ({
     const currentPage = prevCursors.length + 1
     const pageSize = CONNECTIONS_PAGE_SIZE
     const currentPageSize = connections.length
-    
+
     // Calculate range of items being shown
     const startItem = (currentPage - 1) * pageSize + 1
     const endItem = (currentPage - 1) * pageSize + currentPageSize
-    
+
     return (
       <Box display="flex" gap={2} alignItems="center">
         <Typography variant="body2" color="text.secondary">
-          {currentPageSize > 0 ? `${startItem.toLocaleString()}-${endItem.toLocaleString()}` : '0'}
+          {currentPageSize > 0
+            ? `${startItem.toLocaleString()}-${endItem.toLocaleString()}`
+            : '0'}
           {total !== null && ` of ${total.toLocaleString()}`}
         </Typography>
         <Box display="flex" gap={1} alignItems="center">
@@ -352,21 +379,22 @@ export const ConnectionsTable = ({
   }
 
   if (error) {
-    return (
-      <Alert severity="error">
-        {error}
-      </Alert>
-    )
+    return <Alert severity="error">{error}</Alert>
   }
 
   return (
     <Box>
       {/* Search and Pagination */}
-      <Box mb={2} display="flex" alignItems="center" justifyContent="space-between">
+      <Box
+        mb={2}
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+      >
         <Box display="flex" alignItems="center" gap={1}>
           <TextField
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Search connections by user, client, node, or name..."
             variant="outlined"
@@ -380,7 +408,11 @@ export const ConnectionsTable = ({
                       <ClearIcon />
                     </IconButton>
                   )}
-                  <IconButton size="small" onClick={handleSearch} disabled={loading}>
+                  <IconButton
+                    size="small"
+                    onClick={handleSearch}
+                    disabled={loading}
+                  >
                     <SearchIcon />
                   </IconButton>
                 </InputAdornment>
@@ -389,7 +421,9 @@ export const ConnectionsTable = ({
           />
           {total !== null && (
             <Typography variant="body2" color="text.secondary">
-              {searchApplied ? 'Filtered results' : `${total.toLocaleString()} total connections`}
+              {searchApplied
+                ? 'Filtered results'
+                : `${total.toLocaleString()} total connections`}
             </Typography>
           )}
         </Box>
@@ -407,7 +441,8 @@ export const ConnectionsTable = ({
       ) : connections.length === 0 ? (
         <Box textAlign="center" py={4}>
           <Typography variant="body2" color="text.secondary">
-            No connections found.
+            No connections found. Note: For older snapshots, this may occur due
+            to snapshot data expiration.
           </Typography>
         </Box>
       ) : (
@@ -422,11 +457,13 @@ export const ConnectionsTable = ({
                   <TableCell>Version</TableCell>
                   <TableCell>Transport</TableCell>
                   <TableCell>Latency</TableCell>
-                  <TableCell sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}></TableCell>
+                  <TableCell
+                    sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}
+                  ></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {connections.map((connection) => (
+                {connections.map(connection => (
                   <StyledTableRow key={connection.client}>
                     <TableCell>
                       <Typography variant="body2" fontFamily="monospace">
@@ -449,8 +486,8 @@ export const ConnectionsTable = ({
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip 
-                        label={connection.transport || 'unknown'} 
+                      <Chip
+                        label={connection.transport || 'unknown'}
                         size="small"
                         variant="outlined"
                       />
@@ -468,7 +505,9 @@ export const ConnectionsTable = ({
                         />
                       )}
                     </TableCell>
-                    <TableCell sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}>
+                    <TableCell
+                      sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}
+                    >
                       <Box display="flex" gap={1}>
                         <Button
                           variant="outlined"
@@ -482,7 +521,9 @@ export const ConnectionsTable = ({
                           variant="outlined"
                           size="small"
                           startIcon={<OpenInNewIcon />}
-                          onClick={() => handleTraceConnection(connection.client)}
+                          onClick={() =>
+                            handleTraceConnection(connection.client)
+                          }
                         >
                           Trace
                         </Button>
@@ -518,7 +559,11 @@ export const ConnectionsTable = ({
                   <Typography variant="h6" component="div">
                     Connection Details
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontFamily: 'monospace' }}
+                  >
                     {selectedConnection.client}
                   </Typography>
                 </Box>
@@ -527,39 +572,69 @@ export const ConnectionsTable = ({
             <DialogContent>
               <Box display="flex" flexDirection="column" gap={2}>
                 {/* Top Row - Basic Info and Connection Cards */}
-                <Box display="flex" gap={2} sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' } }}>
+                <Box
+                  display="flex"
+                  gap={2}
+                  sx={{ flexWrap: { xs: 'wrap', md: 'nowrap' } }}
+                >
                   {/* Basic Info Card */}
                   <Box sx={{ flex: 1, minWidth: { xs: '100%', md: '300px' } }}>
                     <Card variant="outlined" sx={{ height: '100%' }}>
                       <CardContent>
                         <Box display="flex" alignItems="center" gap={1} mb={2}>
                           <PersonIcon color="primary" />
-                          <Typography variant="h6">Basic Information</Typography>
+                          <Typography variant="h6">
+                            Basic Information
+                          </Typography>
                         </Box>
                         <Box display="flex" flexDirection="column" gap={1}>
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">User:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              User:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.user || 'Anonymous'}
                             </Typography>
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Node:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Node:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.node}
                             </Typography>
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Client Name:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Client Name:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.name || 'Unknown'}
                             </Typography>
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Version:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Version:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.version || 'Unknown'}
                             </Typography>
@@ -578,39 +653,74 @@ export const ConnectionsTable = ({
                           <Typography variant="h6">Connection</Typography>
                         </Box>
                         <Box display="flex" flexDirection="column" gap={1}>
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Transport:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Transport:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.transport}
                             </Typography>
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Protocol:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Protocol:
+                            </Typography>
                             <Typography variant="body2" fontWeight="medium">
                               {selectedConnection.protocol || 'Unknown'}
                             </Typography>
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Latency:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Latency:
+                            </Typography>
                             {selectedConnection.latency < 0 ? (
-                              <Typography variant="body2" color="text.secondary">n/a</Typography>
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                n/a
+                              </Typography>
                             ) : (
                               <Chip
                                 label={`${selectedConnection.latency}ms`}
                                 size="small"
-                                color={getLatencyColor(selectedConnection.latency) as any}
+                                color={
+                                  getLatencyColor(
+                                    selectedConnection.latency
+                                  ) as any
+                                }
                               />
                             )}
                           </Box>
                           <Divider />
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="body2" color="text.secondary">Connected:</Typography>
+                          <Box
+                            display="flex"
+                            justifyContent="space-between"
+                            alignItems="center"
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Connected:
+                            </Typography>
                             <Box display="flex" alignItems="center" gap={1}>
                               <AccessTimeIcon fontSize="small" color="action" />
                               <Typography variant="body2" fontWeight="medium">
-                                {formatConnectedAt(selectedConnection.connected_at)}
+                                {formatConnectedAt(
+                                  selectedConnection.connected_at
+                                )}
                               </Typography>
                             </Box>
                           </Box>
@@ -626,9 +736,9 @@ export const ConnectionsTable = ({
                   return channels.length > 0 ? (
                     <Card variant="outlined">
                       <CardContent>
-                        <Box 
-                          display="flex" 
-                          justifyContent="space-between" 
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
                           alignItems="center"
                           onClick={() => setChannelsExpanded(!channelsExpanded)}
                           sx={{ cursor: 'pointer', userSelect: 'none' }}
@@ -636,43 +746,64 @@ export const ConnectionsTable = ({
                           <Typography variant="subtitle1">
                             Subscriptions ({channels.length})
                           </Typography>
-                          {channelsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          {channelsExpanded ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
                         </Box>
                         {channelsExpanded && (
-                          <Box display="flex" flexDirection="column" gap={1} sx={{ mt: 2 }}>
-                            {channels.map(({ channel, subscribedAt, sourceName }) => (
-                              <Box 
+                          <Box
+                            display="flex"
+                            flexDirection="column"
+                            gap={1}
+                            sx={{ mt: 2 }}
+                          >
+                            {channels.map(({ channel, sourceName }) => (
+                              <Box
                                 key={channel}
-                                display="flex" 
-                                justifyContent="space-between" 
+                                display="flex"
+                                justifyContent="space-between"
                                 alignItems="center"
-                                sx={{ 
-                                  py: 1, 
-                                  px: 1.5, 
-                                  backgroundColor: 'background.default', 
+                                sx={{
+                                  py: 1,
+                                  px: 1.5,
+                                  backgroundColor: 'background.default',
                                   borderRadius: 1,
                                   border: '1px solid',
-                                  borderColor: 'divider'
+                                  borderColor: 'divider',
                                 }}
                               >
                                 <Box display="flex" alignItems="center" gap={1}>
-                                  <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'medium' }}>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontFamily: 'monospace',
+                                      fontWeight: 'medium',
+                                    }}
+                                  >
                                     {channel}
                                   </Typography>
                                   {sourceName && (
-                                    <Typography 
-                                      variant="caption" 
+                                    <Typography
+                                      variant="caption"
                                       color="text.secondary"
-                                      sx={{ fontSize: '0.75rem', fontStyle: 'italic' }}
+                                      sx={{
+                                        fontSize: '0.75rem',
+                                        fontStyle: 'italic',
+                                      }}
                                     >
                                       via {sourceName}
                                     </Typography>
                                   )}
                                 </Box>
                                 <Box display="flex" alignItems="center" gap={1}>
-                                  <AccessTimeIcon fontSize="small" color="action" />
-                                  <Typography variant="body2" color="text.secondary">
-                                    {subscribedAt.toLocaleString()}
+                                  {/* <AccessTimeIcon fontSize="small" color="action" /> */}
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
+                                    {/* {subscribedAt.toLocaleString()} */}
                                   </Typography>
                                 </Box>
                               </Box>
@@ -690,33 +821,67 @@ export const ConnectionsTable = ({
                   return state?.connection_token ? (
                     <Card variant="outlined">
                       <CardContent>
-                        <Box 
-                          display="flex" 
-                          justifyContent="space-between" 
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
                           alignItems="center"
-                          onClick={() => setConnectionTokenExpanded(!connectionTokenExpanded)}
+                          onClick={() =>
+                            setConnectionTokenExpanded(!connectionTokenExpanded)
+                          }
                           sx={{ cursor: 'pointer', userSelect: 'none' }}
                         >
                           <Typography variant="subtitle1">
                             Connection Token
                           </Typography>
-                          {connectionTokenExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          {connectionTokenExpanded ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
                         </Box>
                         {connectionTokenExpanded && (
-                          <Box display="flex" flexDirection="column" gap={1} sx={{ mt: 2 }}>
-                            <Box display="flex" justifyContent="space-between" alignItems="center">
-                              <Typography variant="body2" color="text.secondary">UID:</Typography>
-                              <Typography variant="body2" fontWeight="medium" sx={{ fontFamily: 'monospace' }}>
+                          <Box
+                            display="flex"
+                            flexDirection="column"
+                            gap={1}
+                            sx={{ mt: 2 }}
+                          >
+                            <Box
+                              display="flex"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                UID:
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                fontWeight="medium"
+                                sx={{ fontFamily: 'monospace' }}
+                              >
                                 {state.connection_token.uid || 'N/A'}
                               </Typography>
                             </Box>
-                            <Box display="flex" justifyContent="space-between" alignItems="center">
-                              <Typography variant="body2" color="text.secondary">Issued At:</Typography>
+                            <Box
+                              display="flex"
+                              justifyContent="space-between"
+                              alignItems="center"
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Issued At:
+                              </Typography>
                               <Typography variant="body2" fontWeight="medium">
-                                {state.connection_token.issued_at 
-                                  ? new Date(state.connection_token.issued_at * 1000).toLocaleString()
-                                  : 'N/A'
-                                }
+                                {state.connection_token.issued_at
+                                  ? new Date(
+                                      state.connection_token.issued_at * 1000
+                                    ).toLocaleString()
+                                  : 'N/A'}
                               </Typography>
                             </Box>
                           </Box>
@@ -729,48 +894,100 @@ export const ConnectionsTable = ({
                 {/* Subscription Tokens Card */}
                 {(() => {
                   const state = parseConnectionState(selectedConnection.state)
-                  return state?.subscription_tokens && Object.keys(state.subscription_tokens).length > 0 ? (
+                  return state?.subscription_tokens &&
+                    Object.keys(state.subscription_tokens).length > 0 ? (
                     <Card variant="outlined">
                       <CardContent>
-                        <Box 
-                          display="flex" 
-                          justifyContent="space-between" 
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
                           alignItems="center"
-                          onClick={() => setSubscriptionTokensExpanded(!subscriptionTokensExpanded)}
+                          onClick={() =>
+                            setSubscriptionTokensExpanded(
+                              !subscriptionTokensExpanded
+                            )
+                          }
                           sx={{ cursor: 'pointer', userSelect: 'none' }}
                         >
                           <Typography variant="subtitle1">
-                            Subscription Tokens ({Object.keys(state.subscription_tokens).length})
+                            Subscription Tokens (
+                            {Object.keys(state.subscription_tokens).length})
                           </Typography>
-                          {subscriptionTokensExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          {subscriptionTokensExpanded ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
                         </Box>
                         {subscriptionTokensExpanded && (
-                          <Box display="flex" flexDirection="column" gap={1} sx={{ mt: 2 }}>
-                            {Object.entries(state.subscription_tokens).map(([channel, tokenInfo], index) => (
-                              <Box key={channel}>
-                                {index > 0 && <Divider sx={{ my: 1 }} />}
-                                <Typography variant="body2" fontWeight="medium" sx={{ fontFamily: 'monospace', mb: 1 }}>
-                                  {channel}
-                                </Typography>
-                                <Box display="flex" flexDirection="column" gap={0.5} sx={{ pl: 2 }}>
-                                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                                    <Typography variant="body2" color="text.secondary">UID:</Typography>
-                                    <Typography variant="body2" fontWeight="medium" sx={{ fontFamily: 'monospace' }}>
-                                      {tokenInfo.uid || 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                                    <Typography variant="body2" color="text.secondary">Issued At:</Typography>
-                                    <Typography variant="body2" fontWeight="medium">
-                                      {tokenInfo.issued_at 
-                                        ? new Date(tokenInfo.issued_at * 1000).toLocaleString()
-                                        : 'N/A'
-                                      }
-                                    </Typography>
+                          <Box
+                            display="flex"
+                            flexDirection="column"
+                            gap={1}
+                            sx={{ mt: 2 }}
+                          >
+                            {Object.entries(state.subscription_tokens).map(
+                              ([channel, tokenInfo], index) => (
+                                <Box key={channel}>
+                                  {index > 0 && <Divider sx={{ my: 1 }} />}
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight="medium"
+                                    sx={{ fontFamily: 'monospace', mb: 1 }}
+                                  >
+                                    {channel}
+                                  </Typography>
+                                  <Box
+                                    display="flex"
+                                    flexDirection="column"
+                                    gap={0.5}
+                                    sx={{ pl: 2 }}
+                                  >
+                                    <Box
+                                      display="flex"
+                                      justifyContent="space-between"
+                                      alignItems="center"
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        UID:
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight="medium"
+                                        sx={{ fontFamily: 'monospace' }}
+                                      >
+                                        {tokenInfo.uid || 'N/A'}
+                                      </Typography>
+                                    </Box>
+                                    <Box
+                                      display="flex"
+                                      justifyContent="space-between"
+                                      alignItems="center"
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        Issued At:
+                                      </Typography>
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight="medium"
+                                      >
+                                        {tokenInfo.issued_at
+                                          ? new Date(
+                                              tokenInfo.issued_at * 1000
+                                            ).toLocaleString()
+                                          : 'N/A'}
+                                      </Typography>
+                                    </Box>
                                   </Box>
                                 </Box>
-                              </Box>
-                            ))}
+                              )
+                            )}
                           </Box>
                         )}
                       </CardContent>
@@ -784,32 +1001,34 @@ export const ConnectionsTable = ({
                   return state?.meta ? (
                     <Card variant="outlined">
                       <CardContent>
-                        <Box 
-                          display="flex" 
-                          justifyContent="space-between" 
+                        <Box
+                          display="flex"
+                          justifyContent="space-between"
                           alignItems="center"
                           onClick={() => setMetaExpanded(!metaExpanded)}
                           sx={{ cursor: 'pointer', userSelect: 'none' }}
                         >
-                          <Typography variant="subtitle1">
-                            Meta Data
-                          </Typography>
-                          {metaExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          <Typography variant="subtitle1">Meta Data</Typography>
+                          {metaExpanded ? (
+                            <ExpandLessIcon />
+                          ) : (
+                            <ExpandMoreIcon />
+                          )}
                         </Box>
                         {metaExpanded && (
-                          <Typography 
-                            variant="body2" 
-                            component="pre" 
-                            sx={{ 
-                              whiteSpace: 'pre-wrap', 
-                              backgroundColor: 'background.default', 
-                              padding: 2, 
+                          <Typography
+                            variant="body2"
+                            component="pre"
+                            sx={{
+                              whiteSpace: 'pre-wrap',
+                              backgroundColor: 'background.default',
+                              padding: 2,
                               borderRadius: 1,
                               border: '1px solid',
                               borderColor: 'divider',
                               fontFamily: 'monospace',
                               fontSize: '0.875rem',
-                              mt: 2
+                              mt: 2,
                             }}
                           >
                             {JSON.stringify(state.meta, null, 2)}
@@ -827,18 +1046,18 @@ export const ConnectionsTable = ({
                       <Typography variant="h6" gutterBottom>
                         Additional Information
                       </Typography>
-                      <Typography 
-                        variant="body2" 
-                        component="pre" 
-                        sx={{ 
-                          whiteSpace: 'pre-wrap', 
-                          backgroundColor: 'background.default', 
-                          padding: 2, 
+                      <Typography
+                        variant="body2"
+                        component="pre"
+                        sx={{
+                          whiteSpace: 'pre-wrap',
+                          backgroundColor: 'background.default',
+                          padding: 2,
                           borderRadius: 1,
                           border: '1px solid',
                           borderColor: 'divider',
                           fontFamily: 'monospace',
-                          fontSize: '0.875rem'
+                          fontSize: '0.875rem',
                         }}
                       >
                         {selectedConnection.info}
@@ -848,7 +1067,9 @@ export const ConnectionsTable = ({
                 )}
               </Box>
             </DialogContent>
-            <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
+            <DialogActions
+              sx={{ justifyContent: 'space-between', px: 3, py: 2 }}
+            >
               <Box display="flex" gap={1}>
                 <Button
                   variant="outlined"
