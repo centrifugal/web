@@ -31,6 +31,8 @@ interface Snapshot {
   status: string
   filter: any
   created_at: string
+  nodes_reported: number
+  nodes_expected: number
   rows_inserted: number
   requested_by: string
 }
@@ -125,6 +127,7 @@ export const SnapshotsList = ({
               <TableCell>Filter</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Created</TableCell>
+              <TableCell>Nodes reported</TableCell>
               <TableCell>Rows</TableCell>
               <TableCell sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}></TableCell>
             </TableRow>
@@ -155,6 +158,11 @@ export const SnapshotsList = ({
                       {formatDate(snapshot.created_at)}
                     </Typography>
                   </span>
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2">
+                    {snapshot.nodes_reported.toLocaleString()} of {snapshot.nodes_expected.toLocaleString()}
+                  </Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">

@@ -258,9 +258,9 @@ export const SnapshotDetail = ({
               </Typography>
             </Box>
             
-            {isCompleted && snapshot.finished_at && (
-              <Box 
-                sx={{ 
+            {(isCompleted || isFailed) && snapshot.finished_at && (
+              <Box
+                sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   bgcolor: 'success.50',
@@ -282,8 +282,8 @@ export const SnapshotDetail = ({
             )}
             
             {isRunning && (
-              <Box 
-                sx={{ 
+              <Box
+                sx={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   bgcolor: 'warning.50',
@@ -304,6 +304,29 @@ export const SnapshotDetail = ({
               </Box>
             )}
             
+            {isCompleted && (
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  bgcolor: 'background.paper',
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  px: 1.5,
+                  py: 0.5,
+                  minHeight: '32px'
+                }}
+              >
+                <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                  Nodes reported:
+                </Typography>
+                <Typography variant="body2" fontWeight="medium">
+                  {snapshot.nodes_reported.toLocaleString()} of {snapshot.nodes_expected.toLocaleString()}
+                </Typography>
+              </Box>
+            )}
+
             {isCompleted && (
               <Box 
                 sx={{ 
