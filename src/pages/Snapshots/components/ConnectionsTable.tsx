@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useContext } from 'react'
 import {
   Table,
   TableBody,
@@ -40,6 +40,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 
 import { globalUrlPrefix } from 'config/url'
+import { ShellContext } from 'contexts/ShellContext'
 
 const CONNECTIONS_PAGE_SIZE = 500
 
@@ -81,6 +82,7 @@ export const ConnectionsTable = ({
   authorization,
   signinSilent,
 }: ConnectionsTableProps) => {
+  const { showAlert } = useContext(ShellContext)
   const [connections, setConnections] = useState<ConnectionInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [currentCursor, setCurrentCursor] = useState<string>('')
@@ -327,14 +329,66 @@ export const ConnectionsTable = ({
     return []
   }
 
+  const sendApiRequest = async (method: string, params: any) => {
+    try {
+      const response = await fetch(`${globalUrlPrefix}admin/api`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authorization,
+        },
+        body: JSON.stringify({ method, params }),
+      })
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          showAlert('Unauthorized', { severity: 'error' })
+          signinSilent()
+          return
+        }
+        if (response.status === 403) {
+          showAlert('Permission denied', { severity: 'error' })
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        showAlert(`API Error: ${data.error.message || 'Unknown error'}`, {
+          severity: 'error',
+        })
+        return
+      }
+
+      showAlert(`Request successfully sent`, { severity: 'success' })
+    } catch (error) {
+      console.error(`Operation failed:`, error)
+      showAlert(`Operation failed`, { severity: 'error' })
+    }
+  }
+
   const handleReconnect = (connection: ConnectionInfo) => {
-    console.log('Reconnect:', connection.client)
-    // TODO: Implement API call
+    sendApiRequest('disconnect', {
+      user: connection.user,
+      client: connection.client,
+      disconnect: {
+        code: 3011,
+        reason: 'force reconnect',
+      },
+    })
   }
 
   const handleDisconnect = (connection: ConnectionInfo) => {
-    console.log('Disconnect:', connection.client)
-    // TODO: Implement API call
+    sendApiRequest('disconnect', {
+      user: connection.user,
+      client: connection.client,
+      disconnect: {
+        code: 3503,
+        reason: 'force disconnect',
+      },
+    })
   }
 
   const PaginationControls = ({ position }: { position: 'top' | 'bottom' }) => {
