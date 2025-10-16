@@ -18,6 +18,8 @@ import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 import Editor from '@monaco-editor/react'
 
@@ -378,7 +380,7 @@ export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
         language="json"
         theme={colorMode === 'dark' ? 'vs-dark' : 'vs-light'}
         width="100%"
-        height="300px"
+        height="250px"
         onChange={value => onChange(value || '')}
         onMount={(editor, monaco) => {
           // Stop schema fetching/usage
@@ -426,10 +428,84 @@ interface FormProps {
   sendRequest: (req: any) => void
 }
 
+interface KeyValuePair {
+  key: string
+  value: string
+}
+
+interface KeyValueInputProps {
+  pairs: KeyValuePair[]
+  onChange: (pairs: KeyValuePair[]) => void
+}
+
+export const KeyValueInput = ({ pairs, onChange }: KeyValueInputProps) => {
+  const addPair = () => {
+    onChange([...pairs, { key: '', value: '' }])
+  }
+
+  const removePair = (index: number) => {
+    onChange(pairs.filter((_, i) => i !== index))
+  }
+
+  const updatePair = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...pairs]
+    updated[index][field] = value
+    onChange(updated)
+  }
+
+  return (
+    <Box sx={{ mt: 1 }}>
+      {pairs.map((pair, index) => (
+        <Grid container spacing={1} key={index} sx={{ mb: 1 }}>
+          <Grid size={5}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Tag key"
+              value={pair.key}
+              onChange={e => updatePair(index, 'key', e.target.value)}
+            />
+          </Grid>
+          <Grid size={5}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Tag value"
+              value={pair.value}
+              onChange={e => updatePair(index, 'value', e.target.value)}
+            />
+          </Grid>
+          <Grid size={2} sx={{ display: 'flex', gap: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={() => removePair(index)}
+              disabled={pairs.length === 1}
+              title="Delete"
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+            {index === pairs.length - 1 && (
+              <IconButton
+                size="small"
+                onClick={addPair}
+                title="Add tag"
+              >
+                <AddIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Grid>
+        </Grid>
+      ))}
+    </Box>
+  )
+}
+
 export const PublishForm = ({ colorMode, loading, sendRequest }: FormProps) => {
   const { showAlert } = useContext(ShellContext)
   const [channel, setChannel] = useState('')
+  const [idempotencyKey, setIdempotencyKey] = useState('')
   const [data, setData] = useState<any | null>(null)
+  const [tags, setTags] = useState<KeyValuePair[]>([{ key: '', value: '' }])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -444,7 +520,29 @@ export const PublishForm = ({ colorMode, loading, sendRequest }: FormProps) => {
       showAlert('Invalid JSON data', { severity: 'error' })
       return
     }
-    sendRequest({ channel: channel, data: jsonData })
+
+    const params: any = { channel: channel, data: jsonData }
+
+    if (idempotencyKey.trim()) {
+      params.idempotency_key = idempotencyKey.trim()
+    }
+
+    // Convert tags to map, only include tags with non-empty keys
+    const tagsMap: Record<string, string> = {}
+    let hasTag = false
+    for (const pair of tags) {
+      const trimmedKey = pair.key.trim()
+      if (trimmedKey) {
+        // Allow empty values but not empty keys
+        tagsMap[trimmedKey] = pair.value
+        hasTag = true
+      }
+    }
+    if (hasTag) {
+      params.tags = tagsMap
+    }
+
+    sendRequest(params)
   }
 
   const onDataChange = (newValue: any) => {
@@ -465,7 +563,21 @@ export const PublishForm = ({ colorMode, loading, sendRequest }: FormProps) => {
         onChange={event => setChannel(event.target.value)}
         value={channel}
       />
-      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <TextField
+        margin="normal"
+        fullWidth
+        name="idempotency_key"
+        label="Idempotency Key"
+        type="text"
+        id="idempotency_key"
+        autoComplete="off"
+        onChange={event => setIdempotencyKey(event.target.value)}
+        value={idempotencyKey}
+      />
+      <KeyValueInput pairs={tags} onChange={setTags} />
+      <Box sx={{ mt: 2 }}>
+        <AceField colorMode={colorMode} onChange={onDataChange} />
+      </Box>
       <SubmitButton loading={loading} text="Publish" />
     </Box>
   )
@@ -478,7 +590,9 @@ export const BroadcastForm = ({
 }: FormProps) => {
   const { showAlert } = useContext(ShellContext)
   const [channel, setChannel] = useState('')
+  const [idempotencyKey, setIdempotencyKey] = useState('')
   const [data, setData] = useState<any | null>(null)
+  const [tags, setTags] = useState<KeyValuePair[]>([{ key: '', value: '' }])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -493,7 +607,29 @@ export const BroadcastForm = ({
       showAlert('Invalid JSON data', { severity: 'error' })
       return
     }
-    sendRequest({ channels: channel.split(' '), data: jsonData })
+
+    const params: any = { channels: channel.split(' '), data: jsonData }
+
+    if (idempotencyKey.trim()) {
+      params.idempotency_key = idempotencyKey.trim()
+    }
+
+    // Convert tags to map, only include tags with non-empty keys
+    const tagsMap: Record<string, string> = {}
+    let hasTag = false
+    for (const pair of tags) {
+      const trimmedKey = pair.key.trim()
+      if (trimmedKey) {
+        // Allow empty values but not empty keys
+        tagsMap[trimmedKey] = pair.value
+        hasTag = true
+      }
+    }
+    if (hasTag) {
+      params.tags = tagsMap
+    }
+
+    sendRequest(params)
   }
 
   const onDataChange = (newValue: any) => {
@@ -507,15 +643,28 @@ export const BroadcastForm = ({
         required
         fullWidth
         name="channel"
-        label="Channels"
+        label="Channels (SPACE-separated)"
         type="text"
         id="text"
-        helperText="Space-separated list of channels"
         autoComplete="off"
         onChange={event => setChannel(event.target.value)}
         value={channel}
       />
-      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <TextField
+        margin="normal"
+        fullWidth
+        name="idempotency_key"
+        label="Idempotency Key"
+        type="text"
+        id="idempotency_key"
+        autoComplete="off"
+        onChange={event => setIdempotencyKey(event.target.value)}
+        value={idempotencyKey}
+      />
+      <KeyValueInput pairs={tags} onChange={setTags} />
+      <Box sx={{ mt: 2 }}>
+        <AceField colorMode={colorMode} onChange={onDataChange} />
+      </Box>
       <SubmitButton loading={loading} text="Broadcast" />
     </Box>
   )
