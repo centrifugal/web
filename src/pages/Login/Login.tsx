@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState } from 'react'
+import React, { useEffect, useContext, useState, useRef } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
@@ -11,6 +11,7 @@ import { red } from '@mui/material/colors'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
+import { globalUrlPrefix } from 'config/url'
 
 import { useAuth } from 'react-oidc-context'
 
@@ -392,7 +393,7 @@ function drawLogo(
 
   const segments: any[] = []
   const radius = Y / 11
-  const lw = radius / 16
+  const lw = radius / 14
 
   //@ts-ignore
   window.requestAnimationFrame =
@@ -616,9 +617,47 @@ export function Login({ handleLogin }: LoginProps) {
   const useIDP = adminSettings.oidc !== undefined
   const usePKCE = adminSettings.oidc?.pkce === true
 
+  // Store refreshed auth_url in ref to avoid re-renders
+  const freshAuthUrlRef = useRef<string | undefined>(
+    adminSettings.oidc?.auth_url
+  )
+
   useEffect(() => {
     setTitle('Centrifugo' + nameSuffix)
   }, [setTitle, nameSuffix])
+
+  // Periodically refresh admin settings to get fresh auth_url with non-expired state
+  useEffect(() => {
+    const refreshAuthUrl = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const headers: HeadersInit = {}
+        if (token) {
+          headers['Authorization'] = `token ${token}`
+        }
+
+        const response = await fetch(`${globalUrlPrefix}admin/init`, {
+          headers,
+          credentials: 'include',
+        })
+        if (response.ok) {
+          const data = await response.json()
+          // Store in ref to avoid re-renders that would restart canvas animation
+          if (data.oidc?.auth_url) {
+            freshAuthUrlRef.current = data.oidc.auth_url
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing auth URL:', error)
+      }
+    }
+
+    // Set up interval to refresh every 30 sec.
+    const intervalId = setInterval(refreshAuthUrl, 30 * 1000)
+
+    // Clean up interval on unmount
+    return () => clearInterval(intervalId)
+  }, [])
 
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -627,8 +666,10 @@ export function Login({ handleLogin }: LoginProps) {
 
   const handleServerSideOIDCLogin = () => {
     // For server-side OIDC, redirect to the authorization URL
-    if (adminSettings.oidc?.auth_url) {
-      window.location.href = adminSettings.oidc.auth_url
+    // Use freshAuthUrlRef to get the most recent auth_url with non-expired state
+    const authUrl = freshAuthUrlRef.current || adminSettings.oidc?.auth_url
+    if (authUrl) {
+      window.location.href = authUrl
     }
   }
 
