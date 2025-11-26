@@ -1,7 +1,7 @@
 import { useEffect, useContext, useState, useCallback } from 'react'
 import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
-import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -800,11 +800,10 @@ export function PushNotification({
               </TableContainer>
             </Box>
           ) : (
-            <Box>
-              <Typography color="text.secondary" gutterBottom>
-                Push notifications are not enabled
-              </Typography>
-            </Box>
+            <Alert severity="info">
+              Push notifications are not enabled. Please check your server
+              configuration.
+            </Alert>
           )}
         </Box>
       )}

@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
+import Alert from '@mui/material/Alert'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -2176,11 +2177,9 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
               </Grid>
             </Box>
           ) : (
-            <Box>
-              <Typography color="text.secondary" gutterBottom>
-                Analytics is not enabled
-              </Typography>
-            </Box>
+            <Alert severity="info">
+              Analytics is not enabled. Please check your server configuration.
+            </Alert>
           )}
         </Box>
       )}

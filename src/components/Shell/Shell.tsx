@@ -51,9 +51,13 @@ export const Shell = ({
   const adminSettings = adminSettingsContext.getAdminSettings()
   const insecure = adminSettings.insecure
   const useIDP = adminSettings.oidc !== undefined
+  const usePKCE = adminSettings.oidc?.pkce === true
   const auth = useAuth()
   let username = ''
-  if (useIDP) {
+
+  // Check PKCE flow first (uses react-oidc-context)
+  if (useIDP && usePKCE) {
+    // PKCE flow: check auth from react-oidc-context
     authenticated = auth.isAuthenticated || adminSettings.insecure
     if (auth.user?.profile.preferred_username) {
       username = auth.user?.profile.preferred_username
@@ -68,7 +72,16 @@ export const Shell = ({
         }
       }
     })
+  } else if (useIDP && !usePKCE) {
+    // Server-side OIDC: trust backend's authenticated flag
+    authenticated = adminSettings.authenticated || adminSettings.insecure
+    if (adminSettings.user?.name) {
+      username = adminSettings.user.name
+    } else if (adminSettings.user?.email) {
+      username = adminSettings.user.email
+    }
   } else {
+    // Password auth
     authenticated = passwordAuthenticated || adminSettings.insecure
   }
 

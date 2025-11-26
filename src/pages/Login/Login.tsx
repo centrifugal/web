@@ -614,6 +614,7 @@ export function Login({ handleLogin }: LoginProps) {
   }
 
   const useIDP = adminSettings.oidc !== undefined
+  const usePKCE = adminSettings.oidc?.pkce === true
 
   useEffect(() => {
     setTitle('Centrifugo' + nameSuffix)
@@ -622,6 +623,13 @@ export function Login({ handleLogin }: LoginProps) {
   const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     handleLogin(password)
+  }
+
+  const handleServerSideOIDCLogin = () => {
+    // For server-side OIDC, redirect to the authorization URL
+    if (adminSettings.oidc?.auth_url) {
+      window.location.href = adminSettings.oidc.auth_url
+    }
   }
 
   return (
@@ -668,7 +676,7 @@ export function Login({ handleLogin }: LoginProps) {
         )}
 
         <ThemeProvider theme={redTheme}>
-          {useIDP ? (
+          {useIDP && usePKCE ? (
             <Button
               type="submit"
               fullWidth
@@ -676,6 +684,17 @@ export function Login({ handleLogin }: LoginProps) {
               color="primary"
               sx={{ mt: 3, mb: 2 }}
               onClick={() => void auth.signinRedirect()}
+            >
+              Log in with {adminSettings.oidc?.display_name}
+            </Button>
+          ) : useIDP && !usePKCE ? (
+            <Button
+              type="button"
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 3, mb: 2 }}
+              onClick={handleServerSideOIDCLogin}
             >
               Log in with {adminSettings.oidc?.display_name}
             </Button>

@@ -1,4 +1,10 @@
-import { PropsWithChildren, useContext, useEffect, useState } from 'react'
+import {
+  PropsWithChildren,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import localforage from 'localforage'
 import Box from '@mui/material/Box'
@@ -32,7 +38,17 @@ export interface AppProps {
 
 async function fetchAdminSettings() {
   try {
-    const response = await fetch(`${globalUrlPrefix}admin/settings`)
+    // Include token in request if available for non-OIDC auth
+    const token = localStorage.getItem('token')
+    const headers: HeadersInit = {}
+    if (token) {
+      headers['Authorization'] = `token ${token}`
+    }
+
+    const response = await fetch(`${globalUrlPrefix}admin/init`, {
+      headers,
+      credentials: 'include', // Include cookies for server-side OIDC
+    })
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -61,29 +77,37 @@ function App({
     edition: 'oss',
   })
   const [isAuthenticated, setIsAuthenticated] = useState(
-    localStorage.getItem('token') ? true : false
+    adminSettings.authenticated ||
+      (localStorage.getItem('token') ? true : false)
   )
   const edition = adminSettings.edition
   let useIDP = false
+  let usePKCE = false
   let oidcConfig: any = null
+
   if (adminSettings.oidc) {
     useIDP = true
-    oidcConfig = {
-      authority: adminSettings.oidc.authority,
-      client_id: adminSettings.oidc.client_id,
-      redirect_uri: adminSettings.oidc.redirect_uri,
-      onSigninCallback: (_user: User | void): void => {
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname
-        ) // Clear state from URL.
-      },
-      accessTokenExpiringNotificationTimeInSeconds: 30,
-      userStore: new WebStorageStateStore({ store: window.localStorage }),
-    }
-    if (adminSettings.oidc.scope !== '') {
-      oidcConfig.scope = adminSettings.oidc.scope
+    usePKCE = adminSettings.oidc.pkce === true
+
+    // Only configure react-oidc-context for PKCE flow
+    if (usePKCE && adminSettings.oidc.authority) {
+      oidcConfig = {
+        authority: adminSettings.oidc.authority,
+        client_id: adminSettings.oidc.client_id,
+        redirect_uri: adminSettings.oidc.redirect_uri,
+        onSigninCallback: (_user: User | void): void => {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          ) // Clear state from URL.
+        },
+        accessTokenExpiringNotificationTimeInSeconds: 30,
+        userStore: new WebStorageStateStore({ store: window.localStorage }),
+      }
+      if (adminSettings.oidc.scope && adminSettings.oidc.scope !== '') {
+        oidcConfig.scope = adminSettings.oidc.scope
+      }
     }
   }
 
@@ -111,13 +135,13 @@ function App({
 
   useEffect(() => {
     ;(async () => {
-      if (hasLoadedSettings) return
+      if (hasLoadedAdminSettings) return
 
       const adminSettings = await fetchAdminSettings()
       setAdminSettings(adminSettings)
       setHasLoadedAdminSettings(true)
     })()
-  }, [hasLoadedSettings])
+  }, [hasLoadedAdminSettings])
 
   const settingsContextValue = {
     updateUserSettings: async (changedSettings: Partial<UserSettings>) => {
@@ -136,19 +160,25 @@ function App({
     getUserSettings: () => ({ ...userSettings }),
   }
 
-  const adminSettingsContextValue = {
-    updateAdminSettings: async (newSettings: AdminSettings) => {
-      setAdminSettings(newSettings)
-    },
-    getAdminSettings: () => ({ ...adminSettings }),
-  }
+  const adminSettingsContextValue = useMemo(
+    () => ({
+      updateAdminSettings: async (newSettings: AdminSettings) => {
+        setAdminSettings(newSettings)
+      },
+      getAdminSettings: () => ({ ...adminSettings }),
+    }),
+    [adminSettings]
+  )
 
   const storageContextValue = {
     getPersistedStorage: () => persistedStorage,
   }
 
   const handlePasswordLogout = function () {
+    // Clear all possible auth tokens from localStorage
     delete localStorage.token
+    localStorage.removeItem('token')
+    localStorage.removeItem('admin_token')
     setIsAuthenticated(false)
   }
 
@@ -182,7 +212,7 @@ function App({
         <AdminSettingsContext.Provider value={adminSettingsContextValue}>
           <SettingsContext.Provider value={settingsContextValue}>
             {hasLoadedSettings && hasLoadedAdminSettings ? (
-              useIDP ? (
+              useIDP && usePKCE ? (
                 <AuthProvider {...oidcConfig}>
                   <ShellWrapper
                     handleLogin={handleLogin}
@@ -228,21 +258,44 @@ function ShellWrapper({
   const adminSettings = adminSettingsContext.getAdminSettings()
   const insecure = adminSettings.insecure
   const useIDP = adminSettings.oidc !== undefined
+  const usePKCE = adminSettings.oidc?.pkce === true
   let authorization = ''
   const auth = useAuth()
   if (!insecure) {
-    if (useIDP) {
+    if (useIDP && usePKCE) {
+      // PKCE flow: use Bearer token from localStorage
       authorization = `Bearer ${auth.user?.access_token}`
+    } else if (useIDP && !usePKCE) {
+      // Server-side flow: cookie is sent automatically, no need for Authorization header
+      authorization = ''
     } else {
+      // Password-based auth: use token from localStorage
       authorization = `token ${localStorage.getItem('token')}`
     }
   }
 
-  const handleLogout = () => {
-    if (auth) {
-      auth.removeUser()
+  const handleLogout = async () => {
+    if (useIDP && !usePKCE) {
+      // Server-side OIDC: call backend logout endpoint
+      try {
+        await fetch(`${globalUrlPrefix}admin/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+      } catch (e) {
+        console.error('Logout error:', e)
+      }
+      // Clear any localStorage tokens before reload
+      localStorage.removeItem('token')
+      localStorage.removeItem('admin_token')
+      // Reload to fetch new init state
+      window.location.reload()
+    } else {
+      if (auth) {
+        auth.removeUser()
+      }
+      handlePasswordLogout()
     }
-    handlePasswordLogout()
   }
 
   const [lastSignIn, setLastSignIn] = useState(0)
