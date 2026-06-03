@@ -15,8 +15,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { globalUrlPrefix } from 'config/url'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
-import { SettingsContext } from 'contexts/SettingsContext'
-import { Card, CardContent } from '@mui/material'
+import { Card, CardContent, Chip } from '@mui/material'
 import {
   InfoOutlined,
   Storage,
@@ -27,6 +26,71 @@ import {
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': { backgroundColor: theme.palette.action.hover },
 }))
+
+const fmtInt = (n: number) => Number(n).toLocaleString()
+const fmtRate = (n: number) =>
+  `${n.toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}/s`
+
+// SummaryCard is a cluster-level KPI tile: a neutral leading icon, an uppercase label, and the
+// value in the accent color — theme-driven (no hard-coded backgrounds).
+const SummaryCard = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: React.ReactNode
+}) => (
+  <Card elevation={2} sx={{ flex: '1 1 300px', minWidth: 300 }}>
+    <CardContent
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 2,
+        py: 3,
+      }}
+    >
+      <Box sx={{ display: 'flex', color: 'text.secondary' }}>{icon}</Box>
+      <Typography
+        variant="h6"
+        sx={{ fontWeight: 'bold', textTransform: 'uppercase', opacity: 0.9 }}
+      >
+        {label}:
+      </Typography>
+      <Typography
+        variant="h6"
+        sx={{
+          fontWeight: 'bold',
+          color: theme =>
+            theme.palette.mode === 'dark'
+              ? '#FE5E5E'
+              : theme.palette.text.primary,
+        }}
+      >
+        {value}
+      </Typography>
+    </CardContent>
+  </Card>
+)
+
+// MiniStat is one inline labeled metric ("Connect 1.2/s") in a node's per-interval aggregation row.
+const MiniStat = ({ label, value }: { label: string; value: string }) => (
+  <Typography
+    variant="caption"
+    color="text.secondary"
+    sx={{ whiteSpace: 'nowrap' }}
+  >
+    {label}{' '}
+    <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+      {value}
+    </Box>
+  </Typography>
+)
 
 interface StatusProps {
   signinSilent: () => void
@@ -79,9 +143,6 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   //   edition = 'oss'
   // }
   const { showAlert } = useContext(ShellContext)
-  const settingsContext = useContext(SettingsContext)
-  const colorMode = settingsContext.getUserSettings().colorMode
-  const isDarkTheme = colorMode === 'dark'
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
@@ -237,14 +298,6 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
 
-  // Theme-aware card styling
-  const cardSx = {
-    bgcolor: isDarkTheme ? '#121212' : '#f5f5f5',
-    color: isDarkTheme ? 'white' : '#333',
-  }
-
-  const accentColor = isDarkTheme ? '#FE5E5E' : '#d32f2f'
-
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
@@ -254,104 +307,21 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
       ) : (
         <Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card elevation={2} sx={cardSx}>
-                <CardContent
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    py: 3,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Storage sx={{ fontSize: 28, opacity: 0.9 }} />
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase',
-                        opacity: 0.9,
-                      }}
-                    >
-                      NODES RUNNING:
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 'bold', color: accentColor }}
-                    >
-                      {numNodes}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-
-            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card elevation={2} sx={cardSx}>
-                <CardContent
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    py: 3,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Person sx={{ fontSize: 28, opacity: 0.9 }} />
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase',
-                        opacity: 0.9,
-                      }}
-                    >
-                      TOTAL CLIENTS:
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 'bold', color: accentColor }}
-                    >
-                      {numConns}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
-
-            <Box sx={{ flex: '1 1 300px', minWidth: '300px' }}>
-              <Card elevation={2} sx={cardSx}>
-                <CardContent
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    py: 3,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Subscriptions sx={{ fontSize: 28, opacity: 0.9 }} />
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase',
-                        opacity: 0.9,
-                      }}
-                    >
-                      TOTAL SUBS:
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 'bold', color: accentColor }}
-                    >
-                      {numSubs}
-                    </Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
+            <SummaryCard
+              icon={<Storage sx={{ fontSize: 28 }} />}
+              label="Nodes running"
+              value={fmtInt(numNodes)}
+            />
+            <SummaryCard
+              icon={<Person sx={{ fontSize: 28 }} />}
+              label="Total clients"
+              value={fmtInt(numConns)}
+            />
+            <SummaryCard
+              icon={<Subscriptions sx={{ fontSize: 28 }} />}
+              label="Total subs"
+              value={fmtInt(numSubs)}
+            />
           </Box>
 
           <TableContainer component={Paper}>
@@ -407,10 +377,16 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                         <TableCell align="right">
                           {HumanSeconds(node.uptime)}
                         </TableCell>
-                        <TableCell align="right">{node.clients}</TableCell>
-                        <TableCell align="right">{node.users}</TableCell>
-                        <TableCell align="right">{node.subs}</TableCell>
-                        <TableCell align="right">{node.channels}</TableCell>
+                        <TableCell align="right">
+                          {fmtInt(node.clients)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {fmtInt(node.users)}
+                        </TableCell>
+                        <TableCell align="right">{fmtInt(node.subs)}</TableCell>
+                        <TableCell align="right">
+                          {fmtInt(node.channels)}
+                        </TableCell>
                         {edition === 'pro' && (
                           <TableCell align="right">{node.cpu}</TableCell>
                         )}
@@ -420,44 +396,89 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                       </StyledTableRow>
                       {edition === 'pro' && (
                         <TableRow>
-                          <TableCell colSpan={9} sx={{ padding: '6px 16px' }}>
-                            <Typography variant="caption" color="textSecondary">
-                              <b>{node.interval}s</b> aggregations{' '}
+                          <TableCell colSpan={9} sx={{ py: 1 }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                alignItems: 'center',
+                                columnGap: 2,
+                                rowGap: 0.5,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ whiteSpace: 'nowrap' }}
+                              >
+                                <b>{node.interval}s</b> aggregations
+                              </Typography>
                               <Tooltip title="Metrics in this row are aggregated once in the specified interval (determined by node.info_metrics_aggregate_interval server option).">
-                                <InfoOutlined fontSize="small" />
+                                <InfoOutlined
+                                  sx={{ fontSize: 16, color: 'text.secondary' }}
+                                />
                               </Tooltip>
-                              &nbsp;Incoming frames:{' '}
-                              <b>
-                                {(
+                              <MiniStat
+                                label="Incoming"
+                                value={fmtRate(
                                   node.messagesReceived / node.interval
-                                ).toFixed(1)}
-                                /s
-                              </b>
-                              &nbsp;| Outgoing frames:{' '}
-                              <b>
-                                {(node.messagesSent / node.interval).toFixed(1)}
-                                /s
-                              </b>
-                              &nbsp;| Connect: <b>{node.connectRate}/s</b>
-                              &nbsp;| Subscribe: <b>{node.subscribeRate}/s</b>
-                              &nbsp;| Server API: <b>{node.apiRate}/s</b>
-                              &nbsp;| Publications:{' '}
-                              <b>
-                                {(node.publications / node.interval).toFixed(1)}
-                                /s
-                              </b>
-                              &nbsp;| Clients by name:&nbsp;
-                              <b>
-                                {Object.keys(node.connectionsByClient).length >
-                                0
-                                  ? Object.entries(node.connectionsByClient)
-                                      .map(
-                                        ([client, cnt]) => `${client}: ${cnt}`
-                                      )
-                                      .join(', ')
-                                  : '-'}
-                              </b>
-                            </Typography>
+                                )}
+                              />
+                              <MiniStat
+                                label="Outgoing"
+                                value={fmtRate(
+                                  node.messagesSent / node.interval
+                                )}
+                              />
+                              <MiniStat
+                                label="Connect"
+                                value={`${node.connectRate}/s`}
+                              />
+                              <MiniStat
+                                label="Subscribe"
+                                value={`${node.subscribeRate}/s`}
+                              />
+                              <MiniStat
+                                label="API"
+                                value={`${node.apiRate}/s`}
+                              />
+                              <MiniStat
+                                label="Publications"
+                                value={fmtRate(
+                                  node.publications / node.interval
+                                )}
+                              />
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ whiteSpace: 'nowrap' }}
+                              >
+                                Clients:
+                              </Typography>
+                              {Object.keys(node.connectionsByClient).length >
+                              0 ? (
+                                Object.entries(node.connectionsByClient).map(
+                                  ([client, cnt]) => (
+                                    <Chip
+                                      key={client}
+                                      size="small"
+                                      variant="outlined"
+                                      color="primary"
+                                      label={`${client}: ${fmtInt(
+                                        cnt as number
+                                      )}`}
+                                    />
+                                  )
+                                )
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  —
+                                </Typography>
+                              )}
+                            </Box>
                           </TableCell>
                         </TableRow>
                       )}

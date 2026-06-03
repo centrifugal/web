@@ -38,6 +38,7 @@ import LinkIcon from '@mui/icons-material/Link'
 import LinkOffIcon from '@mui/icons-material/LinkOff'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import SellIcon from '@mui/icons-material/Sell'
 
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
@@ -66,6 +67,7 @@ interface ConnectionInfo {
   connected_at: number
   headers?: Record<string, string[]>
   metadata?: Record<string, string[]>
+  labels?: Record<string, string>
   info?: string
   channels?: Record<string, string>
   state?: string
@@ -511,6 +513,7 @@ export const ConnectionsTable = ({
                   <TableCell>Version</TableCell>
                   <TableCell>Transport</TableCell>
                   <TableCell>Latency</TableCell>
+                  <TableCell>Labels</TableCell>
                   <TableCell
                     sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}
                   ></TableCell>
@@ -557,6 +560,31 @@ export const ConnectionsTable = ({
                           size="small"
                           color={getLatencyColor(connection.latency) as any}
                         />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {connection.labels &&
+                      Object.keys(connection.labels).length > 0 ? (
+                        <Box
+                          display="flex"
+                          flexWrap="wrap"
+                          gap={0.5}
+                          sx={{ maxWidth: 260 }}
+                        >
+                          {Object.entries(connection.labels).map(([k, v]) => (
+                            <Chip
+                              key={k}
+                              label={`${k}: ${v}`}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                            />
+                          ))}
+                        </Box>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          -
+                        </Typography>
                       )}
                     </TableCell>
                     <TableCell
@@ -783,6 +811,32 @@ export const ConnectionsTable = ({
                     </Card>
                   </Box>
                 </Box>
+
+                {/* Labels Card */}
+                {selectedConnection.labels &&
+                  Object.keys(selectedConnection.labels).length > 0 && (
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Box display="flex" alignItems="center" gap={1} mb={2}>
+                          <SellIcon color="primary" />
+                          <Typography variant="h6">Labels</Typography>
+                        </Box>
+                        <Box display="flex" flexWrap="wrap" gap={1}>
+                          {Object.entries(selectedConnection.labels).map(
+                            ([k, v]) => (
+                              <Chip
+                                key={k}
+                                label={`${k}: ${v}`}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                              />
+                            )
+                          )}
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )}
 
                 {/* Channels Card */}
                 {(() => {

@@ -238,6 +238,9 @@ export function PushNotification({
                 },
               },
             },
+            webpush: {
+              payload: { title: pushTitle, body: pushBody },
+            },
           },
         },
       }),

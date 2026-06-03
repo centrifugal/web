@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useCallback } from 'react'
+import { ReactNode, useContext, useEffect, useState, useCallback } from 'react'
 import Box from '@mui/material/Box'
 import { styled } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
@@ -21,6 +21,9 @@ import FirstPageIcon from '@mui/icons-material/FirstPage'
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft'
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
 import LastPageIcon from '@mui/icons-material/LastPage'
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
+import SendIcon from '@mui/icons-material/Send'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
 import { useTheme } from '@mui/material/styles'
 import Link from '@mui/material/Link'
 import Dialog from '@mui/material/Dialog'
@@ -31,9 +34,18 @@ import FormControl from '@mui/material/FormControl'
 import Radio from '@mui/material/Radio'
 import RadioGroup from '@mui/material/RadioGroup'
 
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
+import { Button, Chip, Grid } from '@mui/material'
+import { useSearchParams } from 'react-router-dom'
+
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
-import { Button, Chip, Grid } from '@mui/material'
+
+import { Trends } from './Trends'
+import { UserExplorer } from './UserExplorer'
+import { ChannelExplorer } from './ChannelExplorer'
+import { FlightRecorder } from './FlightRecorder'
 
 interface AnalyticsProps {
   signinSilent: () => void
@@ -45,6 +57,90 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
     backgroundColor: theme.palette.action.hover,
   },
 }))
+
+// KpiCard is the unified "hero metric" card: a tinted leading icon, an overline label with the
+// time-window as a clickable chip, and a large value. Used for the three headline dashboard stats.
+const KpiCard = ({
+  icon,
+  label,
+  windowLabel,
+  onWindowClick,
+  value,
+}: {
+  icon: ReactNode
+  label: string
+  windowLabel: string
+  onWindowClick: () => void
+  value: ReactNode
+}) => (
+  <Card sx={{ p: 1, height: '100%' }}>
+    <CardContent>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 38,
+            height: 38,
+            borderRadius: 1.5,
+            bgcolor: 'action.hover',
+            color: 'primary.main',
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ display: 'block', lineHeight: 1.3 }}
+          >
+            {label}
+          </Typography>
+          <Link
+            component="button"
+            variant="caption"
+            underline="hover"
+            onClick={onWindowClick}
+            sx={{ fontWeight: 500, lineHeight: 1.2 }}
+          >
+            {windowLabel}
+          </Link>
+        </Box>
+      </Box>
+      {value}
+    </CardContent>
+  </Card>
+)
+
+// WidgetTitle is the standard heading for a dashboard widget: the title plus the time-window as a
+// clickable chip (opens the interval dialog), matching the KpiCard window chip for a consistent look.
+const WidgetTitle = ({
+  title,
+  windowLabel,
+  onWindowClick,
+}: {
+  title: string
+  windowLabel: string
+  onWindowClick: () => void
+}) => (
+  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+    <Typography variant="h6" color="text.secondary">
+      {title}
+    </Typography>
+    <Link
+      component="button"
+      variant="body2"
+      underline="hover"
+      onClick={onWindowClick}
+      sx={{ fontWeight: 500 }}
+    >
+      {windowLabel}
+    </Link>
+  </Box>
+)
 
 interface IntervalDialogProps {
   open: boolean
@@ -235,7 +331,7 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   )
 }
 
-export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
+const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const [loading, setLoading] = useState(true)
   const [reloading, setReloading] = useState(true)
@@ -572,6 +668,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
 
   const headCellSx = { fontWeight: 'bold', p: 1.5 }
   const widgetCellSx = { p: 1.5 }
+  // Distribution chips (SDKs / transports / push platforms) flow in a wrapping row.
+  const distChipsSx = { display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }
 
   let allClients: number
   let allTransports: number
@@ -741,41 +839,64 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     xl: 3,
                   }}
                 >
-                  <Card sx={widgetCardSx}>
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Unique users
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.numUniqueUsers.lastMinutes
-                            )
-                            setIntervalDialogField('numUniqueUsers')
-                            setIntervalDialogIncludeSnapshots(true)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.numUniqueUsers.lastMinutes)}
-                        </Button>
-                      </Typography>
-                      {analyticsData.numUniqueUsers !== undefined ? (
-                        <Box>
-                          <Typography variant="h3" component="div">
-                            {analyticsData.numUniqueUsers}
-                          </Typography>
-                        </Box>
+                  <KpiCard
+                    icon={<PeopleAltIcon />}
+                    label="Unique users"
+                    windowLabel={humanizeMinutes(
+                      request.numUniqueUsers.lastMinutes
+                    )}
+                    onWindowClick={() => {
+                      setIntervalDialogInitial(
+                        request.numUniqueUsers.lastMinutes
+                      )
+                      setIntervalDialogField('numUniqueUsers')
+                      setIntervalDialogIncludeSnapshots(true)
+                      setIntervalDialogIncludeIntervals(true)
+                      setIntervalDialogOpen(true)
+                    }}
+                    value={
+                      analyticsData.numUniqueUsers !== undefined ? (
+                        <Typography variant="h3" component="div">
+                          {analyticsData.numUniqueUsers}
+                        </Typography>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
-                      )}
-                    </CardContent>
-                  </Card>
+                      )
+                    }
+                  />
+                </Grid>
+                <Grid
+                  size={{
+                    xs: 6,
+                    md: 3,
+                    xl: 3,
+                  }}
+                >
+                  <KpiCard
+                    icon={<SendIcon />}
+                    label="Publications"
+                    windowLabel={humanizeMinutes(
+                      request.numPublications.lastMinutes
+                    )}
+                    onWindowClick={() => {
+                      setIntervalDialogInitial(
+                        request.numPublications.lastMinutes
+                      )
+                      setIntervalDialogField('numPublications')
+                      setIntervalDialogIncludeSnapshots(false)
+                      setIntervalDialogIncludeIntervals(true)
+                      setIntervalDialogOpen(true)
+                    }}
+                    value={
+                      analyticsData.numPublications !== undefined ? (
+                        <Typography variant="h3" component="div">
+                          {analyticsData.numPublications}
+                        </Typography>
+                      ) : (
+                        <Box sx={noDataSx}>No data</Box>
+                      )
+                    }
+                  />
                 </Grid>
                 <Grid
                   size={{
@@ -786,99 +907,40 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Publications
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.numPublications.lastMinutes
-                            )
-                            setIntervalDialogField('numPublications')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.numPublications.lastMinutes)}
-                        </Button>
-                      </Typography>
-                      {analyticsData.numUniqueUsers !== undefined ? (
-                        <Box>
-                          <Typography variant="h3">
-                            {analyticsData.numPublications}
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Box sx={noDataSx}>No data</Box>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid
-                  size={{
-                    xs: 6,
-                    md: 3,
-                    xl: 3,
-                  }}
-                >
-                  <Card sx={widgetCardSx}>
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Client names
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.clientNames.lastMinutes
-                            )
-                            setIntervalDialogField('clientNames')
-                            setIntervalDialogIncludeSnapshots(true)
-                            setIntervalDialogIncludeIntervals(false)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.clientNames.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Client names"
+                        windowLabel={humanizeMinutes(
+                          request.clientNames.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.clientNames.lastMinutes
+                          )
+                          setIntervalDialogField('clientNames')
+                          setIntervalDialogIncludeSnapshots(true)
+                          setIntervalDialogIncludeIntervals(false)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
                       {analyticsData.clientNames !== undefined ? (
-                        <Box>
-                          <Typography
-                            variant="h5"
-                            component="div"
-                            color="#8ab200"
-                          >
-                            {analyticsData.clientNames.map(
-                              (clientCount: any) => (
-                                <Box component="span" key={clientCount.name}>
-                                  <Chip
-                                    label={
-                                      (clientCount.name
-                                        ? clientCount.name
-                                        : '?') +
-                                      ' ' +
-                                      (
-                                        (clientCount.count * 100) /
-                                        allClients
-                                      ).toFixed(1) +
-                                      '%'
-                                    }
-                                    sx={{ fontSize: '0.6em', mb: 1 }}
-                                  />{' '}
-                                </Box>
-                              )
-                            )}
-                          </Typography>
+                        <Box sx={distChipsSx}>
+                          {analyticsData.clientNames.map((clientCount: any) => (
+                            <Chip
+                              key={clientCount.name}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              label={
+                                (clientCount.name ? clientCount.name : '?') +
+                                ' ' +
+                                (
+                                  (clientCount.count * 100) /
+                                  allClients
+                                ).toFixed(1) +
+                                '%'
+                              }
+                            />
+                          ))}
                         </Box>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
@@ -895,54 +957,42 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Transports
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.transports.lastMinutes
-                            )
-                            setIntervalDialogField('transports')
-                            setIntervalDialogIncludeSnapshots(true)
-                            setIntervalDialogIncludeIntervals(false)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.transports.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Transports"
+                        windowLabel={humanizeMinutes(
+                          request.transports.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.transports.lastMinutes
+                          )
+                          setIntervalDialogField('transports')
+                          setIntervalDialogIncludeSnapshots(true)
+                          setIntervalDialogIncludeIntervals(false)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
                       {analyticsData.transports !== undefined ? (
-                        <Box>
-                          <Typography
-                            variant="h5"
-                            component="div"
-                            color="#8ab200"
-                          >
-                            {analyticsData.transports.map(
-                              (transportCount: any) => (
-                                <Box component="span" key={transportCount.name}>
-                                  <Chip
-                                    label={
-                                      transportCount.name +
-                                      ' ' +
-                                      (
-                                        (transportCount.count * 100) /
-                                        allTransports
-                                      ).toFixed(1) +
-                                      '%'
-                                    }
-                                    sx={{ fontSize: '0.6em', mb: 1 }}
-                                  />{' '}
-                                </Box>
-                              )
-                            )}
-                          </Typography>
+                        <Box sx={distChipsSx}>
+                          {analyticsData.transports.map(
+                            (transportCount: any) => (
+                              <Chip
+                                key={transportCount.name}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                label={
+                                  transportCount.name +
+                                  ' ' +
+                                  (
+                                    (transportCount.count * 100) /
+                                    allTransports
+                                  ).toFixed(1) +
+                                  '%'
+                                }
+                              />
+                            )
+                          )}
                         </Box>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
@@ -959,28 +1009,21 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        User connections
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.userConnections.lastMinutes
-                            )
-                            setIntervalDialogField('userConnections')
-                            setIntervalDialogIncludeSnapshots(true)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.userConnections.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="User connections"
+                        windowLabel={humanizeMinutes(
+                          request.userConnections.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.userConnections.lastMinutes
+                          )
+                          setIntervalDialogField('userConnections')
+                          setIntervalDialogIncludeSnapshots(true)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box
                         component="form"
@@ -995,7 +1038,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={12}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="user"
                               label="User"
@@ -1109,30 +1153,21 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Channel subscriptions
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.channelSubscriptions.lastMinutes
-                            )
-                            setIntervalDialogField('channelSubscriptions')
-                            setIntervalDialogIncludeSnapshots(true)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(
+                      <WidgetTitle
+                        title="Channel subscriptions"
+                        windowLabel={humanizeMinutes(
+                          request.channelSubscriptions.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
                             request.channelSubscriptions.lastMinutes
-                          )}
-                        </Button>
-                      </Typography>
+                          )
+                          setIntervalDialogField('channelSubscriptions')
+                          setIntervalDialogIncludeSnapshots(true)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box
                         component="form"
@@ -1147,7 +1182,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={12}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="channel"
                               label="Channel"
@@ -1266,28 +1302,19 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Users commands without errors
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.userOps.lastMinutes
-                            )
-                            setIntervalDialogField('userOps')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.userOps.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Users commands without errors"
+                        windowLabel={humanizeMinutes(
+                          request.userOps.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(request.userOps.lastMinutes)
+                          setIntervalDialogField('userOps')
+                          setIntervalDialogIncludeSnapshots(false)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box component="form" onSubmit={handleUserOpsSubmit}>
                         <Grid
@@ -1299,7 +1326,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={6}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="user"
                               label="User"
@@ -1315,7 +1343,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={6}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="op"
                               label="Op"
@@ -1427,30 +1456,21 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={theme => ({ p: 1, height: '100%' })}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Channel publications
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.channelPublications.lastMinutes
-                            )
-                            setIntervalDialogField('channelPublications')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(
+                      <WidgetTitle
+                        title="Channel publications"
+                        windowLabel={humanizeMinutes(
+                          request.channelPublications.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
                             request.channelPublications.lastMinutes
-                          )}
-                        </Button>
-                      </Typography>
+                          )
+                          setIntervalDialogField('channelPublications')
+                          setIntervalDialogIncludeSnapshots(false)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box
                         component="form"
@@ -1465,7 +1485,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={6}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="channel"
                               label="Channel"
@@ -1483,7 +1504,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={6}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="source"
                               label="Source"
@@ -1603,28 +1625,21 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Users with command errors
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.userErrors.lastMinutes
-                            )
-                            setIntervalDialogField('userErrors')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.userErrors.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Users with command errors"
+                        windowLabel={humanizeMinutes(
+                          request.userErrors.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.userErrors.lastMinutes
+                          )
+                          setIntervalDialogField('userErrors')
+                          setIntervalDialogIncludeSnapshots(false)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box component="form" onSubmit={handleUserErrorsSubmit}>
                         <Grid
@@ -1636,7 +1651,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="user"
                               label="User"
@@ -1652,7 +1668,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="op"
                               label="Op"
@@ -1668,7 +1685,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="error"
                               label="Error"
@@ -1783,28 +1801,21 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Users with disconnects after commands
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.userDisconnects.lastMinutes
-                            )
-                            setIntervalDialogField('userDisconnects')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.userDisconnects.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Users with disconnects after commands"
+                        windowLabel={humanizeMinutes(
+                          request.userDisconnects.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.userDisconnects.lastMinutes
+                          )
+                          setIntervalDialogField('userDisconnects')
+                          setIntervalDialogIncludeSnapshots(false)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
 
                       <Box
                         component="form"
@@ -1819,7 +1830,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="user"
                               label="User"
@@ -1835,7 +1847,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="op"
                               label="Op"
@@ -1851,7 +1864,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={4}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="disconnect"
                               label="Disconnect"
@@ -1972,43 +1986,31 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                     xl: 3,
                   }}
                 >
-                  <Card sx={widgetCardSx}>
-                    <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Push notifications
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.numPushNotifications.lastMinutes
-                            )
-                            setIntervalDialogField('numPushNotifications')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(
-                            request.numPushNotifications.lastMinutes
-                          )}
-                        </Button>
-                      </Typography>
-                      {analyticsData.numPushNotifications !== undefined ? (
-                        <Box>
-                          <Typography variant="h3" component="div">
-                            {analyticsData.numPushNotifications}
-                          </Typography>
-                        </Box>
+                  <KpiCard
+                    icon={<NotificationsActiveIcon />}
+                    label="Push notifications"
+                    windowLabel={humanizeMinutes(
+                      request.numPushNotifications.lastMinutes
+                    )}
+                    onWindowClick={() => {
+                      setIntervalDialogInitial(
+                        request.numPushNotifications.lastMinutes
+                      )
+                      setIntervalDialogField('numPushNotifications')
+                      setIntervalDialogIncludeSnapshots(false)
+                      setIntervalDialogIncludeIntervals(true)
+                      setIntervalDialogOpen(true)
+                    }}
+                    value={
+                      analyticsData.numPushNotifications !== undefined ? (
+                        <Typography variant="h3" component="div">
+                          {analyticsData.numPushNotifications}
+                        </Typography>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
-                      )}
-                    </CardContent>
-                  </Card>
+                      )
+                    }
+                  />
                 </Grid>
                 <Grid
                   size={{
@@ -2019,58 +2021,46 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                 >
                   <Card sx={widgetCardSx}>
                     <CardContent>
-                      <Typography
-                        variant="h6"
-                        color="text.secondary"
-                        gutterBottom
-                      >
-                        Push by platform
-                        <Button
-                          size="large"
-                          sx={{ p: 1 }}
-                          onClick={() => {
-                            setIntervalDialogInitial(
-                              request.pushPlatforms.lastMinutes
-                            )
-                            setIntervalDialogField('pushPlatforms')
-                            setIntervalDialogIncludeSnapshots(false)
-                            setIntervalDialogIncludeIntervals(true)
-                            setIntervalDialogOpen(true)
-                          }}
-                        >
-                          {humanizeMinutes(request.pushPlatforms.lastMinutes)}
-                        </Button>
-                      </Typography>
+                      <WidgetTitle
+                        title="Push by platform"
+                        windowLabel={humanizeMinutes(
+                          request.pushPlatforms.lastMinutes
+                        )}
+                        onWindowClick={() => {
+                          setIntervalDialogInitial(
+                            request.pushPlatforms.lastMinutes
+                          )
+                          setIntervalDialogField('pushPlatforms')
+                          setIntervalDialogIncludeSnapshots(false)
+                          setIntervalDialogIncludeIntervals(true)
+                          setIntervalDialogOpen(true)
+                        }}
+                      />
                       {analyticsData.pushPlatforms !== undefined ? (
-                        <Box>
-                          <Typography
-                            variant="h5"
-                            component="div"
-                            color="#8ab200"
-                          >
-                            {analyticsData.pushPlatforms.map(
-                              (platformCount: any) => (
-                                <Box component="span" key={platformCount.name}>
-                                  <Chip
-                                    label={
-                                      (platformCount.name
-                                        ? platformCount.name
-                                        : '?') +
-                                      ' ' +
-                                      platformCount.count.toString() +
-                                      ' (' +
-                                      (
-                                        (platformCount.count * 100) /
-                                        allPlatforms
-                                      ).toFixed(1) +
-                                      '%)'
-                                    }
-                                    sx={{ fontSize: '0.6em', mb: 1 }}
-                                  />{' '}
-                                </Box>
-                              )
-                            )}
-                          </Typography>
+                        <Box sx={distChipsSx}>
+                          {analyticsData.pushPlatforms.map(
+                            (platformCount: any) => (
+                              <Chip
+                                key={platformCount.name}
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                label={
+                                  (platformCount.name
+                                    ? platformCount.name
+                                    : '?') +
+                                  ' ' +
+                                  platformCount.count.toString() +
+                                  ' (' +
+                                  (
+                                    (platformCount.count * 100) /
+                                    allPlatforms
+                                  ).toFixed(1) +
+                                  '%)'
+                                }
+                              />
+                            )
+                          )}
                         </Box>
                       ) : (
                         <Box sx={noDataSx}>No data</Box>
@@ -2108,7 +2098,8 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
                           <Grid size={12}>
                             <TextField
                               margin="none"
-                              variant="standard"
+                              size="small"
+                              variant="outlined"
                               fullWidth
                               name="uid"
                               label="Analytics UID"
@@ -2182,6 +2173,73 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
             </Alert>
           )}
         </Box>
+      )}
+    </Box>
+  )
+}
+
+// Analytics is the page wrapper: a "Dashboard" tab (the existing point-in-time view) and a
+// "Trends" tab (historical time-series). The active tab is synced to the ?tab= search param so
+// it is linkable, and only the active tab is mounted — so exactly one tab queries at a time
+// (the dashboard's 60s refresh loop pauses while Trends is shown, and vice versa).
+export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const tab =
+    tabParam === 'trends' ||
+    tabParam === 'user' ||
+    tabParam === 'channel' ||
+    tabParam === 'recorder'
+      ? tabParam
+      : 'dashboard'
+
+  const handleChange = (_: React.SyntheticEvent, value: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (value === 'dashboard') {
+      next.delete('tab')
+    } else {
+      next.set('tab', value)
+    }
+    setSearchParams(next, { replace: true })
+  }
+
+  return (
+    <Box>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2.5 }}>
+        <Tabs value={tab} onChange={handleChange}>
+          <Tab label="Dashboard" value="dashboard" />
+          <Tab label="Trends (EXPERIMENTAL)" value="trends" />
+          <Tab label="User explorer (EXPERIMENTAL)" value="user" />
+          <Tab label="Channel explorer (EXPERIMENTAL)" value="channel" />
+          <Tab label="Flight recorder (EXPERIMENTAL)" value="recorder" />
+        </Tabs>
+      </Box>
+      {tab === 'dashboard' && (
+        <DashboardTab
+          signinSilent={signinSilent}
+          authorization={authorization}
+        />
+      )}
+      {tab === 'trends' && (
+        <Trends signinSilent={signinSilent} authorization={authorization} />
+      )}
+      {tab === 'user' && (
+        <UserExplorer
+          signinSilent={signinSilent}
+          authorization={authorization}
+        />
+      )}
+      {tab === 'channel' && (
+        <ChannelExplorer
+          signinSilent={signinSilent}
+          authorization={authorization}
+        />
+      )}
+      {tab === 'recorder' && (
+        <FlightRecorder
+          signinSilent={signinSilent}
+          authorization={authorization}
+        />
       )}
     </Box>
   )
