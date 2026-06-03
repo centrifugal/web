@@ -98,6 +98,7 @@ export const TimeSeriesChart = ({
     const textColor = theme.palette.text.primary
     const axisLineColor = theme.palette.divider
     const palette = seriesPalette(theme.palette.primary.main)
+    const multiSeries = series.length > 1
 
     // Unit-aware formatting: scale bytes, suffix ms/%, SI-abbreviate counts. When the unit is
     // rendered inline per value (bytes/ms/%), drop the axis name to avoid "1.2 MB/s … B/s".
@@ -204,10 +205,11 @@ export const TimeSeriesChart = ({
       ],
       series: series.map((s, idx) => {
         const c = palette[idx % palette.length]
-        // Non-stacked areas get a vertical gradient (color → transparent) for depth; stacked areas
-        // keep a flat tint so overlapping bands stay legible.
+        // Area fill rules: stacked → flat tint (bands stay legible); a single series → vertical
+        // gradient for depth; multiple *overlaid* (unstacked) series → no fill (plain lines), since
+        // overlapping fills would occlude each other.
         const areaStyle =
-          chartType === 'area'
+          chartType === 'area' && (stacked || !multiSeries)
             ? stacked
               ? { color: alpha(c, isDark ? 0.38 : 0.28) }
               : {

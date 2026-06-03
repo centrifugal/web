@@ -542,8 +542,10 @@ export const FlightRecorder = ({
           setError('Error loading timeline')
           setLoading(false)
         })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
+    // searchParams/setSearchParams intentionally excluded — setSearchParams is stable and we don't
+    // want load() recreated on every URL change it makes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [entity, fromStr, toStr, mode, maxEvents, headers, handleHttpError]
   )
 

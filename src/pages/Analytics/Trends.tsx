@@ -90,7 +90,10 @@ const REFRESH_INTERVAL_MS = 60000
 
 // The trend shown by default when the Trends tab first opens.
 const DEFAULT_METRIC = 'client_connections'
-const VIEW_STORAGE_KEY = 'centrifugo_trends_view_v1'
+const VIEW_STORAGE_KEY = 'centrifugo_trends_view'
+// Bump whenever the persisted TrendView shape changes incompatibly — a stored entry with a
+// different version (or one that fails the shape check below) is discarded and the view resets.
+const VIEW_STORAGE_VERSION = 1
 const FILTER_DEBOUNCE_MS = 300
 
 interface TrendView {
@@ -100,6 +103,8 @@ interface TrendView {
   groupBy: string
   lfKey: string
   lfVal: string
+  // null = use the trend's default stacking; true/false = explicit stacked/overlaid override.
+  stack: boolean | null
 }
 
 // useDebounced returns value after it has stopped changing for `ms` — used to keep typing in the
@@ -121,6 +126,7 @@ function readInitialView(sp: URLSearchParams): TrendView {
     sp.forEach((v, k) => {
       if (k.startsWith('f_') && v) filters[k.slice(2)] = v
     })
+    const stackParam = sp.get('stack')
     return {
       metric: sp.get('metric') || '',
       range: Number(sp.get('range')) || RANGES[1].seconds,
@@ -128,13 +134,14 @@ function readInitialView(sp: URLSearchParams): TrendView {
       groupBy: sp.get('gbl') || '',
       lfKey: sp.get('lfk') || '',
       lfVal: sp.get('lfv') || '',
+      stack: stackParam === null ? null : stackParam === '1',
     }
   }
   try {
-    const saved = JSON.parse(
-      localStorage.getItem(VIEW_STORAGE_KEY) || 'null'
-    ) as TrendView | null
-    if (saved && saved.metric) {
+    const saved = JSON.parse(localStorage.getItem(VIEW_STORAGE_KEY) || 'null')
+    // Only restore state written by this exact version; a version bump (or malformed/old data)
+    // discards it so a future shape change resets cleanly instead of loading a stale object.
+    if (saved && saved.version === VIEW_STORAGE_VERSION && saved.metric) {
       return {
         metric: saved.metric,
         range: saved.range || RANGES[1].seconds,
@@ -142,10 +149,12 @@ function readInitialView(sp: URLSearchParams): TrendView {
         groupBy: saved.groupBy || '',
         lfKey: saved.lfKey || '',
         lfVal: saved.lfVal || '',
+        stack: saved.stack ?? null,
       }
     }
+    localStorage.removeItem(VIEW_STORAGE_KEY)
   } catch {
-    /* ignore malformed storage */
+    localStorage.removeItem(VIEW_STORAGE_KEY)
   }
   return {
     metric: '',
@@ -154,6 +163,7 @@ function readInitialView(sp: URLSearchParams): TrendView {
     groupBy: '',
     lfKey: '',
     lfVal: '',
+    stack: null,
   }
 }
 
@@ -187,6 +197,8 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
   )
   // Leaderboard candidate ranking: by window total (default) or by peak bucket (transient leaders).
   const [rankBy, setRankBy] = useState<'total' | 'peak'>('total')
+  // Stacked-view override for multi-series charts: null = use the trend's default, else force on/off.
+  const [stackOverride, setStackOverride] = useState<boolean | null>(initial.stack)
 
   // Debounced copies of the free-text inputs drive fetching and URL persistence.
   const debouncedFilters = useDebounced(filters, FILTER_DEBOUNCE_MS)
@@ -301,6 +313,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     setLabelFilterValue('')
     setGroupByLabelKey('')
     setRankBy('total')
+    setStackOverride(null)
   }, [metricId])
 
   // Discover the client-label keys present in the data for label-aware trends, so the group-by
@@ -425,17 +438,20 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       next.set('lfk', labelFilterKey)
       next.set('lfv', debouncedLabelFilterValue.trim())
     }
+    if (stackOverride !== null) next.set('stack', stackOverride ? '1' : '0')
     setSearchParams(next, { replace: true })
     localStorage.setItem(
       VIEW_STORAGE_KEY,
       JSON.stringify({
+        version: VIEW_STORAGE_VERSION,
         metric: metricId,
         range: rangeSeconds,
         filters: debouncedFilters,
         groupBy: groupByLabelKey,
         lfKey: labelFilterKey,
         lfVal: debouncedLabelFilterValue,
-      } as TrendView)
+        stack: stackOverride,
+      })
     )
     // setSearchParams is stable; searchParams intentionally excluded to avoid a write/read loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -447,6 +463,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     labelFilterKey,
     debouncedLabelFilterValue,
     activeEntry,
+    stackOverride,
   ])
 
   // Fetch on metric/range/filter change.
@@ -639,6 +656,27 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
               </Typography>
             </Box>
           )}
+          {/* Stacked vs overlaid view toggle — only meaningful for multi-series stacked trends. */}
+          {data && !data.leaderboard && data.stacked && data.series.length > 1 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={(stackOverride ?? data.stacked) ? 'stacked' : 'overlaid'}
+                onChange={(_, v) => {
+                  if (v) setStackOverride(v === 'stacked')
+                }}
+              >
+                <ToggleButton value="stacked">stacked</ToggleButton>
+                <ToggleButton value="overlaid">overlaid</ToggleButton>
+              </ToggleButtonGroup>
+              <Typography variant="caption" color="text.secondary">
+                {(stackOverride ?? data.stacked)
+                  ? 'series summed into a total'
+                  : 'series overlaid for comparison'}
+              </Typography>
+            </Box>
+          )}
           {data && data.series.length > 0 ? (
             data.leaderboard ? (
               <LeaderboardTable
@@ -654,7 +692,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
                 series={data.series}
                 unit={data.unit}
                 chartType={data.chartType}
-                stacked={data.stacked}
+                stacked={stackOverride ?? data.stacked}
               />
             )
           ) : (

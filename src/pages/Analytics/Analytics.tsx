@@ -21,9 +21,7 @@ import FirstPageIcon from '@mui/icons-material/FirstPage'
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft'
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
 import LastPageIcon from '@mui/icons-material/LastPage'
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
-import SendIcon from '@mui/icons-material/Send'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import { useTheme } from '@mui/material/styles'
 import Link from '@mui/material/Link'
 import Dialog from '@mui/material/Dialog'
@@ -58,16 +56,45 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }))
 
-// KpiCard is the unified "hero metric" card: a tinted leading icon, an overline label with the
-// time-window as a clickable chip, and a large value. Used for the three headline dashboard stats.
+// PeriodButton is the time-window switcher used across the dashboard: a soft rounded pill with a
+// clock icon that opens the interval dialog. Subtle by default, primary-tinted on hover.
+const PeriodButton = ({
+  label,
+  onClick,
+}: {
+  label: string
+  onClick: () => void
+}) => (
+  <Button
+    size="small"
+    onClick={onClick}
+    startIcon={<AccessTimeIcon sx={{ fontSize: 15 }} />}
+    sx={{
+      textTransform: 'none',
+      borderRadius: 5,
+      px: 1.25,
+      py: 0.25,
+      minWidth: 0,
+      flexShrink: 0,
+      fontWeight: 600,
+      color: 'text.secondary',
+      bgcolor: 'action.hover',
+      '& .MuiButton-startIcon': { mr: 0.5 },
+      '&:hover': { bgcolor: 'action.selected', color: 'primary.main' },
+    }}
+  >
+    {label}
+  </Button>
+)
+
+// KpiCard is a headline-metric card: an overline label and a large value, with the time-window
+// switcher pill in the top-right. Used for the three headline dashboard stats.
 const KpiCard = ({
-  icon,
   label,
   windowLabel,
   onWindowClick,
   value,
 }: {
-  icon: ReactNode
   label: string
   windowLabel: string
   onWindowClick: () => void
@@ -75,48 +102,19 @@ const KpiCard = ({
 }) => (
   <Card sx={{ p: 1, height: '100%' }}>
     <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 38,
-            height: 38,
-            borderRadius: 1.5,
-            bgcolor: 'action.hover',
-            color: 'primary.main',
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </Box>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            variant="overline"
-            color="text.secondary"
-            sx={{ display: 'block', lineHeight: 1.3 }}
-          >
-            {label}
-          </Typography>
-          <Link
-            component="button"
-            variant="caption"
-            underline="hover"
-            onClick={onWindowClick}
-            sx={{ fontWeight: 500, lineHeight: 1.2 }}
-          >
-            {windowLabel}
-          </Link>
-        </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.3 }}>
+          {label}
+        </Typography>
+        <PeriodButton label={windowLabel} onClick={onWindowClick} />
       </Box>
       {value}
     </CardContent>
   </Card>
 )
 
-// WidgetTitle is the standard heading for a dashboard widget: the title plus the time-window as a
-// clickable chip (opens the interval dialog), matching the KpiCard window chip for a consistent look.
+// WidgetTitle is the standard heading for a dashboard widget: the title plus the time-window
+// switcher pill, matching the KpiCard for a consistent look.
 const WidgetTitle = ({
   title,
   windowLabel,
@@ -126,19 +124,11 @@ const WidgetTitle = ({
   windowLabel: string
   onWindowClick: () => void
 }) => (
-  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
     <Typography variant="h6" color="text.secondary">
       {title}
     </Typography>
-    <Link
-      component="button"
-      variant="body2"
-      underline="hover"
-      onClick={onWindowClick}
-      sx={{ fontWeight: 500 }}
-    >
-      {windowLabel}
-    </Link>
+    <PeriodButton label={windowLabel} onClick={onWindowClick} />
   </Box>
 )
 
@@ -840,7 +830,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                   }}
                 >
                   <KpiCard
-                    icon={<PeopleAltIcon />}
                     label="Unique users"
                     windowLabel={humanizeMinutes(
                       request.numUniqueUsers.lastMinutes
@@ -873,7 +862,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                   }}
                 >
                   <KpiCard
-                    icon={<SendIcon />}
                     label="Publications"
                     windowLabel={humanizeMinutes(
                       request.numPublications.lastMinutes
@@ -1987,7 +1975,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                   }}
                 >
                   <KpiCard
-                    icon={<NotificationsActiveIcon />}
                     label="Push notifications"
                     windowLabel={humanizeMinutes(
                       request.numPushNotifications.lastMinutes
