@@ -9,6 +9,7 @@ import Tooltip from '@mui/material/Tooltip'
 import IconButton from '@mui/material/IconButton'
 import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
+import DataObjectIcon from '@mui/icons-material/DataObject'
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import PlayCircleIcon from '@mui/icons-material/PlayCircle'
@@ -87,6 +88,13 @@ const pages = [
     icon: NotificationsIcon,
     iconColor: '#f44336',
     to: routes.PUSH_NOTIFICATION,
+    oss: false,
+  },
+  {
+    name: 'Config',
+    icon: DataObjectIcon,
+    iconColor: '#9c27b0',
+    to: routes.CONFIG,
     oss: false,
   },
 ]

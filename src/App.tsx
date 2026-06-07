@@ -21,6 +21,7 @@ import { Tracing } from 'pages/Tracing'
 import { Analytics } from 'pages/Analytics'
 import { PushNotification } from 'pages/PushNotification'
 import { Snapshots } from 'pages/Snapshots'
+import { Config } from 'pages/Config'
 import { AdminSettings, UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
@@ -423,6 +424,19 @@ function ShellWrapper({
             path={`${routes.SNAPSHOTS}/:id`}
             element={
               <Snapshots
+                signinSilent={signinSilent}
+                authorization={authorization}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        {edition === 'pro' ? (
+          <Route
+            path={routes.CONFIG}
+            element={
+              <Config
                 signinSilent={signinSilent}
                 authorization={authorization}
               />

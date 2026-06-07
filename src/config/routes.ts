@@ -8,4 +8,5 @@ export enum routes {
   ANALYTICS = '/analytics',
   PUSH_NOTIFICATION = '/push',
   SNAPSHOTS = '/snapshots',
+  CONFIG = '/config',
 }
