@@ -21,7 +21,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 
-import Editor from '@monaco-editor/react'
+import CodeMirror, { EditorView } from '@uiw/react-codemirror'
+import { json, jsonParseLinter } from '@codemirror/lang-json'
+import { linter } from '@codemirror/lint'
 
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
@@ -136,7 +138,15 @@ export const Actions = ({
       })
       .then(data => {
         setResponse(data)
-        setExecutedAt(new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 }))
+        setExecutedAt(
+          new Date().toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            fractionalSecondDigits: 3,
+          })
+        )
         setResponseKey(prev => prev + 1)
         setLoading(false)
       })
@@ -376,46 +386,35 @@ export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
         overflow: 'hidden',
       }}
     >
-      <Editor
-        language="json"
-        theme={colorMode === 'dark' ? 'vs-dark' : 'vs-light'}
-        width="100%"
+      <CodeMirror
+        theme={colorMode}
         height="250px"
+        width="100%"
+        extensions={[
+          json(),
+          // Inline JSON validation (parity with the previous editor's validate: true),
+          // no remote JSON schema fetching involved.
+          linter(jsonParseLinter()),
+          EditorView.lineWrapping,
+          // Keep the theme's syntax colors, but let the editor inherit the
+          // surrounding MUI card surface so it blends in both light and dark
+          // modes (the built-in dark theme's own background is bluish and does
+          // not match the app's neutral dark palette).
+          EditorView.theme({
+            '&': { fontSize: '16px', backgroundColor: 'transparent' },
+            '.cm-gutters': { backgroundColor: 'transparent' },
+            '&.cm-focused': { outline: 'none' },
+          }),
+        ]}
         onChange={value => onChange(value || '')}
-        onMount={(editor, monaco) => {
-          // Stop schema fetching/usage
-          monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-            enableSchemaRequest: false,
-            schemas: [], // no schemas applied
-            validate: true, // keep validation if you want; set to false to silence all
-            allowComments: true,
-          })
-
-          // 🔑 Kill JSON completions (this removes the `$schema` key suggestion)
-          monaco.languages.json.jsonDefaults.setModeConfiguration({
-            completionItems: false,
-          })
-        }}
-        options={{
-          fontSize: 18,
-          tabSize: 2,
-          insertSpaces: true,
-          lineNumbers: 'off',
-          glyphMargin: false,
-          folding: false,
-          lineDecorationsWidth: 0,
-          lineNumbersMinChars: 0,
-          minimap: { enabled: false },
-          scrollBeyondLastLine: false,
-          wordWrap: 'on',
-
-          // Extra belts & suspenders (optional)
-          quickSuggestions: false,
-          suggestOnTriggerCharacters: false,
-          inlineSuggest: { enabled: false },
-          parameterHints: { enabled: false },
-          hover: { enabled: false },
-          suggest: { showSnippets: false, showKeywords: false },
+        basicSetup={{
+          // No line numbers / folding — keeps it a compact payload field.
+          lineNumbers: false,
+          foldGutter: false,
+          highlightActiveLine: false,
+          highlightActiveLineGutter: false,
+          // No autocomplete noise (this is what the `$schema` suggestion used to be).
+          autocompletion: false,
         }}
       />
     </div>
@@ -485,11 +484,7 @@ export const KeyValueInput = ({ pairs, onChange }: KeyValueInputProps) => {
               <DeleteIcon fontSize="small" />
             </IconButton>
             {index === pairs.length - 1 && (
-              <IconButton
-                size="small"
-                onClick={addPair}
-                title="Add tag"
-              >
+              <IconButton size="small" onClick={addPair} title="Add tag">
                 <AddIcon fontSize="small" />
               </IconButton>
             )}
