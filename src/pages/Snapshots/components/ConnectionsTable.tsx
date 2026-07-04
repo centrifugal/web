@@ -40,7 +40,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import SellIcon from '@mui/icons-material/Sell'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 const CONNECTIONS_PAGE_SIZE = 500
@@ -85,6 +85,10 @@ export const ConnectionsTable = ({
   signinSilent,
 }: ConnectionsTableProps) => {
   const { showAlert } = useContext(ShellContext)
+  const { command, rawRequest, handleError } = useAdminApi({
+    authorization,
+    signinSilent,
+  })
   const [connections, setConnections] = useState<ConnectionInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [currentCursor, setCurrentCursor] = useState<string>('')
@@ -112,24 +116,19 @@ export const ConnectionsTable = ({
     ) => {
       try {
         setLoading(true)
-        const url = new URL(
-          `${globalUrlPrefix}admin/api/snapshots/${snapshotId}/connections`,
-          window.location.origin
-        )
-        url.searchParams.append('limit', CONNECTIONS_PAGE_SIZE.toString())
-
+        const params = new URLSearchParams({
+          limit: CONNECTIONS_PAGE_SIZE.toString(),
+        })
         if (cursor) {
-          url.searchParams.append('cursor', cursor)
+          params.append('cursor', cursor)
         }
         if (query) {
-          url.searchParams.append('q', query)
+          params.append('q', query)
         }
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: authorization,
-          },
-        })
+        const response = await rawRequest(
+          `admin/api/snapshots/${snapshotId}/connections?${params.toString()}`
+        )
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -186,12 +185,12 @@ export const ConnectionsTable = ({
         setLoading(false)
       }
     },
-    [snapshotId, authorization, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
+    [snapshotId, rawRequest, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
   ) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchConnections()
-  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [snapshotId, rawRequest, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
     if (searchQuery !== searchApplied) {
@@ -333,29 +332,7 @@ export const ConnectionsTable = ({
 
   const sendApiRequest = async (method: string, params: any) => {
     try {
-      const response = await fetch(`${globalUrlPrefix}admin/api`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authorization,
-        },
-        body: JSON.stringify({ method, params }),
-      })
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          showAlert('Unauthorized', { severity: 'error' })
-          signinSilent()
-          return
-        }
-        if (response.status === 403) {
-          showAlert('Permission denied', { severity: 'error' })
-          return
-        }
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
+      const data = await command(method, params)
 
       if (data.error) {
         showAlert(`API Error: ${data.error.message || 'Unknown error'}`, {
@@ -366,8 +343,7 @@ export const ConnectionsTable = ({
 
       showAlert(`Request successfully sent`, { severity: 'success' })
     } catch (error) {
-      console.error(`Operation failed:`, error)
-      showAlert(`Operation failed`, { severity: 'error' })
+      handleError(error)
     }
   }
 

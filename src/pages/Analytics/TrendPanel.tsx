@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 
-import { globalUrlPrefix } from 'config/url'
+import { adminRawFetch } from 'api/adminApi'
 
 import { TimeSeriesChart, TrendSeries } from './TimeSeriesChart'
 
@@ -51,10 +51,9 @@ export const TrendPanel = ({
     let cancelled = false
     setLoading(true)
     const now = Math.floor(Date.now() / 1000)
-    fetch(`${globalUrlPrefix}admin/analytics/trends`, {
+    adminRawFetch('admin/analytics/trends', {
       method: 'POST',
       headers,
-      mode: 'same-origin',
       body: JSON.stringify({
         metric,
         from: now - rangeSeconds,

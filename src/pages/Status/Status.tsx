@@ -12,7 +12,7 @@ import Paper from '@mui/material/Paper'
 import CircularProgress from '@mui/material/CircularProgress'
 import Tooltip from '@mui/material/Tooltip'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { Card, CardContent, Chip } from '@mui/material'
@@ -142,7 +142,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   // if (localStorage.getItem('centrifugo-edition') == 'oss') {
   //   edition = 'oss'
   // }
-  const { showAlert } = useContext(ShellContext)
+  const { command, handleError } = useAdminApi({ authorization, signinSilent })
   const [nodes, setNodes] = useState<any[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
@@ -262,39 +262,19 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
       setLoading(false)
     }
 
-    const askInfo = () => {
-      fetch(`${globalUrlPrefix}admin/api`, {
-        method: 'POST',
-        headers: { Accept: 'application/json', Authorization: authorization },
-        body: JSON.stringify({ method: 'info', params: {} }),
-        mode: 'same-origin',
-      })
-        .then(res => {
-          if (!res.ok) {
-            if (res.status === 401) {
-              showAlert('Unauthorized', { severity: 'error' })
-              signinSilent()
-              return null
-            }
-            if (res.status === 403) {
-              showAlert('Permission denied', { severity: 'error' })
-              return null
-            }
-            throw new Error(res.status.toString())
-          }
-          return res.json()
-        })
-        .then(data => data && handleInfo(data.result))
-        .catch(err => {
-          showAlert('Error connecting to server', { severity: 'error' })
-          console.error(err)
-        })
+    const askInfo = async () => {
+      try {
+        const data = await command('info')
+        handleInfo(data.result)
+      } catch (err) {
+        handleError(err)
+      }
     }
 
     if (visible) askInfo()
     const intervalId = setInterval(() => visible && askInfo(), 5000)
     return () => clearInterval(intervalId)
-  }, [signinSilent, authorization, showAlert, visible])
+  }, [command, handleError, visible])
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
 

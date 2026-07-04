@@ -23,7 +23,7 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 
 const CHANNELS_PAGE_SIZE = 500
 
@@ -65,6 +65,7 @@ export const ChannelsTable = ({
   const [searchApplied, setSearchApplied] = useState<string>('')
   const [error, setError] = useState<string>('')
   const [total, setTotal] = useState<number | null>(null)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
 
   const fetchChannels = useCallback(
     async (
@@ -75,24 +76,20 @@ export const ChannelsTable = ({
     ) => {
       try {
         setLoading(true)
-        const url = new URL(
-          `${globalUrlPrefix}admin/api/snapshots/${snapshotId}/channels`,
-          window.location.origin
-        )
-        url.searchParams.append('limit', CHANNELS_PAGE_SIZE.toString())
+        const params = new URLSearchParams({
+          limit: CHANNELS_PAGE_SIZE.toString(),
+        })
 
         if (cursor) {
-          url.searchParams.append('cursor', cursor)
+          params.append('cursor', cursor)
         }
         if (query) {
-          url.searchParams.append('q', query)
+          params.append('q', query)
         }
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: authorization,
-          },
-        })
+        const response = await rawRequest(
+          `admin/api/snapshots/${snapshotId}/channels?${params.toString()}`
+        )
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -150,12 +147,12 @@ export const ChannelsTable = ({
         setLoading(false)
       }
     },
-    [snapshotId, authorization, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
+    [snapshotId, rawRequest, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
   ) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     fetchChannels()
-  }, [snapshotId, authorization, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [snapshotId, rawRequest, signinSilent]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = () => {
     if (searchQuery !== searchApplied) {

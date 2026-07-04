@@ -20,7 +20,7 @@ import { TextField } from '@mui/material'
 import { Link } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -83,6 +83,7 @@ export function PushNotification({
 }: PushNotificationProps) {
   const savedLimit = localStorage.getItem('push_notifications.devices.limit')
   const { setTitle, showAlert } = useContext(ShellContext)
+  const { command, handleError } = useAdminApi({ authorization, signinSilent })
   const [nodes, setNodes] = useState<any[]>([])
   const [enabled, setEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -202,76 +203,48 @@ export function PushNotification({
     setPushDialogOpen(true)
   }
 
-  const sendPush = function (filter: any) {
-    const headers: any = {
-      Accept: 'application/json',
-      Authorization: authorization,
-    }
-
-    fetch(`${globalUrlPrefix}admin/api`, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify({
-        method: 'send_push_notification',
-        params: {
-          recipient: {
-            filter: filter,
+  const sendPush = async function (filter: any) {
+    const params = {
+      recipient: {
+        filter: filter,
+      },
+      notification: {
+        fcm: {
+          message: {
+            notification: { title: pushTitle, body: pushBody },
           },
-          notification: {
-            fcm: {
-              message: {
-                notification: { title: pushTitle, body: pushBody },
+        },
+        hms: {
+          message: {
+            notification: { title: pushTitle, body: pushBody },
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              alert: {
+                title: pushTitle,
+                body: pushBody,
               },
-            },
-            hms: {
-              message: {
-                notification: { title: pushTitle, body: pushBody },
-              },
-            },
-            apns: {
-              payload: {
-                aps: {
-                  alert: {
-                    title: pushTitle,
-                    body: pushBody,
-                  },
-                },
-              },
-            },
-            webpush: {
-              payload: { title: pushTitle, body: pushBody },
             },
           },
         },
-      }),
-      mode: 'same-origin',
-    })
-      .then(response => {
-        if (!response.ok) {
-          if (response.status === 401) {
-            showAlert('Unauthorized', { severity: 'error' })
-            signinSilent()
-            return
-          }
-          if (response.status === 403) {
-            showAlert('Permission denied', { severity: 'error' })
-            return
-          }
-          throw Error(response.status.toString())
-        }
-        return response.json()
-      })
-      .then(data => {
-        if (data.error) {
-          showAlert('Error: ' + data.error.message, { severity: 'error' })
-          return
-        }
-        showAlert('Push sent', { severity: 'success' })
-      })
-      .catch(e => {
-        showAlert('Error connecting to server', { severity: 'error' })
-        console.log(e)
-      })
+        webpush: {
+          payload: { title: pushTitle, body: pushBody },
+        },
+      },
+    }
+
+    try {
+      const data = await command('send_push_notification', params)
+      if (data.error) {
+        showAlert('Error: ' + data.error.message, { severity: 'error' })
+        return
+      }
+      showAlert('Push sent', { severity: 'success' })
+    } catch (e) {
+      handleError(e)
+    }
   }
 
   const handleKeyDown = (event: any) => {
@@ -323,7 +296,7 @@ export function PushNotification({
       setTotalCount(result.total_count)
     }
 
-    const fetchDevices = (
+    const fetchDevices = async (
       page: number,
       limit: number,
       cursor: string,
@@ -331,11 +304,6 @@ export function PushNotification({
       topicNames: string[]
     ) => {
       setCursorMap(c => c.set(page, cursor))
-
-      const headers: any = {
-        Accept: 'application/json',
-        Authorization: authorization,
-      }
 
       const params: any = {
         filter: getDeviceFilter(),
@@ -348,46 +316,22 @@ export function PushNotification({
         include_scores: true,
       }
 
-      fetch(`${globalUrlPrefix}admin/api`, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-          method: 'device_list',
-          params: params,
-        }),
-        mode: 'same-origin',
-      })
-        .then(response => {
-          if (!response.ok) {
-            if (response.status === 401) {
-              showAlert('Unauthorized', { severity: 'error' })
-              signinSilent()
-              return
-            }
-            if (response.status === 403) {
-              showAlert('Permission denied', { severity: 'error' })
-              return
-            }
-            throw Error(response.status.toString())
-          }
-          return response.json()
-        })
-        .then(data => {
-          setLoading(false)
-          if (!data) {
-            return
-          }
-          if (data.error) {
-            return
-          }
-          setEnabled(true)
-          handleDevices(page, data.result)
-          setLoading(false)
-        })
-        .catch(e => {
-          showAlert('Error connecting to server', { severity: 'error' })
-          console.log(e)
-        })
+      try {
+        const data = await command('device_list', params)
+        setLoading(false)
+        if (!data) {
+          return
+        }
+        if (data.error) {
+          return
+        }
+        setEnabled(true)
+        handleDevices(page, data.result)
+        setLoading(false)
+      } catch (e) {
+        setLoading(false)
+        handleError(e)
+      }
     }
     fetchDevices(page, limit, cursor, userIds, topicNames)
     return () => {}
@@ -398,9 +342,8 @@ export function PushNotification({
     cursor,
     userIds,
     topicNames,
-    signinSilent,
-    showAlert,
-    authorization,
+    command,
+    handleError,
     getDeviceFilter,
   ])
 

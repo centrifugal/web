@@ -183,10 +183,10 @@ function App({
     setIsAuthenticated(false)
   }
 
-  const handleLogin = function (password: string) {
+  const handleLogin = async function (password: string) {
     const formData = new FormData()
     formData.append('password', password)
-    fetch(`${globalUrlPrefix}admin/auth`, {
+    const response = await fetch(`${globalUrlPrefix}admin/auth`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -194,17 +194,12 @@ function App({
       body: formData,
       mode: 'same-origin',
     })
-      .then(response => {
-        if (!response.ok) {
-          throw Error(response.status.toString())
-        }
-        return response.json()
-      })
-      .then(data => {
-        localStorage.setItem('token', data.token)
-        setIsAuthenticated(true)
-      })
-      .catch(e => {})
+    if (!response.ok) {
+      throw new Error(response.status.toString())
+    }
+    const data = await response.json()
+    localStorage.setItem('token', data.token)
+    setIsAuthenticated(true)
   }
 
   return (
@@ -243,7 +238,7 @@ function App({
 }
 
 export interface ShellWrapperProps extends PropsWithChildren {
-  handleLogin: (password: string) => void
+  handleLogin: (password: string) => Promise<void>
   handlePasswordLogout: () => void
   passwordAuthenticated: boolean
   edition: 'oss' | 'pro'

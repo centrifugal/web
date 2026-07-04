@@ -20,7 +20,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { Grid } from '@mui/material'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { TimeSeriesChart, TrendSeries } from './TimeSeriesChart'
@@ -198,7 +198,9 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
   // Leaderboard candidate ranking: by window total (default) or by peak bucket (transient leaders).
   const [rankBy, setRankBy] = useState<'total' | 'peak'>('total')
   // Stacked-view override for multi-series charts: null = use the trend's default, else force on/off.
-  const [stackOverride, setStackOverride] = useState<boolean | null>(initial.stack)
+  const [stackOverride, setStackOverride] = useState<boolean | null>(
+    initial.stack
+  )
 
   // Debounced copies of the free-text inputs drive fetching and URL persistence.
   const debouncedFilters = useDebounced(filters, FILTER_DEBOUNCE_MS)
@@ -207,10 +209,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     FILTER_DEBOUNCE_MS
   )
 
-  const headers = useMemo(
-    () => ({ Accept: 'application/json', Authorization: authorization }),
-    [authorization]
-  )
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
 
   const handleHttpError = useCallback(
     (status: number): boolean => {
@@ -235,11 +234,10 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
   // Load catalog once — the metric selector and per-metric filters are driven entirely by it,
   // so any trend registered on the backend appears here automatically.
   useEffect(() => {
-    fetch(`${globalUrlPrefix}admin/analytics/trends`, {
+    rawRequest('admin/analytics/trends', {
       method: 'POST',
-      headers,
+      headers: { Accept: 'application/json' },
       body: JSON.stringify({ catalog: true }),
-      mode: 'same-origin',
     })
       .then(response => {
         if (!response.ok) {
@@ -266,7 +264,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
         showAlert('Error connecting to server', { severity: 'error' })
         console.log(e)
       })
-  }, [headers, handleHttpError, showAlert])
+  }, [rawRequest, handleHttpError, showAlert])
 
   const activeEntry = useMemo(
     () => catalog?.find(e => e.id === metricId) ?? null,
@@ -327,15 +325,14 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       return
     }
     const now = Math.floor(Date.now() / 1000)
-    fetch(`${globalUrlPrefix}admin/analytics/trends`, {
+    rawRequest('admin/analytics/trends', {
       method: 'POST',
-      headers,
+      headers: { Accept: 'application/json' },
       body: JSON.stringify({
         labelKeys: true,
         from: now - rangeSeconds,
         to: now,
       }),
-      mode: 'same-origin',
     })
       .then(response => (response.ok ? response.json() : null))
       .then(payload => {
@@ -350,7 +347,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
         }
       })
       .catch(() => {})
-  }, [activeEntry, rangeSeconds, headers])
+  }, [activeEntry, rangeSeconds, rawRequest])
 
   const fetchData = useCallback(() => {
     if (!metricId) return
@@ -381,11 +378,10 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     if (activeEntry?.leaderboard && rankBy === 'peak') {
       body.rankBy = 'peak'
     }
-    fetch(`${globalUrlPrefix}admin/analytics/trends`, {
+    rawRequest('admin/analytics/trends', {
       method: 'POST',
-      headers,
+      headers: { Accept: 'application/json' },
       body: JSON.stringify(body),
-      mode: 'same-origin',
     })
       .then(response => {
         if (!response.ok) {
@@ -414,7 +410,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     labelFilterKey,
     debouncedLabelFilterValue,
     rankBy,
-    headers,
+    rawRequest,
     handleHttpError,
   ])
 
@@ -657,26 +653,31 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
             </Box>
           )}
           {/* Stacked vs overlaid view toggle — only meaningful for multi-series stacked trends. */}
-          {data && !data.leaderboard && data.stacked && data.series.length > 1 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-              <ToggleButtonGroup
-                size="small"
-                exclusive
-                value={(stackOverride ?? data.stacked) ? 'stacked' : 'overlaid'}
-                onChange={(_, v) => {
-                  if (v) setStackOverride(v === 'stacked')
-                }}
+          {data &&
+            !data.leaderboard &&
+            data.stacked &&
+            data.series.length > 1 && (
+              <Box
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}
               >
-                <ToggleButton value="stacked">stacked</ToggleButton>
-                <ToggleButton value="overlaid">overlaid</ToggleButton>
-              </ToggleButtonGroup>
-              <Typography variant="caption" color="text.secondary">
-                {(stackOverride ?? data.stacked)
-                  ? 'series summed into a total'
-                  : 'series overlaid for comparison'}
-              </Typography>
-            </Box>
-          )}
+                <ToggleButtonGroup
+                  size="small"
+                  exclusive
+                  value={stackOverride ?? data.stacked ? 'stacked' : 'overlaid'}
+                  onChange={(_, v) => {
+                    if (v) setStackOverride(v === 'stacked')
+                  }}
+                >
+                  <ToggleButton value="stacked">stacked</ToggleButton>
+                  <ToggleButton value="overlaid">overlaid</ToggleButton>
+                </ToggleButtonGroup>
+                <Typography variant="caption" color="text.secondary">
+                  {stackOverride ?? data.stacked
+                    ? 'series summed into a total'
+                    : 'series overlaid for comparison'}
+                </Typography>
+              </Box>
+            )}
           {data && data.series.length > 0 ? (
             data.leaderboard ? (
               <LeaderboardTable

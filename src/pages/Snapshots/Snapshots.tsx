@@ -10,10 +10,14 @@ import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
-import { SnapshotsList, SnapshotDetail, CreateSnapshotDialog } from './components'
+import {
+  SnapshotsList,
+  SnapshotDetail,
+  CreateSnapshotDialog,
+} from './components'
 
 interface SnapshotsProps {
   signinSilent: () => void
@@ -39,6 +43,7 @@ interface Snapshot {
 
 export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
@@ -48,84 +53,86 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
   const [currentSnapshot, setCurrentSnapshot] = useState<Snapshot | null>(null)
   const [notEnabled, setNotEnabled] = useState<boolean>(false)
   const [createDialogOpen, setCreateDialogOpen] = useState<boolean>(false)
-  const [createDialogParentId, setCreateDialogParentId] = useState<string | undefined>()
-  const [createDialogPrefilled, setCreateDialogPrefilled] = useState<any>(undefined)
+  const [createDialogParentId, setCreateDialogParentId] = useState<
+    string | undefined
+  >()
+  const [createDialogPrefilled, setCreateDialogPrefilled] =
+    useState<any>(undefined)
   const [nextCursor, setNextCursor] = useState<string>('')
 
-  const fetchSnapshots = useCallback(async (cursor?: string) => {
-    try {
-      const url = new URL(`${globalUrlPrefix}admin/api/snapshots`, window.location.origin)
-      url.searchParams.append('limit', '10')
-      if (cursor) {
-        url.searchParams.append('cursor', cursor)
-      }
+  const fetchSnapshots = useCallback(
+    async (cursor?: string) => {
+      try {
+        const params = new URLSearchParams({ limit: '10' })
+        if (cursor) {
+          params.append('cursor', cursor)
+        }
 
-      const response = await fetch(url.toString(), {
-        headers: {
-          Authorization: authorization,
-        },
-      })
+        const response = await rawRequest(
+          `admin/api/snapshots?${params.toString()}`
+        )
 
-      if (response.status === 404) {
-        setNotEnabled(true)
+        if (response.status === 404) {
+          setNotEnabled(true)
+          setLoading(false)
+          return
+        }
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            signinSilent()
+            return
+          }
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        if (cursor) {
+          setSnapshots(prev => [...prev, ...data.snapshots])
+        } else {
+          setSnapshots(data.snapshots || [])
+        }
+        setNextCursor(data.next_cursor || '')
         setLoading(false)
-        return
+      } catch (error) {
+        console.error('Failed to fetch snapshots:', error)
+        showAlert('Failed to load snapshots', { severity: 'error' })
+        setLoading(false)
       }
+    },
+    [rawRequest, signinSilent, showAlert]
+  )
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          signinSilent()
+  const fetchSnapshotDetails = useCallback(
+    async (snapshotId: string) => {
+      try {
+        const response = await rawRequest(`admin/api/snapshots/${snapshotId}`)
+
+        if (response.status === 404) {
+          showAlert('Snapshot not found', { severity: 'error' })
+          navigate('/snapshots')
           return
         }
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
 
-      const data = await response.json()
-      if (cursor) {
-        setSnapshots(prev => [...prev, ...data.snapshots])
-      } else {
-        setSnapshots(data.snapshots || [])
-      }
-      setNextCursor(data.next_cursor || '')
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch snapshots:', error)
-      showAlert('Failed to load snapshots', { severity: 'error' })
-      setLoading(false)
-    }
-  }, [authorization, signinSilent, showAlert])
-
-  const fetchSnapshotDetails = useCallback(async (snapshotId: string) => {
-    try {
-      const response = await fetch(`${globalUrlPrefix}admin/api/snapshots/${snapshotId}`, {
-        headers: {
-          Authorization: authorization,
-        },
-      })
-
-      if (response.status === 404) {
-        showAlert('Snapshot not found', { severity: 'error' })
-        navigate('/snapshots')
-        return
-      }
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          signinSilent()
-          return
+        if (!response.ok) {
+          if (response.status === 401) {
+            signinSilent()
+            return
+          }
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
 
-      const data = await response.json()
-      setCurrentSnapshot(data)
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to fetch snapshot details:', error)
-      showAlert('Failed to load snapshot details', { severity: 'error' })
-      setLoading(false)
-    }
-  }, [authorization, signinSilent, showAlert, navigate])
+        const data = await response.json()
+        setCurrentSnapshot(data)
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch snapshot details:', error)
+        showAlert('Failed to load snapshot details', { severity: 'error' })
+        setLoading(false)
+      }
+    },
+    [rawRequest, signinSilent, showAlert, navigate]
+  )
 
   useEffect(() => {
     if (id) {
@@ -137,7 +144,7 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
       setTitle('Snapshots')
       setCurrentSnapshot(null) // Clear snapshot data when going back to list
       fetchSnapshots()
-      
+
       // Check if we need to open create dialog with prefilled data
       if (location.state?.openCreateDialog) {
         const prefilledData = location.state.prefilledData
@@ -146,9 +153,9 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
         setCreateDialogPrefilled({
           type: prefilledData?.type,
           filterType: prefilledData?.filterType,
-          value: prefilledData?.value
+          value: prefilledData?.value,
         })
-        
+
         // Clear the state to prevent reopening on subsequent renders
         navigate(location.pathname, { replace: true, state: {} })
       }
@@ -157,11 +164,10 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
   const handleCreateSnapshot = async (snapshotData: any) => {
     try {
-      const response = await fetch(`${globalUrlPrefix}admin/api/snapshots`, {
+      const response = await rawRequest(`admin/api/snapshots`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: authorization,
         },
         body: JSON.stringify(snapshotData),
       })
@@ -176,10 +182,10 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
       const data = await response.json()
       showAlert('Snapshot created successfully', { severity: 'success' })
-      
+
       // Navigate to the new snapshot's detail page
       navigate(`/snapshots/${data.snapshot_id}`)
-      
+
       setCreateDialogOpen(false)
       // Clear parent ID and prefilled data
       setCreateDialogParentId(undefined)
@@ -197,13 +203,16 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
     setCreateDialogPrefilled(undefined)
   }
 
-  const handleCreateConnectionsSnapshot = (channelName: string, parentSnapshotId: string) => {
+  const handleCreateConnectionsSnapshot = (
+    channelName: string,
+    parentSnapshotId: string
+  ) => {
     setCreateDialogOpen(true)
     setCreateDialogParentId(parentSnapshotId)
     setCreateDialogPrefilled({
       type: 'connections',
       filterType: 'channel',
-      value: channelName
+      value: channelName,
     })
   }
 
@@ -244,19 +253,34 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
       {id && currentSnapshot ? (
         <Card>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h5" component="h1" sx={{ 
-                color: 'text.primary',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1
-              }}>
-                {currentSnapshot.kind.charAt(0).toUpperCase() + currentSnapshot.kind.slice(1)} Snapshot, ID
-                <Typography component="span" variant="h6" sx={{ 
-                  color: 'text.secondary',
-                  fontFamily: 'monospace',
-                  fontWeight: 400
-                }}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
+            >
+              <Typography
+                variant="h5"
+                component="h1"
+                sx={{
+                  color: 'text.primary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                }}
+              >
+                {currentSnapshot.kind.charAt(0).toUpperCase() +
+                  currentSnapshot.kind.slice(1)}{' '}
+                Snapshot, ID
+                <Typography
+                  component="span"
+                  variant="h6"
+                  sx={{
+                    color: 'text.secondary',
+                    fontFamily: 'monospace',
+                    fontWeight: 400,
+                  }}
+                >
                   {currentSnapshot.snapshot_id}
                 </Typography>
               </Typography>
@@ -279,7 +303,12 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
       ) : (
         <Card>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
+            >
               <Typography variant="h5" component="h1">
                 All Snapshots
               </Typography>

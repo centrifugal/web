@@ -21,7 +21,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import { Grid } from '@mui/material'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 interface FlightRecorderProps {
@@ -431,6 +431,7 @@ export const FlightRecorder = ({
   authorization,
 }: FlightRecorderProps) => {
   const { showAlert } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [searchParams, setSearchParams] = useSearchParams()
 
   const initial = useRef({
@@ -468,10 +469,7 @@ export const FlightRecorder = ({
   const [maxEvents, setMaxEvents] = useState(2000)
   const [downloading, setDownloading] = useState(false)
 
-  const headers = useMemo(
-    () => ({ Accept: 'application/json', Authorization: authorization }),
-    [authorization]
-  )
+  const headers = useMemo(() => ({ Accept: 'application/json' }), [])
 
   const handleHttpError = useCallback(
     (status: number): boolean => {
@@ -506,10 +504,9 @@ export const FlightRecorder = ({
       }
       setLoading(true)
       setError('')
-      fetch(`${globalUrlPrefix}admin/analytics/recorder`, {
+      rawRequest('admin/analytics/recorder', {
         method: 'POST',
         headers,
-        mode: 'same-origin',
         body: JSON.stringify({
           [m]: q,
           from,
@@ -546,7 +543,16 @@ export const FlightRecorder = ({
     // searchParams/setSearchParams intentionally excluded — setSearchParams is stable and we don't
     // want load() recreated on every URL change it makes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [entity, fromStr, toStr, mode, maxEvents, headers, handleHttpError]
+    [
+      entity,
+      fromStr,
+      toStr,
+      mode,
+      maxEvents,
+      headers,
+      handleHttpError,
+      rawRequest,
+    ]
   )
 
   // Auto-load once on mount if the URL already carried an entity (shareable timelines).
@@ -634,10 +640,9 @@ export const FlightRecorder = ({
     const to = inputToUnix(toStr)
     setDownloading(true)
     try {
-      const r = await fetch(`${globalUrlPrefix}admin/analytics/recorder`, {
+      const r = await rawRequest('admin/analytics/recorder', {
         method: 'POST',
         headers,
-        mode: 'same-origin',
         body: JSON.stringify({ [shown.mode]: shown.q, from, to, export: true }),
       })
       if (!r.ok) {

@@ -37,7 +37,7 @@ import Tab from '@mui/material/Tab'
 import { Button, Chip, Grid } from '@mui/material'
 import { useSearchParams } from 'react-router-dom'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { Trends } from './Trends'
@@ -335,14 +335,24 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 
 const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [loading, setLoading] = useState(true)
   const [reloading, setReloading] = useState(true)
   const [enabled, setEnabled] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<null | any>(null)
   const localStorageRequestKey = 'centrifugo_analytics_request_v2'
 
-  let savedReq: any
-  if (localStorage.getItem(localStorageRequestKey) === null) {
+  let savedReq: any = null
+  const storedRequest = localStorage.getItem(localStorageRequestKey)
+  if (storedRequest !== null) {
+    try {
+      savedReq = JSON.parse(storedRequest)
+    } catch {
+      // Corrupt or incompatible stored request — fall back to defaults below.
+      savedReq = null
+    }
+  }
+  if (savedReq === null) {
     savedReq = {
       numUniqueUsers: {
         lastMinutes: 60,
@@ -396,8 +406,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
         analyticsUid: '',
       },
     }
-  } else {
-    savedReq = JSON.parse(localStorage.getItem(localStorageRequestKey)!)
   }
   const [request, setRequest] = useState(savedReq)
 
@@ -603,14 +611,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
 
       const headers: any = {
         Accept: 'application/json',
-        Authorization: authorization,
       }
 
-      fetch(`${globalUrlPrefix}admin/analytics`, {
+      rawRequest(`admin/analytics`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(request),
-        mode: 'same-origin',
       })
         .then(response => {
           if (!response.ok) {
@@ -645,7 +651,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
           console.log(e)
         })
     },
-    [signinSilent, authorization, showAlert, request]
+    [signinSilent, showAlert, request, rawRequest]
   )
 
   const [didFetch, setDidFetch] = useState(false)

@@ -18,6 +18,7 @@ import {
 } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
 import { globalUrlPrefix } from 'config/url'
+import { useAdminApi, AdminApiError } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
@@ -28,6 +29,7 @@ interface TracingProps {
 
 export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
+  const { handleError } = useAdminApi({ authorization, signinSilent })
   const [channel, setChannel] = useState('')
   const [user, setUser] = useState('')
   const [filter, setFilter] = useState('')
@@ -82,7 +84,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       setRunning(false)
     }
     setFilter('')
-    
+
     // Clear input fields when switching types
     const newTraceType = (event.target as HTMLInputElement).value
     if (newTraceType !== traceType) {
@@ -90,9 +92,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       setChannel('')
       setClientId('')
     }
-    
+
     setTraceType(newTraceType)
-    
+
     // Clear URL parameters when user manually changes trace type
     if (window.location.hash.includes('?')) {
       const newHash = window.location.hash.split('?')[0]
@@ -173,7 +175,10 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     } else {
       filterExpressionRef.current = null
     }
-    startStream(traceType, traceType === 'user' ? user : traceType === 'channel' ? channel : clientId)
+    startStream(
+      traceType,
+      traceType === 'user' ? user : traceType === 'channel' ? channel : clientId
+    )
     setMessages([])
   }
 
@@ -264,7 +269,14 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       stopStream()
     }
 
-    eventTarget.addEventListener('error', (error: any) => {
+    eventTarget.addEventListener('error', (event: any) => {
+      // FetchEventTarget only emits 'error' for real failures (aborts route to
+      // 'close'). handleErrors throws Error(status), so map that to an
+      // AdminApiError for consistent 401/403/generic handling; otherwise treat
+      // it as a lost connection.
+      const err = event?.detail
+      const status = err instanceof Error ? Number(err.message) : Number.NaN
+      handleError(Number.isNaN(status) ? err : new AdminApiError(status))
       handleClose()
     })
 
@@ -322,11 +334,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             control={<Radio />}
             label="Channel"
           />
-          <FormControlLabel
-            value="client"
-            control={<Radio />}
-            label="Client"
-          />
+          <FormControlLabel value="client" control={<Radio />} label="Client" />
         </RadioGroup>
       </FormControl>
       {traceType === 'user' ? (

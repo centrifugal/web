@@ -25,7 +25,7 @@ import { NotificationArea } from './NotificationArea'
 import { RouteContent } from './RouteContent'
 
 export interface ShellProps extends PropsWithChildren {
-  handleLogin: (password: string) => void
+  handleLogin: (password: string) => Promise<void>
   handleLogout: () => void
   passwordAuthenticated: boolean
   edition: 'oss' | 'pro'
@@ -126,6 +126,16 @@ export const Shell = ({
 
     setIsAlertShowing(false)
   }
+
+  // Clear any pending alert when logging out. The Snackbar only renders while
+  // authenticated, so an error alert shown right before logout (e.g. the 401
+  // that triggered it) would otherwise stay frozen and re-surface on the next
+  // successful login.
+  useEffect(() => {
+    if (!authenticated) {
+      setIsAlertShowing(false)
+    }
+  }, [authenticated])
 
   useEffect(() => {
     document.title = title

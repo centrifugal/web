@@ -31,7 +31,7 @@ import {
   solarizedLight,
 } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
@@ -83,7 +83,8 @@ export const Actions = ({
   authorization,
   edition,
 }: ActionsProps) => {
-  const { setTitle, showAlert } = useContext(ShellContext)
+  const { setTitle } = useContext(ShellContext)
+  const { command, handleError } = useAdminApi({ authorization, signinSilent })
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
 
@@ -107,53 +108,28 @@ export const Actions = ({
   )
 
   // Send API request
-  const sendRequest = (params: any) => {
+  const sendRequest = async (params: any) => {
     setLoading(true)
     setRequest({ method, params })
 
-    fetch(`${globalUrlPrefix}admin/api`, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        Authorization: authorization,
-      },
-      body: JSON.stringify({ method, params }),
-      mode: 'same-origin',
-    })
-      .then(res => {
-        if (!res.ok) {
-          setLoading(false)
-          if (res.status === 401) {
-            showAlert('Unauthorized', { severity: 'error' })
-            signinSilent()
-            return Promise.reject()
-          }
-          if (res.status === 403) {
-            showAlert('Permission denied', { severity: 'error' })
-            return Promise.reject()
-          }
-          return Promise.reject(new Error(res.status.toString()))
-        }
-        return res.json()
-      })
-      .then(data => {
-        setResponse(data)
-        setExecutedAt(
-          new Date().toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            fractionalSecondDigits: 3,
-          })
-        )
-        setResponseKey(prev => prev + 1)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-      })
+    try {
+      const data = await command(method, params)
+      setResponse(data)
+      setExecutedAt(
+        new Date().toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          fractionalSecondDigits: 3,
+        })
+      )
+      setResponseKey(prev => prev + 1)
+    } catch (err) {
+      handleError(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Handle method selection change

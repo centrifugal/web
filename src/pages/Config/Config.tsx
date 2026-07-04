@@ -3,7 +3,7 @@ import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { ConfigTree } from './ConfigTree'
@@ -16,6 +16,7 @@ interface ConfigProps {
 
 export const Config = ({ authorization }: ConfigProps) => {
   const { setTitle } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization })
   const [data, setData] = useState<ConfigResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,9 +31,7 @@ export const Config = ({ authorization }: ConfigProps) => {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${globalUrlPrefix}admin/api/config`, {
-          headers: { Authorization: authorization },
-        })
+        const res = await rawRequest('admin/api/config')
         if (!res.ok) throw new Error(`status ${res.status}`)
         const json = await res.json()
         if (!cancelled) setData(json.config ?? json)
@@ -46,7 +45,7 @@ export const Config = ({ authorization }: ConfigProps) => {
     return () => {
       cancelled = true
     }
-  }, [authorization])
+  }, [rawRequest])
 
   return (
     <Box className="max-w-8xl mx-auto p-8">

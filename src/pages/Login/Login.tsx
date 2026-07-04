@@ -582,7 +582,7 @@ function drawLogo(
 }
 
 interface LoginProps {
-  handleLogin: (password: string) => void
+  handleLogin: (password: string) => Promise<void>
 }
 
 const MemoCanvas = React.memo(props => {
@@ -605,6 +605,7 @@ export function Login({ handleLogin }: LoginProps) {
   const { setTitle } = useContext(ShellContext)
 
   const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
   const adminSettingsContext = useContext(AdminSettingsContext)
 
   const adminSettings = adminSettingsContext.getAdminSettings()
@@ -659,9 +660,20 @@ export function Login({ handleLogin }: LoginProps) {
     return () => clearInterval(intervalId)
   }, [])
 
-  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (
+    event: React.SyntheticEvent<HTMLFormElement>
+  ) => {
     event.preventDefault()
-    handleLogin(password)
+    setLoginError('')
+    try {
+      await handleLogin(password)
+    } catch (err) {
+      setLoginError(
+        err instanceof Error && err.message === '401'
+          ? 'Invalid password'
+          : 'Login failed, please try again'
+      )
+    }
   }
 
   const handleServerSideOIDCLogin = () => {
@@ -710,9 +722,14 @@ export function Login({ handleLogin }: LoginProps) {
             type="password"
             id="password"
             autoComplete="current-password"
-            onChange={event => setPassword(event.target.value)}
+            onChange={event => {
+              setPassword(event.target.value)
+              if (loginError) setLoginError('')
+            }}
             value={password}
             color="primary"
+            error={!!loginError}
+            helperText={loginError}
           />
         )}
 

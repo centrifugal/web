@@ -27,7 +27,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import { Grid } from '@mui/material'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { TrendPanel } from './TrendPanel'
@@ -102,6 +102,7 @@ export const UserExplorer = ({
   authorization,
 }: UserExplorerProps) => {
   const { showAlert } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [searchParams, setSearchParams] = useSearchParams()
 
   const initialUser = useRef(
@@ -151,10 +152,9 @@ export const UserExplorer = ({
     }
     setLoading(true)
     const now = Math.floor(Date.now() / 1000)
-    fetch(`${globalUrlPrefix}admin/analytics/user`, {
+    rawRequest('admin/analytics/user', {
       method: 'POST',
-      headers,
-      mode: 'same-origin',
+      headers: { Accept: 'application/json' },
       body: JSON.stringify({ user, from: now - rangeSeconds, to: now }),
     })
       .then(r => {
@@ -173,7 +173,7 @@ export const UserExplorer = ({
       .catch(() => {
         setLoading(false)
       })
-  }, [user, rangeSeconds, headers, handleHttpError])
+  }, [user, rangeSeconds, rawRequest, handleHttpError])
 
   // Persist user + range to URL (shareable) and localStorage (last user).
   useEffect(() => {

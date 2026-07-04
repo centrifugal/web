@@ -15,7 +15,7 @@ const ShellStub = (overrides: Partial<ShellProps> = {}) => {
     >
       <AuthProvider>
         <Shell
-          handleLogin={(password: string) => {}}
+          handleLogin={async (password: string) => {}}
           handleLogout={() => {}}
           passwordAuthenticated={true}
           edition={'oss'}

@@ -26,7 +26,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import { Grid } from '@mui/material'
 
-import { globalUrlPrefix } from 'config/url'
+import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { TrendPanel, TrendPanelData } from './TrendPanel'
@@ -129,6 +129,7 @@ export const ChannelExplorer = ({
   authorization,
 }: ChannelExplorerProps) => {
   const { showAlert } = useContext(ShellContext)
+  const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [searchParams, setSearchParams] = useSearchParams()
 
   const initialChannel = useRef(
@@ -177,10 +178,9 @@ export const ChannelExplorer = ({
     }
     setLoading(true)
     const now = Math.floor(Date.now() / 1000)
-    fetch(`${globalUrlPrefix}admin/analytics/channel`, {
+    rawRequest(`admin/analytics/channel`, {
       method: 'POST',
-      headers,
-      mode: 'same-origin',
+      headers: { Accept: 'application/json' },
       body: JSON.stringify({ channel, from: now - rangeSeconds, to: now }),
     })
       .then(r => {
@@ -197,7 +197,7 @@ export const ChannelExplorer = ({
         setLoading(false)
       })
       .catch(() => setLoading(false))
-  }, [channel, rangeSeconds, headers, handleHttpError])
+  }, [channel, rangeSeconds, rawRequest, handleHttpError])
 
   useEffect(() => {
     const next = new URLSearchParams()
