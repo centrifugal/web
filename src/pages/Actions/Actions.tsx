@@ -369,12 +369,12 @@ export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
   )
 }
 
-interface AceFieldProps {
+interface JsonFieldProps {
   colorMode: 'light' | 'dark'
   onChange: (value: string, event?: any) => void
 }
 
-export const AceField = ({ colorMode, onChange }: AceFieldProps) => {
+export const JsonField = ({ colorMode, onChange }: JsonFieldProps) => {
   return (
     <div
       style={{
@@ -571,7 +571,7 @@ export const PublishForm = ({ colorMode, loading, sendRequest }: FormProps) => {
       />
       <KeyValueInput pairs={tags} onChange={setTags} />
       <Box sx={{ mt: 2 }}>
-        <AceField colorMode={colorMode} onChange={onDataChange} />
+        <JsonField colorMode={colorMode} onChange={onDataChange} />
       </Box>
       <SubmitButton loading={loading} text="Publish" />
     </Box>
@@ -658,7 +658,7 @@ export const BroadcastForm = ({
       />
       <KeyValueInput pairs={tags} onChange={setTags} />
       <Box sx={{ mt: 2 }}>
-        <AceField colorMode={colorMode} onChange={onDataChange} />
+        <JsonField colorMode={colorMode} onChange={onDataChange} />
       </Box>
       <SubmitButton loading={loading} text="Broadcast" />
     </Box>
@@ -1049,7 +1049,7 @@ export const RpcForm = ({ colorMode, loading, sendRequest }: FormProps) => {
         onChange={event => setMethod(event.target.value)}
         value={method}
       />
-      <AceField colorMode={colorMode} onChange={onDataChange} />
+      <JsonField colorMode={colorMode} onChange={onDataChange} />
       <SubmitButton loading={loading} text="RPC" />
     </Box>
   )

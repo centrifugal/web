@@ -102,8 +102,20 @@ const KpiCard = ({
 }) => (
   <Card sx={{ p: 1, height: '100%' }}>
     <CardContent>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 1,
+          mb: 0.5,
+        }}
+      >
+        <Typography
+          variant="overline"
+          color="text.secondary"
+          sx={{ lineHeight: 1.3 }}
+        >
           {label}
         </Typography>
         <PeriodButton label={windowLabel} onClick={onWindowClick} />
@@ -2195,10 +2207,10 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2.5 }}>
         <Tabs value={tab} onChange={handleChange}>
           <Tab label="Dashboard" value="dashboard" />
-          <Tab label="Trends (EXPERIMENTAL)" value="trends" />
-          <Tab label="User explorer (EXPERIMENTAL)" value="user" />
-          <Tab label="Channel explorer (EXPERIMENTAL)" value="channel" />
-          <Tab label="Flight recorder (EXPERIMENTAL)" value="recorder" />
+          <Tab label="Trends" value="trends" />
+          <Tab label="User explorer" value="user" />
+          <Tab label="Channel explorer" value="channel" />
+          <Tab label="Flight recorder" value="recorder" />
         </Tabs>
       </Box>
       {tab === 'dashboard' && (

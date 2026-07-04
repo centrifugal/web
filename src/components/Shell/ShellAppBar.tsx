@@ -167,7 +167,7 @@ export const ShellAppBar = ({
               height: 30,
             }}
           >
-            <img src="favicon.png" alt="" />
+            <img src="logo.svg" alt="Centrifugo logo" />
           </ImageListItem>
           <Typography
             noWrap
@@ -235,7 +235,7 @@ export const ShellAppBar = ({
               height: 30,
             }}
           >
-            <img src="favicon.png" alt="" />
+            <img src="logo.svg" alt="Centrifugo logo" />
           </ImageListItem>
           <Typography
             variant="h5"
