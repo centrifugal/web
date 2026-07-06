@@ -4,14 +4,7 @@
 // is what the Go side will emit later — the sample mirrors it exactly.
 
 export type NodeKind =
-  | 'object'
-  | 'array'
-  | 'string'
-  | 'number'
-  | 'bool'
-  | 'null'
-  | 'secret'
-  | 'url'
+  'object' | 'array' | 'string' | 'number' | 'bool' | 'null' | 'secret' | 'url'
 
 export interface FieldDoc {
   description?: string

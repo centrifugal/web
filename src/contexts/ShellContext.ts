@@ -13,7 +13,7 @@ interface ShellContextProps {
 export const ShellContext = createContext<ShellContextProps>({
   numberOfPeers: 1,
   tabHasFocus: true,
-  setNumberOfPeers: () => { },
-  setTitle: () => { },
-  showAlert: () => { },
+  setNumberOfPeers: () => {},
+  setTitle: () => {},
+  showAlert: () => {},
 })

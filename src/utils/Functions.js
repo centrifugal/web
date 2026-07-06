@@ -45,7 +45,6 @@ export function HumanSize(bytes, si = false, dp = 1) {
   const r = 10 ** dp
 
   do {
-    // eslint-disable-next-line no-param-reassign
     bytes /= thresh
     u += 1
   } while (
@@ -60,7 +59,7 @@ export function SortByKey(array, key) {
   return array.sort((a, b) => {
     const x = a[key]
     const y = b[key]
-    // eslint-disable-next-line no-nested-ternary
+
     return x < y ? -1 : x > y ? 1 : 0
   })
 }

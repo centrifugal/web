@@ -1,9 +1,13 @@
 @keyframes rayAnimation {
   from {
-    background-position: 50% 50%, 50% 50%;
+    background-position:
+      50% 50%,
+      50% 50%;
   }
   to {
-    background-position: 350% 50%, 350% 50%;
+    background-position:
+      350% 50%,
+      350% 50%;
   }
 }
 
@@ -41,15 +45,15 @@
   display: block;
   background-image: var(--stripesDark), var(--rainbowDark);
   background-size: 300%, 200%;
-  background-position: 50% 50%, 50% 50%;
+  background-position:
+    50% 50%,
+    50% 50%;
   filter: opacity(50%) saturate(200%);
-  mask-image: radial-gradient(ellipse at 0% 0%, black 20%, transparent 45%),
+  mask-image:
+    radial-gradient(ellipse at 0% 0%, black 20%, transparent 45%),
     radial-gradient(ellipse at 100% 0%, black 20%, transparent 45%);
-  -webkit-mask-image: radial-gradient(
-      ellipse at 0% 0%,
-      black 20%,
-      transparent 45%
-    ),
+  -webkit-mask-image:
+    radial-gradient(ellipse at 0% 0%, black 20%, transparent 45%),
     radial-gradient(ellipse at 100% 0%, black 20%, transparent 45%);
   opacity: 0.5;
 }

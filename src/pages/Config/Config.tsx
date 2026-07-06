@@ -35,7 +35,7 @@ export const Config = ({ authorization }: ConfigProps) => {
         if (!res.ok) throw new Error(`status ${res.status}`)
         const json = await res.json()
         if (!cancelled) setData(json.config ?? json)
-      } catch (e) {
+      } catch {
         if (!cancelled) setError('Failed to load configuration.')
       } finally {
         if (!cancelled) setLoading(false)

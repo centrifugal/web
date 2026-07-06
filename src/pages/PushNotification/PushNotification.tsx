@@ -694,14 +694,18 @@ export function PushNotification({
                   }}
                   freeSolo
                   renderTags={(value: readonly string[], getTagProps) =>
-                    value.map((option: string, index: number) => (
-                      <Chip
-                        size="medium"
-                        variant="filled"
-                        label={option}
-                        {...getTagProps({ index })}
-                      />
-                    ))
+                    value.map((option: string, index: number) => {
+                      const { key, ...tagProps } = getTagProps({ index })
+                      return (
+                        <Chip
+                          key={key}
+                          size="medium"
+                          variant="filled"
+                          label={option}
+                          {...tagProps}
+                        />
+                      )
+                    })
                   }
                   renderInput={params => (
                     <TextField
@@ -734,14 +738,18 @@ export function PushNotification({
                   }}
                   filterSelectedOptions
                   renderTags={(value: readonly string[], getTagProps) =>
-                    value.map((option: string, index: number) => (
-                      <Chip
-                        size="medium"
-                        variant="filled"
-                        label={option}
-                        {...getTagProps({ index })}
-                      />
-                    ))
+                    value.map((option: string, index: number) => {
+                      const { key, ...tagProps } = getTagProps({ index })
+                      return (
+                        <Chip
+                          key={key}
+                          size="medium"
+                          variant="filled"
+                          label={option}
+                          {...tagProps}
+                        />
+                      )
+                    })
                   }
                   renderInput={params => (
                     <TextField

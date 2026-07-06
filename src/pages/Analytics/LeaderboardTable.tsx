@@ -8,7 +8,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 
 import { Sparkline } from './Sparkline'
-import { formatTrendValue, TrendSeries } from './TimeSeriesChart'
+import { formatTrendValue, TrendSeries } from './trendFormat'
 
 // Medal colors for the top three ranks (gold / silver / bronze); the rest stay muted.
 const RANK_MEDALS = ['#d4af37', '#a8b1b8', '#c08457']

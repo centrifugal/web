@@ -191,7 +191,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           return
         }
         filterExpressionRef.current = filter
-      } catch (error) {
+      } catch {
         showAlert('Invalid CEL expression', { severity: 'error' })
         setRunning(false)
         return
@@ -349,8 +349,8 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           {traceType === 'user'
             ? 'Real-time user connections tracing'
             : traceType === 'channel'
-            ? 'Real-time channel tracing'
-            : 'Real-time individual client tracing (note, Centrifugo client ID changes on every reconnect)'}
+              ? 'Real-time channel tracing'
+              : 'Real-time individual client tracing (note, Centrifugo client ID changes on every reconnect)'}
         </FormLabel>
         <RadioGroup
           row

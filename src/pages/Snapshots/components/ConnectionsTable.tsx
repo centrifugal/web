@@ -197,8 +197,8 @@ export const ConnectionsTable = ({
         setLoading(false)
       }
     },
-    [snapshotId, rawRequest, signinSilent] // eslint-disable-line react-hooks/exhaustive-deps
-  ) // eslint-disable-line react-hooks/exhaustive-deps
+    [snapshotId, rawRequest, signinSilent]
+  )
 
   useEffect(() => {
     fetchConnections()

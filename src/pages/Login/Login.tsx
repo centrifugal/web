@@ -269,12 +269,12 @@ Bubble.prototype.update = function (elapsedTime: any) {
     if (this.timeSinceLastBurst >= this.burstInterval) {
       this.bursting = true
       this.burstProgress = 0
-      let numSplashes = Math.floor(Math.random() * 6) + 10
+      const numSplashes = Math.floor(Math.random() * 6) + 10
       this.splashParticles = []
       for (let i = 0; i < numSplashes; i++) {
-        let angle = Math.random() * Math.PI * 2
-        let speed = Math.random() * 50 + 50
-        let length = Math.random() * 10 + 5
+        const angle = Math.random() * Math.PI * 2
+        const speed = Math.random() * 50 + 50
+        const length = Math.random() * 10 + 5
         this.splashParticles.push({
           angle: angle,
           speed: speed,
@@ -349,11 +349,11 @@ Bubble.prototype.draw = function () {
 
     if (this.splashParticles) {
       for (let i = 0; i < this.splashParticles.length; i++) {
-        let p = this.splashParticles[i]
-        let offset = p.speed * this.burstProgress
-        let splashX = this.x + Math.cos(p.angle) * offset
-        let splashY = this.y + Math.sin(p.angle) * offset
-        let splashRadius = p.length * (1 - this.burstProgress)
+        const p = this.splashParticles[i]
+        const offset = p.speed * this.burstProgress
+        const splashX = this.x + Math.cos(p.angle) * offset
+        const splashY = this.y + Math.sin(p.angle) * offset
+        const splashRadius = p.length * (1 - this.burstProgress)
         ctx.globalAlpha = Math.max(0, 1 - this.burstProgress)
         if (this.isDarkTheme) {
           ctx.fillStyle = 'rgba(255, 255, 255, 0.71)'
@@ -434,12 +434,12 @@ function drawLogo(
           if (!bubble.bursting) {
             bubble.bursting = true
             bubble.burstProgress = 0
-            let numSplashes = Math.floor(Math.random() * 6) + 10
+            const numSplashes = Math.floor(Math.random() * 6) + 10
             bubble.splashParticles = []
             for (let i = 0; i < numSplashes; i++) {
-              let angle = Math.random() * Math.PI * 2
-              let speed = Math.random() * 50 + 50
-              let length = Math.random() * 10 + 5
+              const angle = Math.random() * Math.PI * 2
+              const speed = Math.random() * 50 + 50
+              const length = Math.random() * 10 + 5
               bubble.splashParticles.push({ angle, speed, length })
             }
           }
@@ -593,7 +593,7 @@ interface LoginProps {
   handleLogin: (password: string) => Promise<void>
 }
 
-const MemoCanvas = React.memo(props => {
+const MemoCanvas = React.memo(function MemoCanvas() {
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
   return (

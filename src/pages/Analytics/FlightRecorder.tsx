@@ -408,8 +408,8 @@ const Minimap = ({
                     i === 0
                       ? 'none'
                       : i === 4
-                      ? 'translateX(-100%)'
-                      : 'translateX(-50%)',
+                        ? 'translateX(-100%)'
+                        : 'translateX(-50%)',
                   fontFamily: 'monospace',
                   fontSize: '0.65rem',
                   color: 'text.secondary',
@@ -436,8 +436,7 @@ export const FlightRecorder = ({
 
   const initial = useRef({
     mode: (searchParams.get('rmode') === 'client' ? 'client' : 'user') as
-      | 'user'
-      | 'client',
+      'user' | 'client',
     q: searchParams.get('q') || '',
     from:
       Number(searchParams.get('from')) || Math.floor(Date.now() / 1000) - 3600,
@@ -1034,8 +1033,8 @@ const SessionCard = ({
     errors > 0 || (ended && isAbnormalDisconnect(last.disconnect))
       ? 'error.main'
       : !ended
-      ? 'success.main'
-      : 'divider'
+        ? 'success.main'
+        : 'divider'
   const [copied, setCopied] = useState(false)
   const copy = () => {
     navigator.clipboard?.writeText(sessionToText(events, profile)).then(() => {
@@ -1365,8 +1364,8 @@ const SessionCard = ({
                               ev.durationMs >= 1000
                                 ? 'error.main'
                                 : ev.durationMs >= 100
-                                ? 'warning.main'
-                                : 'success.main',
+                                  ? 'warning.main'
+                                  : 'success.main',
                           }}
                         />
                       </Box>
@@ -1380,8 +1379,8 @@ const SessionCard = ({
                             ev.durationMs >= 1000
                               ? 'error.main'
                               : ev.durationMs >= 100
-                              ? 'warning.main'
-                              : 'text.secondary',
+                                ? 'warning.main'
+                                : 'text.secondary',
                         }}
                       >
                         {fmtDur(ev.durationMs)}

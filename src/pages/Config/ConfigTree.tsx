@@ -674,8 +674,8 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
               nonDefaultOnly && q
                 ? 'No non-default options match your filter. Try a different term or turn off “Only non-defaults”.'
                 : nonDefaultOnly
-                ? 'All options are at their default values.'
-                : 'No configuration options match your filter.'
+                  ? 'All options are at their default values.'
+                  : 'No configuration options match your filter.'
             }
           />
         ) : (

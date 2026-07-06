@@ -7,7 +7,8 @@ import CircularProgress from '@mui/material/CircularProgress'
 
 import { adminRawFetch } from 'api/adminApi'
 
-import { TimeSeriesChart, TrendSeries } from './TimeSeriesChart'
+import { TimeSeriesChart } from './TimeSeriesChart'
+import { TrendSeries } from './trendFormat'
 
 export interface TrendPanelData {
   unit: string

@@ -36,9 +36,9 @@ export const UpgradeDialog = ({ appNeedsUpdate }: UpgradeDialogProps) => {
       </DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
-          In order to function properly, app needs to be updated. The
-          update has already been installed in the background. All you need to
-          do is reload the page or click "Refresh" below.
+          In order to function properly, app needs to be updated. The update has
+          already been installed in the background. All you need to do is reload
+          the page or click "Refresh" below.
         </DialogContentText>
       </DialogContent>
       <DialogActions>

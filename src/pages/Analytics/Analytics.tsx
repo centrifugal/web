@@ -716,7 +716,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.userOps.user = userOpsUser
     shallow.userOps.op = userOpsOp
     saveAndMakeRequest(shallow)
@@ -726,7 +726,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.pushStats.analyticsUid = pushStatsAnalyticsUID
     saveAndMakeRequest(shallow)
   }
@@ -735,7 +735,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.userConnections.user = userConnectionsUser
     saveAndMakeRequest(shallow)
   }
@@ -744,7 +744,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.channelSubscriptions.channel = channelSubscriptionsChannel
     saveAndMakeRequest(shallow)
   }
@@ -753,7 +753,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.channelPublications.channel = channelPublicationsChannel
     shallow.channelPublications.source = channelPublicationsSource
     saveAndMakeRequest(shallow)
@@ -763,7 +763,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.userErrors.user = userErrorsUser
     shallow.userErrors.op = userErrorsOp
     shallow.userErrors.error = userErrorsError
@@ -774,7 +774,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     event: React.SyntheticEvent<HTMLFormElement>
   ) => {
     event.preventDefault()
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow.userDisconnects.user = userDisconnectsUser
     shallow.userDisconnects.op = userDisconnectsOp
     shallow.userDisconnects.disconnect = userDisconnectsDisconnect
@@ -809,7 +809,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
 
   const intervalDialogClose = (value: number) => {
     setIntervalDialogOpen(false)
-    let shallow = Object.assign({}, request)
+    const shallow = Object.assign({}, request)
     shallow[intervalDialogField].lastMinutes = value
     saveAndMakeRequest(shallow)
   }

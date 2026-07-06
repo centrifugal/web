@@ -23,7 +23,8 @@ import { Grid } from '@mui/material'
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
-import { TimeSeriesChart, TrendSeries } from './TimeSeriesChart'
+import { TimeSeriesChart } from './TimeSeriesChart'
+import { TrendSeries } from './trendFormat'
 import { LeaderboardTable } from './LeaderboardTable'
 
 interface TrendsProps {
@@ -342,7 +343,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
         if (activeEntry.groupByLabel) {
           // Default the grouping key to the most common label if none chosen yet.
           setGroupByLabelKey(prev =>
-            prev && keys.includes(prev) ? prev : keys[0] ?? ''
+            prev && keys.includes(prev) ? prev : (keys[0] ?? '')
           )
         }
       })
@@ -663,7 +664,9 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
                 <ToggleButtonGroup
                   size="small"
                   exclusive
-                  value={stackOverride ?? data.stacked ? 'stacked' : 'overlaid'}
+                  value={
+                    (stackOverride ?? data.stacked) ? 'stacked' : 'overlaid'
+                  }
                   onChange={(_, v) => {
                     if (v) setStackOverride(v === 'stacked')
                   }}
@@ -672,7 +675,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
                   <ToggleButton value="overlaid">overlaid</ToggleButton>
                 </ToggleButtonGroup>
                 <Typography variant="caption" color="text.secondary">
-                  {stackOverride ?? data.stacked
+                  {(stackOverride ?? data.stacked)
                     ? 'series summed into a total'
                     : 'series overlaid for comparison'}
                 </Typography>
