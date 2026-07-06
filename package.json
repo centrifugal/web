@@ -2,7 +2,6 @@
   "name": "web",
   "description": "Admin web UI for Centrifugo",
   "version": "1.0.0",
-  "homepage": "./",
   "author": "Alexander Emelin <frvzmb@gmail.com>",
   "license": "MIT",
   "dependencies": {
@@ -23,8 +22,7 @@
     "react-dom": "^19.0.0",
     "react-oidc-context": "^2.3.1",
     "react-router-dom": "^6.30.0",
-    "react-syntax-highlighter": "^16.1.1",
-    "web-vitals": "^2.1.4"
+    "react-syntax-highlighter": "^16.1.1"
   },
   "scripts": {
     "dev": "vite",
@@ -57,7 +55,6 @@
     "@testing-library/dom": "^10.0.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^16.0.0",
-    "@testing-library/user-event": "^14.4.3",
     "@types/node": "^22.20.0",
     "@types/react-syntax-highlighter": "^15.5.5",
     "@vitejs/plugin-react-swc": "^4.3.1",
