@@ -15,6 +15,8 @@ import { globalUrlPrefix } from 'config/url'
 
 import { useAuth } from 'react-oidc-context'
 
+import { Ray } from 'components/Ray'
+
 import Canvas from './Canvas'
 
 const redTheme = createTheme({ palette: { primary: red } })
@@ -603,6 +605,8 @@ export function Login({ handleLogin }: LoginProps) {
   const auth = useAuth()
 
   const { setTitle } = useContext(ShellContext)
+  const settingsContext = useContext(SettingsContext)
+  const isDarkTheme = settingsContext.getUserSettings().colorMode === 'dark'
 
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -779,6 +783,7 @@ export function Login({ handleLogin }: LoginProps) {
         </ThemeProvider>
       </Box>
       <MemoCanvas />
+      {isDarkTheme && <Ray />}
     </Box>
   )
 }

@@ -1,0 +1,71 @@
+@keyframes rayAnimation {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+
+.rayContainer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Dark-mode only aurora/light-ray effect, ported from centrifugal.dev. The
+   admin UI has no html[data-theme] attribute, so visibility is gated by
+   conditionally rendering this component (see Ray.tsx) rather than in CSS. */
+.ray {
+  --stripesDark: repeating-linear-gradient(
+    100deg,
+    #000 0%,
+    #000 7%,
+    transparent 10%,
+    transparent 12%,
+    #000 16%
+  );
+  --rainbowDark: repeating-linear-gradient(
+    100deg,
+    #78350f 10%,
+    #5c1a0a 18%,
+    #78350f 30%
+  );
+
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+  background-image: var(--stripesDark), var(--rainbowDark);
+  background-size: 300%, 200%;
+  background-position: 50% 50%, 50% 50%;
+  filter: opacity(50%) saturate(200%);
+  mask-image: radial-gradient(ellipse at 0% 0%, black 20%, transparent 45%),
+    radial-gradient(ellipse at 100% 0%, black 20%, transparent 45%);
+  -webkit-mask-image: radial-gradient(
+      ellipse at 0% 0%,
+      black 20%,
+      transparent 45%
+    ),
+    radial-gradient(ellipse at 100% 0%, black 20%, transparent 45%);
+  opacity: 0.5;
+}
+
+.ray::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--stripesDark), var(--rainbowDark);
+  background-size: 200%, 100%;
+  mix-blend-mode: difference;
+  animation: rayAnimation 90s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ray::after {
+    animation: none;
+  }
+}
