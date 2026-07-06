@@ -102,6 +102,13 @@ export const Shell = ({
         palette: {
           mode: colorMode,
         },
+        typography: {
+          // Native UI font of each OS (San Francisco on macOS, Segoe UI on
+          // Windows, Roboto on Android/ChromeOS). No web font is downloaded, so
+          // there's no swap/jump. Helvetica is intentionally omitted.
+          fontFamily:
+            'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+        },
       }),
     [colorMode]
   )

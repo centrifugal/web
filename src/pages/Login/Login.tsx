@@ -19,7 +19,13 @@ import { Ray } from 'components/Ray'
 
 import Canvas from './Canvas'
 
-const redTheme = createTheme({ palette: { primary: red } })
+const redTheme = createTheme({
+  palette: { primary: red },
+  typography: {
+    fontFamily:
+      'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+  },
+})
 
 function polarToCartesian(
   centerX: number,
