@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Table,
   TableBody,
@@ -58,7 +58,10 @@ export const ChannelsTable = ({
 }: ChannelsTableProps) => {
   const [channels, setChannels] = useState<ChannelInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
-  const [currentCursor, setCurrentCursor] = useState<string>('')
+  // fetchChannels is memoized without the cursor in its deps, so a plain state
+  // read inside it would be the stale initial ''. Track the current cursor in a
+  // ref so the "next" branch pushes the real page being left onto the stack.
+  const currentCursorRef = useRef<string>('')
   const [nextCursor, setNextCursor] = useState<string>('')
   const [prevCursors, setPrevCursors] = useState<string[]>([]) // Stack of previous cursors
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -125,14 +128,14 @@ export const ChannelsTable = ({
         // Update cursor tracking based on direction
         if (direction === 'next') {
           // Always save current position when going next (including empty string for first page)
-          setPrevCursors(prev => [...prev, currentCursor])
+          setPrevCursors(prev => [...prev, currentCursorRef.current])
         } else if (direction === 'prev') {
           setPrevCursors(prev => prev.slice(0, -1))
         } else if (direction === 'first' || reset) {
           setPrevCursors([])
         }
 
-        setCurrentCursor(cursor || '')
+        currentCursorRef.current = cursor || ''
 
         // Total is only included in first page
         if (data.total !== undefined) {

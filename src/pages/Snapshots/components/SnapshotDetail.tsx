@@ -64,16 +64,22 @@ const getStatusColor = (status: string) => {
 }
 
 const formatFilter = (filter: any, kind: string) => {
-  if (kind === 'channels' && filter.channels?.pattern) {
-    return `Pattern: ${filter.channels.pattern}`
+  if (kind === 'channels') {
+    const pattern = filter.channels?.pattern
+    return !pattern || pattern === '*' ? 'All channels' : `Pattern: ${pattern}`
   }
   if (kind === 'connections') {
-    if (filter.connections?.user) {
-      return `User: ${filter.connections.user}`
+    const c = filter.connections || {}
+    const parts: string[] = []
+    if (c.user) {
+      parts.push(`User: ${c.user}`)
+    } else if (c.anonymous) {
+      parts.push('Anonymous')
     }
-    if (filter.connections?.channel) {
-      return `Channel: ${filter.connections.channel}`
+    if (c.channel) {
+      parts.push(`Channel: ${c.channel}`)
     }
+    return parts.length > 0 ? parts.join(', ') : 'All connections'
   }
   return JSON.stringify(filter)
 }
@@ -112,6 +118,7 @@ export const SnapshotDetail = ({
 }: SnapshotDetailProps) => {
   const [snapshot, setSnapshot] = useState<Snapshot>(initialSnapshot)
   const [pollingActive, setPollingActive] = useState<boolean>(false)
+  const [refreshing, setRefreshing] = useState<boolean>(false)
   const navigate = useNavigate()
   const { rawRequest } = useAdminApi({ authorization, signinSilent })
 
@@ -141,6 +148,18 @@ export const SnapshotDetail = ({
       setPollingActive(false)
     }
   }, [snapshot.snapshot_id, rawRequest, signinSilent])
+
+  // Manual refresh guard so a rapid double-click doesn't stack fetches. Kept
+  // separate from the polling loop, which calls fetchSnapshotUpdate directly.
+  const handleManualRefresh = async () => {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await fetchSnapshotUpdate()
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const handleCreateConnectionsSnapshot = (channelName: string) => {
     if (onCreateConnectionsSnapshot) {
@@ -413,7 +432,8 @@ export const SnapshotDetail = ({
                 <Button
                   size="small"
                   startIcon={<RefreshIcon />}
-                  onClick={fetchSnapshotUpdate}
+                  onClick={handleManualRefresh}
+                  disabled={refreshing}
                 >
                   Refresh
                 </Button>

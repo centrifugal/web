@@ -60,16 +60,22 @@ const getStatusColor = (status: string) => {
 }
 
 const formatFilter = (filter: any, kind: string) => {
-  if (kind === 'channels' && filter.channels?.pattern) {
-    return filter.channels.pattern
+  if (kind === 'channels') {
+    const pattern = filter.channels?.pattern
+    return !pattern || pattern === '*' ? 'all channels' : pattern
   }
   if (kind === 'connections') {
-    if (filter.connections?.user) {
-      return `user: ${filter.connections.user}`
+    const c = filter.connections || {}
+    const parts: string[] = []
+    if (c.user) {
+      parts.push(`user: ${c.user}`)
+    } else if (c.anonymous) {
+      parts.push('anonymous')
     }
-    if (filter.connections?.channel) {
-      return `channel: ${filter.connections.channel}`
+    if (c.channel) {
+      parts.push(`channel: ${c.channel}`)
     }
+    return parts.length > 0 ? parts.join(', ') : 'all connections'
   }
   return JSON.stringify(filter)
 }
@@ -88,18 +94,22 @@ const formatDate = (dateString: string) => {
   } else if (diffHours < 24) {
     return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
   } else {
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    })
+    return (
+      date.toLocaleDateString() +
+      ' ' +
+      date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    )
   }
 }
 
-export const SnapshotsList = ({ 
-  snapshots, 
-  loading, 
-  nextCursor, 
-  onLoadMore 
+export const SnapshotsList = ({
+  snapshots,
+  loading,
+  nextCursor,
+  onLoadMore,
 }: SnapshotsListProps) => {
   const navigate = useNavigate()
 
@@ -129,15 +139,18 @@ export const SnapshotsList = ({
               <TableCell>Created</TableCell>
               <TableCell>Nodes reported</TableCell>
               <TableCell>Rows</TableCell>
-              <TableCell sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}></TableCell>
+              <TableCell
+                sx={{ width: '1%', whiteSpace: 'nowrap', padding: 0 }}
+              ></TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {snapshots.map((snapshot) => (
+            {snapshots.map(snapshot => (
               <StyledTableRow key={snapshot.snapshot_id}>
                 <TableCell>
                   <Typography variant="body2" fontWeight="medium">
-                    {snapshot.kind.charAt(0).toUpperCase() + snapshot.kind.slice(1)}
+                    {snapshot.kind.charAt(0).toUpperCase() +
+                      snapshot.kind.slice(1)}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -147,7 +160,10 @@ export const SnapshotsList = ({
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={snapshot.status.charAt(0).toUpperCase() + snapshot.status.slice(1)}
+                    label={
+                      snapshot.status.charAt(0).toUpperCase() +
+                      snapshot.status.slice(1)
+                    }
                     color={getStatusColor(snapshot.status) as any}
                     size="small"
                   />
@@ -161,15 +177,20 @@ export const SnapshotsList = ({
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {snapshot.nodes_reported.toLocaleString()} of {snapshot.nodes_expected.toLocaleString()}
+                    {snapshot.nodes_reported.toLocaleString()} of{' '}
+                    {snapshot.nodes_expected.toLocaleString()}
                   </Typography>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2">
-                    {snapshot.status === 'completed' ? snapshot.rows_inserted.toLocaleString() : '-'}
+                    {snapshot.status === 'completed'
+                      ? snapshot.rows_inserted.toLocaleString()
+                      : '-'}
                   </Typography>
                 </TableCell>
-                <TableCell sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}>
+                <TableCell
+                  sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}
+                >
                   <Button
                     variant="outlined"
                     size="small"

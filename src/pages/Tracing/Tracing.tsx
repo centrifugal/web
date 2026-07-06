@@ -10,6 +10,8 @@ import FormLabel from '@mui/material/FormLabel'
 import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
+import Chip from '@mui/material/Chip'
+import Typography from '@mui/material/Typography'
 import { green, red, blue } from '@mui/material/colors'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
@@ -38,6 +40,10 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const filterExpressionRef = useRef<string | null>(null)
   const [traceType, setTraceType] = useState('user')
   const [running, setRunning] = useState(false)
+  // Whether the trace stream has actually opened (server flushed response
+  // headers on connect), so we can distinguish "connecting" from "connected
+  // but quiet" in the UI.
+  const [connected, setConnected] = useState(false)
   const [messages, setMessages] = useState<any[]>([])
   const [clientId, setClientId] = useState('')
   const celJsRef = useRef<any>(null)
@@ -51,6 +57,17 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     import('cel-js').then(module => {
       celJsRef.current = module
     })
+  }, [])
+
+  // Abort any in-flight trace stream when the page unmounts, otherwise the
+  // fetch stays open and setMessages fires on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (streamCancelRef.current) {
+        streamCancelRef.current()
+        streamCancelRef.current = null
+      }
+    }
   }, [])
 
   let codeStyle = solarizedLight
@@ -81,7 +98,10 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (running) {
-      setRunning(false)
+      // Abort the in-flight stream, not just the UI flag — otherwise the fetch
+      // keeps reading and calling setMessages while the Stop button (rendered
+      // only when running) has already disappeared, leaving no way to abort it.
+      stopStream()
     }
     setFilter('')
 
@@ -231,9 +251,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       streamCancelRef.current = null
     }
     setRunning(false)
+    setConnected(false)
   }
 
   const startStream = function (traceType: string, traceEntity: string) {
+    setConnected(false)
     const abortController = new AbortController()
     const cancelFunc = () => {
       abortController.abort()
@@ -255,7 +277,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       }),
     })
 
-    eventTarget.addEventListener('open', () => {})
+    eventTarget.addEventListener('open', () => {
+      setConnected(true)
+    })
 
     eventTarget.addEventListener('message', (e: any) => {
       if (e.data === null) {
@@ -306,6 +330,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       ...messages.slice(0, 99),
     ])
   }
+
+  const activeEntity =
+    traceType === 'user' ? user : traceType === 'channel' ? channel : clientId
 
   return (
     <Box
@@ -450,6 +477,15 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             Stop
           </Button>
         )}
+        {running && (
+          <Chip
+            size="small"
+            variant="outlined"
+            color={connected ? 'success' : 'default'}
+            label={connected ? 'Live' : 'Connecting…'}
+            sx={{ ml: 1 }}
+          />
+        )}
         {messages.length > 0 && (
           <Button
             variant="contained"
@@ -461,6 +497,15 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         )}
       </Box>
       <Box sx={{ mt: 2 }}>
+        {running && messages.length === 0 && (
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+            {connected
+              ? `Listening for events${
+                  activeEntity ? ` matching ${activeEntity}` : ''
+                }… Trigger some traffic to see messages here.`
+              : 'Connecting to trace stream…'}
+          </Typography>
+        )}
         {messages.map((message, i) => (
           <Box key={i} sx={{ mb: 2 }}>
             <SyntaxHighlighter language="json" style={codeStyle}>

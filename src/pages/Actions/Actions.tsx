@@ -21,7 +21,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 
+import { useTheme } from '@mui/material/styles'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
+import { Prec } from '@codemirror/state'
 import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { linter } from '@codemirror/lint'
 
@@ -351,6 +353,12 @@ interface JsonFieldProps {
 }
 
 export const JsonField = ({ colorMode, onChange }: JsonFieldProps) => {
+  const theme = useTheme()
+  // The MUI outlined inputs on this page are transparent, so they render the
+  // page surface color (background.default, set on <body> by CssBaseline). Match
+  // it explicitly here so the editor's fill is identical to the other inputs in
+  // both light and dark modes, instead of the built-in dark theme's bluish grey.
+  const fieldBackground = theme.palette.background.default
   return (
     <div
       style={{
@@ -372,15 +380,17 @@ export const JsonField = ({ colorMode, onChange }: JsonFieldProps) => {
           // no remote JSON schema fetching involved.
           linter(jsonParseLinter()),
           EditorView.lineWrapping,
-          // Keep the theme's syntax colors, but let the editor inherit the
-          // surrounding MUI card surface so it blends in both light and dark
-          // modes (the built-in dark theme's own background is bluish and does
-          // not match the app's neutral dark palette).
-          EditorView.theme({
-            '&': { fontSize: '16px', backgroundColor: 'transparent' },
-            '.cm-gutters': { backgroundColor: 'transparent' },
-            '&.cm-focused': { outline: 'none' },
-          }),
+          // Keep the theme's syntax colors, but force the editor surfaces to the
+          // same background as the surrounding MUI inputs. Prec.highest ensures
+          // this wins over the built-in theme's own background rules.
+          Prec.highest(
+            EditorView.theme({
+              '&': { fontSize: '16px', backgroundColor: fieldBackground },
+              '.cm-gutters': { backgroundColor: fieldBackground },
+              '.cm-scroller': { backgroundColor: fieldBackground },
+              '&.cm-focused': { outline: 'none' },
+            })
+          ),
         ]}
         onChange={value => onChange(value || '')}
         basicSetup={{

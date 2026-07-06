@@ -327,7 +327,16 @@ const MetaIcons = ({ node, path }: { node: ConfigNode; path: string }) => {
       <Tooltip title="Copy link to this field">
         <IconButton
           size="small"
-          onClick={() => goto(path)}
+          onClick={() => {
+            // Jump to the field and copy a shareable deep link. The app uses a
+            // HashRouter, so the path param lives inside the hash portion.
+            goto(path)
+            const hashBase = window.location.hash.split('?')[0] || '#/'
+            const url = `${window.location.origin}${
+              window.location.pathname
+            }${hashBase}?path=${encodeURIComponent(path)}`
+            void navigator.clipboard?.writeText(url)
+          }}
           sx={{ p: 0.25, opacity: 0.35, '&:hover': { opacity: 1 } }}
         >
           <LinkIcon sx={{ fontSize: 14 }} />

@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
@@ -18,7 +19,35 @@ export const ConfirmDialog = ({
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) => {
+  // Guard against a double-click firing an async onConfirm (e.g. sending a
+  // push, deleting settings) twice before the dialog closes. The ref blocks a
+  // second synchronous click even before the disabled re-render lands.
+  const confirmingRef = useRef(false)
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      confirmingRef.current = false
+      setConfirming(false)
+    }
+  }, [isOpen])
+
+  const handleConfirm = async () => {
+    if (confirmingRef.current) return
+    confirmingRef.current = true
+    setConfirming(true)
+    try {
+      await onConfirm()
+    } finally {
+      // Re-enable on failure (dialog left open); the open-change effect resets
+      // this anyway once the dialog closes on success.
+      confirmingRef.current = false
+      setConfirming(false)
+    }
+  }
+
   const handleDialogClose = () => {
+    if (confirmingRef.current) return
     onCancel()
   }
 
@@ -47,10 +76,10 @@ export const ConfirmDialog = ({
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} autoFocus>
+        <Button onClick={onCancel} autoFocus disabled={confirming}>
           Cancel
         </Button>
-        <Button onClick={onConfirm} color="error">
+        <Button onClick={handleConfirm} color="error" disabled={confirming}>
           Confirm
         </Button>
       </DialogActions>

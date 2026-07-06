@@ -62,16 +62,6 @@ export const Shell = ({
     if (auth.user?.profile.preferred_username) {
       username = auth.user?.profile.preferred_username
     }
-    window.addEventListener('storage', function (e) {
-      if (
-        e.key ===
-        `oidc.user:${adminSettings.oidc?.authority}:${adminSettings.oidc?.client_id}`
-      ) {
-        if (e.oldValue !== null && e.newValue === null) {
-          handleLogout()
-        }
-      }
-    })
   } else if (useIDP && !usePKCE) {
     // Server-side OIDC: trust backend's authenticated flag
     authenticated = adminSettings.authenticated || adminSettings.insecure
@@ -140,6 +130,28 @@ export const Shell = ({
   useEffect(() => {
     document.title = title
   }, [title])
+
+  // Cross-tab logout for the OIDC (PKCE) flow: when the stored user is cleared
+  // in another tab, log out here too. Registered in an effect (not in the render
+  // body) so the listener is added once and cleaned up, rather than leaking a
+  // new listener on every render.
+  useEffect(() => {
+    if (!(useIDP && usePKCE)) return
+    const key = `oidc.user:${adminSettings.oidc?.authority}:${adminSettings.oidc?.client_id}`
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === key && e.oldValue !== null && e.newValue === null) {
+        handleLogout()
+      }
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [
+    useIDP,
+    usePKCE,
+    adminSettings.oidc?.authority,
+    adminSettings.oidc?.client_id,
+    handleLogout,
+  ])
 
   useEffect(() => {
     const handleFocus = () => {

@@ -62,6 +62,9 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
   const fetchSnapshots = useCallback(
     async (cursor?: string) => {
+      // Set loading up front so the "Load More" button disables and shows its
+      // spinner during pagination (not just on the initial full-page load).
+      setLoading(true)
       try {
         const params = new URLSearchParams({ limit: '10' })
         if (cursor) {
@@ -80,6 +83,7 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
         if (!response.ok) {
           if (response.status === 401) {
+            setLoading(false)
             signinSilent()
             return
           }

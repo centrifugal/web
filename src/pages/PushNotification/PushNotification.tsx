@@ -1,4 +1,4 @@
-import { useEffect, useContext, useState, useCallback } from 'react'
+import { useEffect, useContext, useState, useCallback, ReactNode } from 'react'
 import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
@@ -9,21 +9,27 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
-import { Stack, TableFooter, TablePagination } from '@mui/material'
+import { Stack, TableFooter, TablePagination, Typography } from '@mui/material'
 import CircularProgress from '@mui/material/CircularProgress'
-import { Dialog, DialogTitle, DialogContent, IconButton } from '@mui/material'
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Tooltip,
+} from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import SettingsIcon from '@mui/icons-material/Settings'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import { TextField } from '@mui/material'
-import { Link } from '@mui/material'
 import Autocomplete from '@mui/material/Autocomplete'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { CopyButton } from '../../components/CopyButton'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
@@ -35,13 +41,6 @@ interface PushNotificationProps {
   signinSilent: () => void
   authorization: string
   edition: 'oss' | 'pro'
-}
-
-function truncateText(text: String, len: number) {
-  if (text.length > len) {
-    text = text.substring(0, len) + '...'
-  }
-  return text
 }
 
 function createData(
@@ -75,6 +74,41 @@ function createData(
     scores,
   }
 }
+
+// InlineDetail renders a compact "label: value" pair that flows inline with
+// others (used for short scalar attributes to save vertical space).
+const InlineDetail = ({
+  label,
+  value,
+}: {
+  label: string
+  value: ReactNode
+}) => (
+  <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'baseline' }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}:
+    </Typography>
+    <Typography variant="body2">{value}</Typography>
+  </Box>
+)
+
+// DetailRow renders one label/value pair as two cells of a parent CSS grid.
+const DetailRow = ({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) => (
+  <>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+      {children}
+    </Box>
+  </>
+)
 
 export function PushNotification({
   signinSilent,
@@ -117,7 +151,9 @@ export function PushNotification({
   }
 
   const handlePushToFilteredConfirm = async () => {
-    sendPush(getDeviceFilter())
+    // Await the send before closing so the ConfirmDialog keeps its Confirm
+    // button disabled for the duration and a double-click can't send twice.
+    await sendPush(getDeviceFilter())
     setIsPushToFilteredConfirmDiaglogOpen(false)
     setPushTitle('')
     setPushBody('')
@@ -141,7 +177,9 @@ export function PushNotification({
   }
 
   const handlePushToDeviceConfirm = async () => {
-    sendPush({ ids: [selectedItem.deviceId] })
+    // Await the send before closing so the ConfirmDialog keeps its Confirm
+    // button disabled for the duration and a double-click can't send twice.
+    await sendPush({ ids: [selectedItem.deviceId] })
     setIsPushToDeviceConfirmDiaglogOpen(false)
   }
 
@@ -348,6 +386,16 @@ export function PushNotification({
   ])
 
   const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
+  // Constrain long identifier columns: truncate with an ellipsis (full value in
+  // a tooltip) so device IDs / user IDs don't blow out the table width.
+  const ellipsisSx = {
+    display: 'inline-block',
+    maxWidth: 200,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    verticalAlign: 'bottom',
+  } as const
 
   const users = ['']
 
@@ -434,48 +482,118 @@ export function PushNotification({
                   <DialogContent>
                     <Stack spacing={3}>
                       <Box>
-                        {selectedItem.deviceId}
-                        <pre>
-                          {navigator.clipboard ? (
-                            <Box>
-                              <Link
-                                style={{ cursor: 'pointer' }}
-                                variant="body2"
-                                color="primary"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    selectedItem.deviceId
-                                  )
-                                  showAlert('Device ID copied', {
-                                    severity: 'success',
-                                  })
-                                }}
-                              >
-                                {'Copy device ID'}
-                              </Link>
-                              &nbsp;
-                              <Link
-                                style={{ cursor: 'pointer' }}
-                                variant="body2"
-                                color="primary"
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    selectedItem.token
-                                  )
-                                  showAlert('Token copied', {
-                                    severity: 'success',
-                                  })
-                                }}
-                              >
-                                {'Copy raw provider token'}
-                              </Link>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: 'bold', mb: 1 }}
+                        >
+                          Device details
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr',
+                            columnGap: 2,
+                            rowGap: 0.75,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <DetailRow label="Device ID">
+                            <Box
+                              component="span"
+                              sx={{
+                                fontFamily: 'monospace',
+                                overflowWrap: 'anywhere',
+                              }}
+                            >
+                              {selectedItem.deviceId}
                             </Box>
-                          ) : (
-                            <code style={{ fontSize: '0.5em' }}>
-                              {selectedItem.token}{' '}
-                            </code>
-                          )}
-                        </pre>
+                            <CopyButton
+                              value={selectedItem.deviceId}
+                              label="Copy device ID"
+                            />
+                          </DetailRow>
+                          <DetailRow label="User">
+                            {selectedItem.user ? (
+                              <>
+                                <Box
+                                  component="span"
+                                  sx={{
+                                    fontFamily: 'monospace',
+                                    overflowWrap: 'anywhere',
+                                  }}
+                                >
+                                  {selectedItem.user}
+                                </Box>
+                                <CopyButton
+                                  value={selectedItem.user}
+                                  label="Copy user ID"
+                                />
+                              </>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                anonymous
+                              </Typography>
+                            )}
+                          </DetailRow>
+                          <DetailRow label="Provider token">
+                            <Box
+                              component="span"
+                              sx={{
+                                ...ellipsisSx,
+                                fontFamily: 'monospace',
+                                fontSize: '0.8em',
+                                maxWidth: 280,
+                              }}
+                            >
+                              {selectedItem.token}
+                            </Box>
+                            <CopyButton
+                              value={selectedItem.token}
+                              label="Copy provider token"
+                            />
+                          </DetailRow>
+                        </Box>
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            columnGap: 3,
+                            rowGap: 1,
+                            mt: 1.5,
+                          }}
+                        >
+                          <InlineDetail
+                            label="Provider"
+                            value={selectedItem.provider}
+                          />
+                          <InlineDetail
+                            label="Platform"
+                            value={selectedItem.platform}
+                          />
+                          <InlineDetail
+                            label="Timezone"
+                            value={selectedItem.timezone || '—'}
+                          />
+                          <InlineDetail
+                            label="Language"
+                            value={selectedItem.locale || '—'}
+                          />
+                          <InlineDetail
+                            label="Created"
+                            value={new Date(
+                              selectedItem.created_at
+                            ).toLocaleString()}
+                          />
+                          <InlineDetail
+                            label="Updated"
+                            value={new Date(
+                              selectedItem.updated_at
+                            ).toLocaleString()}
+                          />
+                        </Box>
                       </Box>
                       <Box>
                         <p style={{ marginBottom: '5px' }}>Topics:</p>
@@ -652,61 +770,106 @@ export function PushNotification({
                   <TableHead>
                     <TableRow>
                       <TableCell sx={headCellSx}>Device ID</TableCell>
+                      <TableCell sx={headCellSx}>Provider</TableCell>
+                      <TableCell sx={headCellSx}>Platform</TableCell>
+                      <TableCell sx={headCellSx}>User</TableCell>
+                      <TableCell sx={headCellSx}>Timezone</TableCell>
+                      <TableCell sx={headCellSx}>Language</TableCell>
+                      <TableCell sx={headCellSx}>Created</TableCell>
+                      <TableCell sx={headCellSx}>Updated</TableCell>
                       <TableCell sx={headCellSx} align="right"></TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Provider
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Platform
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        User
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Timezone
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Language
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Created
-                      </TableCell>
-                      <TableCell sx={headCellSx} align="right">
-                        Updated
-                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {nodes.map(node => (
                       <StyledTableRow
                         key={node.deviceId}
+                        hover
                         sx={{
                           '&:last-child td, &:last-child th': { border: 0 },
                         }}
                       >
                         <TableCell component="th" scope="row">
-                          <span onClick={() => handleRowClick(node)}>
-                            {truncateText(node.deviceId, 30)}
-                          </span>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                            }}
+                          >
+                            <Tooltip title={node.deviceId}>
+                              <Box
+                                component="span"
+                                onClick={() => handleRowClick(node)}
+                                sx={{
+                                  ...ellipsisSx,
+                                  fontFamily: 'monospace',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {node.deviceId}
+                              </Box>
+                            </Tooltip>
+                            <CopyButton
+                              value={node.deviceId}
+                              label="Copy device ID"
+                            />
+                          </Box>
+                        </TableCell>
+                        <TableCell>{node.provider}</TableCell>
+                        <TableCell>{node.platform}</TableCell>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                            }}
+                          >
+                            <Tooltip title={node.user || 'anonymous'}>
+                              <Box
+                                component="span"
+                                sx={{ ...ellipsisSx, maxWidth: 160 }}
+                              >
+                                {node.user || '—'}
+                              </Box>
+                            </Tooltip>
+                            {node.user && (
+                              <CopyButton
+                                value={node.user}
+                                label="Copy user ID"
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{node.timezone}</TableCell>
+                        <TableCell>{node.locale}</TableCell>
+                        <TableCell>
+                          <Tooltip
+                            title={new Date(node.created_at).toLocaleString()}
+                          >
+                            <span>
+                              {new Date(node.created_at).toLocaleDateString()}
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip
+                            title={new Date(node.updated_at).toLocaleString()}
+                          >
+                            <span>
+                              {new Date(node.updated_at).toLocaleDateString()}
+                            </span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell align="right">
-                          <SettingsIcon
-                            fontSize="small"
-                            style={{ cursor: 'pointer' }}
-                            color="action"
+                          <IconButton
+                            size="small"
+                            aria-label="Device settings"
                             onClick={() => handleRowClick(node)}
-                          />
-                        </TableCell>
-                        <TableCell align="right">{node.provider}</TableCell>
-                        <TableCell align="right">{node.platform}</TableCell>
-                        <TableCell align="right">{node.user}</TableCell>
-                        <TableCell align="right">{node.timezone}</TableCell>
-                        <TableCell align="right">{node.locale}</TableCell>
-                        <TableCell align="right">
-                          {new Date(node.created_at).toLocaleString()}
-                        </TableCell>
-                        <TableCell align="right">
-                          {new Date(node.updated_at).toLocaleString()}
+                          >
+                            <SettingsIcon fontSize="small" color="action" />
+                          </IconButton>
                         </TableCell>
                       </StyledTableRow>
                     ))}
@@ -714,7 +877,7 @@ export function PushNotification({
                   <TableFooter>
                     <TableRow>
                       <TablePagination
-                        colSpan={7}
+                        colSpan={9}
                         rowsPerPageOptions={[10, 50, 200]}
                         count={-1}
                         rowsPerPage={limit}

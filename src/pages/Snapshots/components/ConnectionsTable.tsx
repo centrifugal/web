@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+  useRef,
+} from 'react'
 import {
   Table,
   TableBody,
@@ -91,7 +97,13 @@ export const ConnectionsTable = ({
   })
   const [connections, setConnections] = useState<ConnectionInfo[]>([])
   const [loading, setLoading] = useState<boolean>(true)
-  const [currentCursor, setCurrentCursor] = useState<string>('')
+  // In-flight guard for the reconnect/disconnect action buttons so repeated
+  // clicks don't fire duplicate disconnect commands.
+  const [actionInFlight, setActionInFlight] = useState<boolean>(false)
+  // fetchConnections is memoized without the cursor in its deps, so a plain
+  // state read inside it would be the stale initial ''. Track the current cursor
+  // in a ref so the "next" branch pushes the real page being left onto the stack.
+  const currentCursorRef = useRef<string>('')
   const [nextCursor, setNextCursor] = useState<string>('')
   const [prevCursors, setPrevCursors] = useState<string[]>([]) // Stack of previous cursors
   const [searchQuery, setSearchQuery] = useState<string>('')
@@ -163,14 +175,14 @@ export const ConnectionsTable = ({
         // Update cursor tracking based on direction
         if (direction === 'next') {
           // Always save current position when going next (including empty string for first page)
-          setPrevCursors(prev => [...prev, currentCursor])
+          setPrevCursors(prev => [...prev, currentCursorRef.current])
         } else if (direction === 'prev') {
           setPrevCursors(prev => prev.slice(0, -1))
         } else if (direction === 'first' || reset) {
           setPrevCursors([])
         }
 
-        setCurrentCursor(cursor || '')
+        currentCursorRef.current = cursor || ''
 
         // Total is only included in first page
         if (data.total !== undefined) {
@@ -331,6 +343,8 @@ export const ConnectionsTable = ({
   }
 
   const sendApiRequest = async (method: string, params: any) => {
+    if (actionInFlight) return
+    setActionInFlight(true)
     try {
       const data = await command(method, params)
 
@@ -344,6 +358,8 @@ export const ConnectionsTable = ({
       showAlert(`Request successfully sent`, { severity: 'success' })
     } catch (error) {
       handleError(error)
+    } finally {
+      setActionInFlight(false)
     }
   }
 
@@ -1160,6 +1176,7 @@ export const ConnectionsTable = ({
                   startIcon={<LinkIcon />}
                   onClick={() => handleReconnect(selectedConnection)}
                   color="success"
+                  disabled={actionInFlight}
                 >
                   Reconnect
                 </Button>
@@ -1168,6 +1185,7 @@ export const ConnectionsTable = ({
                   startIcon={<LinkOffIcon />}
                   onClick={() => handleDisconnect(selectedConnection)}
                   color="error"
+                  disabled={actionInFlight}
                 >
                   Disconnect
                 </Button>

@@ -636,8 +636,12 @@ export const FlightRecorder = ({
   // admin can get everything even when the timeline is capped for rendering.
   const downloadCsv = async () => {
     if (!shown) return
-    const from = inputToUnix(fromStr)
-    const to = inputToUnix(toStr)
+    // Derive the range from the committed query (shown), not the live pickers.
+    // shown.mode/shown.q already come from the last Replay; reading fromStr/toStr
+    // here would export a different window than the one displayed if the admin
+    // edited the pickers after replaying.
+    const from = Math.floor(shown.fromMs / 1000)
+    const to = Math.floor(shown.toMs / 1000)
     setDownloading(true)
     try {
       const r = await rawRequest('admin/analytics/recorder', {

@@ -736,7 +736,7 @@ export function Login({ handleLogin }: LoginProps) {
         <ThemeProvider theme={redTheme}>
           {useIDP && usePKCE ? (
             <Button
-              type="submit"
+              type="button"
               fullWidth
               variant="contained"
               color="primary"
