@@ -20,6 +20,7 @@ import Checkbox from '@mui/material/Checkbox'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 
 import { useTheme } from '@mui/material/styles'
 import CodeMirror, { EditorView } from '@uiw/react-codemirror'
@@ -36,6 +37,7 @@ import {
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
+import { EmptyState } from 'components/EmptyState'
 
 interface ActionsProps {
   signinSilent: () => void
@@ -311,7 +313,11 @@ export const Actions = ({
           </Grid>
         </Grid>
       ) : (
-        <></>
+        <EmptyState
+          icon={<LocalFireDepartmentIcon sx={{ fontSize: 40 }} />}
+          title="No request sent yet"
+          hint="Pick a method above, fill in the form and submit — the request and response will appear here."
+        />
       )}
     </Box>
   )

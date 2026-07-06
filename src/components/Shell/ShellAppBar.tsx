@@ -289,9 +289,9 @@ export const ShellAppBar = ({
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>
-            <Tooltip title="Open settings">
+            <Tooltip title="Account menu">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" />
+                <Avatar alt={username || 'Account'} />
               </IconButton>
             </Tooltip>
             <Menu

@@ -15,6 +15,7 @@ import Tooltip from '@mui/material/Tooltip'
 import { useAdminApi } from 'api/adminApi'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
+import { EmptyState } from 'components/EmptyState'
 import { Card, CardContent, Chip } from '@mui/material'
 import {
   InfoOutlined,
@@ -150,16 +151,14 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   const [loading, setLoading] = useState(true)
   const { setTitle } = useContext(ShellContext)
 
-  const [visibilityListenerSet, setVisibilityListenerSet] = useState(false)
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
 
   useEffect(() => {
-    if (visibilityListenerSet) return
-    document.addEventListener('visibilitychange', () =>
-      setVisible(!document.hidden)
-    )
-    setVisibilityListenerSet(true)
-  }, [visibilityListenerSet])
+    const onVisibilityChange = () => setVisible(!document.hidden)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () =>
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
 
   useEffect(() => {
     setTitle('Centrifugo | Status')
@@ -304,169 +303,184 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
             />
           </Box>
 
-          <TableContainer component={Paper}>
-            <Table aria-label="detailed status table">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={headCellSx}>Node name</TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Version
-                  </TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Uptime
-                  </TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Clients
-                  </TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Users
-                  </TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Subs
-                  </TableCell>
-                  <TableCell sx={headCellSx} align="right">
-                    Channels
-                  </TableCell>
-                  {edition === 'pro' && (
+          {nodes.length === 0 ? (
+            <Paper>
+              <EmptyState
+                icon={<Storage sx={{ fontSize: 40 }} />}
+                title="No nodes reporting"
+                hint="No Centrifugo nodes are currently reporting to this instance."
+              />
+            </Paper>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table aria-label="detailed status table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={headCellSx}>Node name</TableCell>
                     <TableCell sx={headCellSx} align="right">
-                      CPU %
+                      Version
                     </TableCell>
-                  )}
-                  {edition === 'pro' && (
                     <TableCell sx={headCellSx} align="right">
-                      RSS
+                      Uptime
                     </TableCell>
-                  )}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {nodes
-                  .slice()
-                  .sort((a, b) => a.uptime - b.uptime)
-                  .map(node => (
-                    <Fragment key={node.name}>
-                      <StyledTableRow
-                        sx={{
-                          '&:last-child td, &:last-child th': { border: 0 },
-                        }}
-                      >
-                        <TableCell component="th" scope="row">
-                          {node.name}
-                        </TableCell>
-                        <TableCell align="right">{node.version}</TableCell>
-                        <TableCell align="right">
-                          {HumanSeconds(node.uptime)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {fmtInt(node.clients)}
-                        </TableCell>
-                        <TableCell align="right">
-                          {fmtInt(node.users)}
-                        </TableCell>
-                        <TableCell align="right">{fmtInt(node.subs)}</TableCell>
-                        <TableCell align="right">
-                          {fmtInt(node.channels)}
-                        </TableCell>
+                    <TableCell sx={headCellSx} align="right">
+                      Clients
+                    </TableCell>
+                    <TableCell sx={headCellSx} align="right">
+                      Users
+                    </TableCell>
+                    <TableCell sx={headCellSx} align="right">
+                      Subs
+                    </TableCell>
+                    <TableCell sx={headCellSx} align="right">
+                      Channels
+                    </TableCell>
+                    {edition === 'pro' && (
+                      <TableCell sx={headCellSx} align="right">
+                        CPU %
+                      </TableCell>
+                    )}
+                    {edition === 'pro' && (
+                      <TableCell sx={headCellSx} align="right">
+                        RSS
+                      </TableCell>
+                    )}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {nodes
+                    .slice()
+                    .sort((a, b) => a.uptime - b.uptime)
+                    .map(node => (
+                      <Fragment key={node.name}>
+                        <StyledTableRow
+                          sx={{
+                            '&:last-child td, &:last-child th': { border: 0 },
+                          }}
+                        >
+                          <TableCell component="th" scope="row">
+                            {node.name}
+                          </TableCell>
+                          <TableCell align="right">{node.version}</TableCell>
+                          <TableCell align="right">
+                            {HumanSeconds(node.uptime)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(node.clients)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(node.users)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(node.subs)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(node.channels)}
+                          </TableCell>
+                          {edition === 'pro' && (
+                            <TableCell align="right">{node.cpu}</TableCell>
+                          )}
+                          {edition === 'pro' && (
+                            <TableCell align="right">{node.rss}</TableCell>
+                          )}
+                        </StyledTableRow>
                         {edition === 'pro' && (
-                          <TableCell align="right">{node.cpu}</TableCell>
-                        )}
-                        {edition === 'pro' && (
-                          <TableCell align="right">{node.rss}</TableCell>
-                        )}
-                      </StyledTableRow>
-                      {edition === 'pro' && (
-                        <TableRow>
-                          <TableCell colSpan={9} sx={{ py: 1 }}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                flexWrap: 'wrap',
-                                alignItems: 'center',
-                                columnGap: 2,
-                                rowGap: 0.5,
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ whiteSpace: 'nowrap' }}
+                          <TableRow>
+                            <TableCell colSpan={9} sx={{ py: 1 }}>
+                              <Box
+                                sx={{
+                                  display: 'flex',
+                                  flexWrap: 'wrap',
+                                  alignItems: 'center',
+                                  columnGap: 2,
+                                  rowGap: 0.5,
+                                }}
                               >
-                                <b>{node.interval}s</b> aggregations
-                              </Typography>
-                              <Tooltip title="Metrics in this row are aggregated once in the specified interval (determined by node.info_metrics_aggregate_interval server option).">
-                                <InfoOutlined
-                                  sx={{ fontSize: 16, color: 'text.secondary' }}
-                                />
-                              </Tooltip>
-                              <MiniStat
-                                label="Incoming"
-                                value={fmtRate(
-                                  node.messagesReceived / node.interval
-                                )}
-                              />
-                              <MiniStat
-                                label="Outgoing"
-                                value={fmtRate(
-                                  node.messagesSent / node.interval
-                                )}
-                              />
-                              <MiniStat
-                                label="Connect"
-                                value={`${node.connectRate}/s`}
-                              />
-                              <MiniStat
-                                label="Subscribe"
-                                value={`${node.subscribeRate}/s`}
-                              />
-                              <MiniStat
-                                label="API"
-                                value={`${node.apiRate}/s`}
-                              />
-                              <MiniStat
-                                label="Publications"
-                                value={fmtRate(
-                                  node.publications / node.interval
-                                )}
-                              />
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                                sx={{ whiteSpace: 'nowrap' }}
-                              >
-                                Clients:
-                              </Typography>
-                              {Object.keys(node.connectionsByClient).length >
-                              0 ? (
-                                Object.entries(node.connectionsByClient).map(
-                                  ([client, cnt]) => (
-                                    <Chip
-                                      key={client}
-                                      size="small"
-                                      variant="outlined"
-                                      color="primary"
-                                      label={`${client}: ${fmtInt(
-                                        cnt as number
-                                      )}`}
-                                    />
-                                  )
-                                )
-                              ) : (
                                 <Typography
                                   variant="caption"
                                   color="text.secondary"
+                                  sx={{ whiteSpace: 'nowrap' }}
                                 >
-                                  —
+                                  <b>{node.interval}s</b> aggregations
                                 </Typography>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </Fragment>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                                <Tooltip title="Metrics in this row are aggregated once in the specified interval (determined by node.info_metrics_aggregate_interval server option).">
+                                  <InfoOutlined
+                                    sx={{
+                                      fontSize: 16,
+                                      color: 'text.secondary',
+                                    }}
+                                  />
+                                </Tooltip>
+                                <MiniStat
+                                  label="Incoming"
+                                  value={fmtRate(
+                                    node.messagesReceived / node.interval
+                                  )}
+                                />
+                                <MiniStat
+                                  label="Outgoing"
+                                  value={fmtRate(
+                                    node.messagesSent / node.interval
+                                  )}
+                                />
+                                <MiniStat
+                                  label="Connect"
+                                  value={`${node.connectRate}/s`}
+                                />
+                                <MiniStat
+                                  label="Subscribe"
+                                  value={`${node.subscribeRate}/s`}
+                                />
+                                <MiniStat
+                                  label="API"
+                                  value={`${node.apiRate}/s`}
+                                />
+                                <MiniStat
+                                  label="Publications"
+                                  value={fmtRate(
+                                    node.publications / node.interval
+                                  )}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ whiteSpace: 'nowrap' }}
+                                >
+                                  Clients:
+                                </Typography>
+                                {Object.keys(node.connectionsByClient).length >
+                                0 ? (
+                                  Object.entries(node.connectionsByClient).map(
+                                    ([client, cnt]) => (
+                                      <Chip
+                                        key={client}
+                                        size="small"
+                                        variant="outlined"
+                                        color="primary"
+                                        label={`${client}: ${fmtInt(
+                                          cnt as number
+                                        )}`}
+                                      />
+                                    )
+                                  )
+                                ) : (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    —
+                                  </Typography>
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </Fragment>
+                    ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
         </Box>
       )}
     </Box>

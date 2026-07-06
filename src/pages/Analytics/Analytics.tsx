@@ -217,7 +217,7 @@ function IntervalDialog(props: IntervalDialogProps) {
               )}
               {includeIntervals ? (
                 <Box>
-                  <Typography>Sum over:</Typography>
+                  <Typography sx={{ mt: 2 }}>Sum over:</Typography>
                   <FormControlLabel
                     value={'1'}
                     control={<Radio />}
@@ -237,6 +237,11 @@ function IntervalDialog(props: IntervalDialogProps) {
                     value={'1440'}
                     control={<Radio />}
                     label="last 1 day"
+                  />
+                  <FormControlLabel
+                    value={'10080'}
+                    control={<Radio />}
+                    label="last 1 week"
                   />
                 </Box>
               ) : (
@@ -790,6 +795,8 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
       return 'in last 1 hour'
     } else if (mins === 1440) {
       return 'in last 1 day'
+    } else if (mins === 10080) {
+      return 'in last 1 week'
     } else if (mins === -5) {
       return '5 min ago'
     } else if (mins === -60) {
@@ -1121,7 +1128,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                                 <TableFooter>
                                   <TableRow>
                                     <TablePagination
-                                      rowsPerPageOptions={[1]}
+                                      rowsPerPageOptions={[10]}
                                       colSpan={3}
                                       count={
                                         analyticsData.userConnections.length
@@ -1267,7 +1274,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                                 <TableFooter>
                                   <TableRow>
                                     <TablePagination
-                                      rowsPerPageOptions={[1]}
+                                      rowsPerPageOptions={[10]}
                                       colSpan={3}
                                       count={
                                         analyticsData.channelSubscriptions
@@ -1428,7 +1435,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                                 <TableFooter>
                                   <TableRow>
                                     <TablePagination
-                                      rowsPerPageOptions={[1]}
+                                      rowsPerPageOptions={[10]}
                                       colSpan={3}
                                       count={analyticsData.userOps.length}
                                       rowsPerPage={userOpsRowsPerPage}

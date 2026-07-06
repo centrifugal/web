@@ -24,6 +24,10 @@ import { useAdminApi, AdminApiError } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 
+// Max trace messages kept in memory. The stream is unbounded, so we keep only
+// the newest MAX_MESSAGES and surface a notice once the buffer is full.
+const MAX_MESSAGES = 100
+
 interface TracingProps {
   signinSilent: () => void
   authorization: string
@@ -327,7 +331,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     }
     setMessages(messages => [
       { json: data, time: new Date().toLocaleTimeString() },
-      ...messages.slice(0, 99),
+      ...messages.slice(0, MAX_MESSAGES - 1),
     ])
   }
 
@@ -504,6 +508,16 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
                   activeEntity ? ` matching ${activeEntity}` : ''
                 }… Trigger some traffic to see messages here.`
               : 'Connecting to trace stream…'}
+          </Typography>
+        )}
+        {messages.length >= MAX_MESSAGES && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: 'block', mb: 1 }}
+          >
+            Showing the latest {MAX_MESSAGES} messages — older events are
+            dropped as new ones arrive.
           </Typography>
         )}
         {messages.map((message, i) => (

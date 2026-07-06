@@ -15,6 +15,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore'
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import SearchOffIcon from '@mui/icons-material/SearchOff'
+
+import { EmptyState } from 'components/EmptyState'
 
 import { ConfigNode } from './types'
 
@@ -577,6 +580,17 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
       return next
     })
 
+  // Top-level fields actually rendered — mirrors the guards in TreeField so the
+  // empty state shows when the filter / non-defaults toggle hides everything.
+  const visibleCount = useMemo(
+    () =>
+      fields.filter(
+        n =>
+          (!q || subtreeMatches(n, q)) && (!nonDefaultOnly || hasNonDefault(n))
+      ).length,
+    [fields, q, nonDefaultOnly]
+  )
+
   const ctx = useMemo(
     () => ({ q, nonDefaultOnly, collapsed, toggle, target, goto }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -652,9 +666,21 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
         </Tooltip>
       </Box>
       <Box sx={{ fontSize: 14, lineHeight: 1.6 }}>
-        {fields.map(n => (
-          <TreeField key={n.key} node={n} parent="" />
-        ))}
+        {visibleCount === 0 ? (
+          <EmptyState
+            icon={<SearchOffIcon sx={{ fontSize: 40 }} />}
+            title="No matching options"
+            hint={
+              nonDefaultOnly && q
+                ? 'No non-default options match your filter. Try a different term or turn off “Only non-defaults”.'
+                : nonDefaultOnly
+                ? 'All options are at their default values.'
+                : 'No configuration options match your filter.'
+            }
+          />
+        ) : (
+          fields.map(n => <TreeField key={n.key} node={n} parent="" />)
+        )}
       </Box>
     </Ctx.Provider>
   )

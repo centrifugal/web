@@ -20,6 +20,7 @@ import {
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import SettingsIcon from '@mui/icons-material/Settings'
+import NotificationsIcon from '@mui/icons-material/Notifications'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import { TextField } from '@mui/material'
@@ -30,6 +31,7 @@ import { ShellContext } from 'contexts/ShellContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { CopyButton } from '../../components/CopyButton'
+import { EmptyState } from '../../components/EmptyState'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
@@ -873,6 +875,17 @@ export function PushNotification({
                         </TableCell>
                       </StyledTableRow>
                     ))}
+                    {nodes.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} sx={{ border: 0 }}>
+                          <EmptyState
+                            icon={<NotificationsIcon sx={{ fontSize: 40 }} />}
+                            title="No devices found"
+                            hint="No registered push devices match the current filter. Devices appear here once clients register for push notifications."
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                   <TableFooter>
                     <TableRow>
