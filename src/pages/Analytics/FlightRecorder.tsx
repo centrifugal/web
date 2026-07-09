@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField'
 import Chip from '@mui/material/Chip'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
+import Link from '@mui/material/Link'
 import CircularProgress from '@mui/material/CircularProgress'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
@@ -491,11 +492,16 @@ export const FlightRecorder = ({
   )
 
   const load = useCallback(
-    (modeArg?: 'user' | 'client', entityArg?: string, limitArg?: number) => {
+    (
+      modeArg?: 'user' | 'client',
+      entityArg?: string,
+      limitArg?: number,
+      fromArg?: number // unix seconds; overrides the From picker (used by "Move From back")
+    ) => {
       const m = modeArg ?? mode
       const q = (entityArg ?? entity).trim()
       if (!q) return
-      const from = inputToUnix(fromStr)
+      const from = fromArg ?? inputToUnix(fromStr)
       const to = inputToUnix(toStr)
       if (!from || !to || to <= from) {
         setError('Pick a valid time range (To must be after From).')
@@ -622,6 +628,17 @@ export const FlightRecorder = ({
     setMode('client')
     setEntity(client)
     load('client', client)
+  }
+
+  // "Move From back" on a session whose connection predates the window: set From a few seconds
+  // before the connection was established and re-run the same query so the whole session is in
+  // range. State updates are async, so pass the new From to load() explicitly rather than relying
+  // on the setFromStr above having landed.
+  const moveFromBeforeConnect = (connectedAtMs: number) => {
+    if (!shown) return
+    const fromSec = Math.floor(connectedAtMs / 1000) - 5
+    setFromStr(unixToInput(fromSec))
+    load(shown.mode as 'user' | 'client', shown.q, undefined, fromSec)
   }
 
   // Minimap → card navigation: scroll the clicked connection's card into view.
@@ -981,6 +998,7 @@ export const FlightRecorder = ({
                     windowFromMs={shown.fromMs}
                     onChannel={goToChannel}
                     onDrill={shown?.mode === 'user' ? drillClient : undefined}
+                    onMoveFrom={moveFromBeforeConnect}
                   />
                 </Box>
               ))}
@@ -1001,6 +1019,7 @@ const SessionCard = ({
   windowFromMs,
   onChannel,
   onDrill,
+  onMoveFrom,
 }: {
   events: RecorderEvent[]
   visible: RecorderEvent[]
@@ -1010,6 +1029,7 @@ const SessionCard = ({
   windowFromMs: number
   onChannel?: (ch: string) => void
   onDrill?: (client: string) => void
+  onMoveFrom?: (connectedAtMs: number) => void
 }) => {
   const first = events[0]
   const last = events[events.length - 1]
@@ -1162,8 +1182,22 @@ const SessionCard = ({
           <Alert severity="info" variant="outlined" sx={{ mb: 1.5, py: 0.25 }}>
             Connection was established at{' '}
             <strong>{fmtDateTime(profile.connectedAt)}</strong>, before the
-            selected window — earlier operations are outside this range. Move{' '}
-            <em>From</em> back to see the start of the session.
+            selected window — earlier operations are outside this range.{' '}
+            {onMoveFrom ? (
+              <Link
+                component="button"
+                type="button"
+                onClick={() => onMoveFrom(profile.connectedAt)}
+                sx={{ verticalAlign: 'baseline' }}
+              >
+                Move From back
+              </Link>
+            ) : (
+              <>
+                Move <em>From</em> back
+              </>
+            )}{' '}
+            to see the start of the session.
           </Alert>
         )}
 
