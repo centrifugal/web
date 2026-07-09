@@ -58,15 +58,31 @@ export const TimeSeriesChart = ({
     // above the axis end); when there's no name, keep the plot tight.
     const gridTop = axisName ? 34 : 16
 
+    // Wrapping (plain) legend instead of the scroll legend's single paginated row, so every series
+    // is visible at once. Reserve bottom space for the wrapped rows so they don't overlap the plot;
+    // ~3 items/row is a conservative estimate (long series names fit fewer). Capped so a large
+    // series count can't swallow the whole plot — beyond the cap rows simply wrap tighter.
+    const legendRows = multiSeries
+      ? Math.min(4, Math.ceil(series.length / 3))
+      : 0
+    const legendHeight = legendRows * 24
+
     return {
       color: palette,
-      // Snappy line-draw: echarts defaults to a 1000ms sweep which feels sluggish
-      // on refresh/zoom. Keep a short animation for polish without the wait.
-      animationDuration: 300,
-      animationDurationUpdate: 300,
+      // Initial paint gets a brief fade-in; data refreshes (filter/zoom/live update) snap in
+      // place. echarts' default 1000ms left-to-right "sweep" re-runs on every setOption and reads
+      // as flicker on a dashboard, so updates are instant and only the first render animates.
+      animation: true,
+      animationDuration: 260,
+      animationEasing: 'cubicOut',
+      animationDurationUpdate: 0,
       textStyle: { color: textColor },
       tooltip: {
         trigger: 'axis',
+        // Follow the cursor with no easing — the default 0.4s transition makes the tooltip and
+        // crosshair lag behind the pointer, which feels sluggish when scrubbing across the chart.
+        transitionDuration: 0,
+        hideDelay: 0,
         // Render the tooltip on <body> (not inside the chart div) so a MUI Card's overflow/stacking
         // context can't clip it or push it behind adjacent cards.
         appendToBody: true,
@@ -86,7 +102,12 @@ export const TimeSeriesChart = ({
           const top = Math.min(Math.max(8, y - th / 2), vh - th - 8)
           return [Math.max(8, left), top]
         },
-        axisPointer: { type: 'line', lineStyle: { color: axisLineColor } },
+        // animation:false → the crosshair jumps straight to the hovered point instead of gliding.
+        axisPointer: {
+          type: 'line',
+          animation: false,
+          lineStyle: { color: axisLineColor },
+        },
         backgroundColor: theme.palette.background.paper,
         borderColor: theme.palette.divider,
         borderWidth: 1,
@@ -114,19 +135,20 @@ export const TimeSeriesChart = ({
           return header + rows.join('<br/>')
         },
       },
-      // Legend at the very bottom, with the zoom slider above it — keeps the top free so the
-      // y-axis unit name never collides with it.
+      // Legend at the very bottom — keeps the top free so the y-axis unit name never collides
+      // with it.
       legend: {
-        show: series.length > 1,
+        show: multiSeries,
         bottom: 0,
-        type: 'scroll',
+        type: 'plain',
         textStyle: { color: textColor },
       },
       grid: {
         left: 64,
         right: 24,
         top: gridTop,
-        bottom: series.length > 1 ? 96 : 52,
+        // No slider anymore: room for the x-axis labels (24), plus the wrapped legend rows.
+        bottom: 24 + legendHeight,
       },
       xAxis: {
         type: 'time',
@@ -147,16 +169,27 @@ export const TimeSeriesChart = ({
           formatter: (value: number) => formatTrendValue(value, unit),
         },
       },
+      // Grafana-style range zoom: drag across the plot to select a time window (no minimap). The
+      // toolbox dataZoom feature provides the rubber-band select; EChart arms it via the global
+      // cursor. The feature must stay show:true — the toolbox skips a hidden feature's view, which
+      // is what builds the brush controller — so instead the icon is made invisible with
+      // itemSize:0 / showTitle:false. yAxisIndex:false keeps the drag to the x (time) axis only.
+      toolbox: {
+        itemSize: 0,
+        showTitle: false,
+        feature: {
+          dataZoom: { yAxisIndex: false },
+        },
+      },
       dataZoom: [
-        // Allow drag-to-pan inside the chart, but NOT wheel zoom/pan — so page scrolling is
-        // never hijacked. Use the slider to zoom; the legend sits below it.
+        // Holds the x-axis zoom state that the drag-select writes to. Wheel/drag-pan are off so
+        // the gesture is unambiguously "select a range" and page scrolling is never hijacked.
         {
           type: 'inside',
           zoomOnMouseWheel: false,
           moveOnMouseWheel: false,
-          moveOnMouseMove: true,
+          moveOnMouseMove: false,
         },
-        { type: 'slider', height: 18, bottom: series.length > 1 ? 44 : 8 },
       ],
       series: series.map((s, idx) => {
         const c = palette[idx % palette.length]
@@ -194,7 +227,10 @@ export const TimeSeriesChart = ({
           showSymbol: false,
           smooth: false,
           connectNulls: false,
-          emphasis: { focus: 'series' },
+          // Highlight the hovered line (thicken it) but do NOT blur the others — dimming every
+          // other series on hover made comparison jumpy and hid the data you weren't pointing at.
+          emphasis: { focus: 'none', lineStyle: { width: 3 } },
+          blur: { lineStyle: { opacity: 1 }, areaStyle: { opacity: 1 } },
           data: buckets.map((b, i) => [b, s.data[i] ?? null]),
         }
       }),

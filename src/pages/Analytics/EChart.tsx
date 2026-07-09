@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useRef } from 'react'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 
 // Reusable Apache ECharts wrapper following the standard echarts-in-React pattern
 // (https://www.taniarascia.com/apache-echarts-react/): a single container ref, an init/dispose
@@ -43,6 +43,19 @@ export const EChart = ({
   const soloedRef = useRef<string | null>(null)
   const applyingRef = useRef(false)
   const modifierRef = useRef(false)
+
+  // Whether the x-axis is currently zoomed in — drives the "Reset zoom" button's visibility.
+  const [zoomed, setZoomed] = useState(false)
+
+  const resetZoom = () => {
+    const el = chartRef.current
+    if (!el) return
+    loadECharts().then(echarts =>
+      echarts
+        .getInstanceByDom(el)
+        ?.dispatchAction({ type: 'dataZoom', start: 0, end: 100 })
+    )
+  }
 
   const resizeChart = useMemo(
     () =>
@@ -104,6 +117,27 @@ export const EChart = ({
         }
         applyingRef.current = false
       })
+      // Grafana-style range zoom: arm the toolbox dataZoom "select" cursor so a plain drag across
+      // the plot picks a time window (no minimap/slider needed). echarts disarms the cursor after
+      // each selection, so re-arm on every zoom to keep drag-to-select permanently available.
+      const armRangeZoom = () =>
+        chart.dispatchAction({
+          type: 'takeGlobalCursor',
+          key: 'dataZoomSelect',
+          dataZoomSelectActive: true,
+        })
+      armRangeZoom()
+      chart.on('datazoom', () => {
+        armRangeZoom()
+        // Reflect the current x-range in the reset button: shown whenever we're not at 0–100%.
+        const dz: any = (chart.getOption() as any)?.dataZoom?.[0]
+        setZoomed(!!dz && (dz.start > 0.01 || dz.end < 99.99))
+      })
+      // Double-click anywhere on the plot resets to the full range (connected charts reset too,
+      // since the dataZoom action propagates through the connect group).
+      chart.getZr().on('dblclick', () => {
+        chart.dispatchAction({ type: 'dataZoom', start: 0, end: 100 })
+      })
       resizeObserver = new ResizeObserver(() => resizeChart())
       resizeObserver.observe(el)
     })
@@ -132,7 +166,37 @@ export const EChart = ({
     )
   }, [option])
 
-  return <div ref={chartRef} style={style} />
+  return (
+    <div style={{ position: 'relative', ...style }}>
+      <div ref={chartRef} style={{ width: '100%', height: '100%' }} />
+      {zoomed && (
+        <button
+          type="button"
+          onClick={resetZoom}
+          // Theme-neutral overlay (semi-transparent grey works on both light and dark paper);
+          // appears top-right only while zoomed in. Double-clicking the plot does the same thing.
+          style={{
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 1,
+            font: 'inherit',
+            fontSize: 12,
+            lineHeight: 1,
+            padding: '5px 10px',
+            cursor: 'pointer',
+            color: 'inherit',
+            background: 'rgba(127,127,127,0.14)',
+            border: '1px solid rgba(127,127,127,0.35)',
+            borderRadius: 6,
+            backdropFilter: 'blur(2px)',
+          }}
+        >
+          Reset zoom
+        </button>
+      )}
+    </div>
+  )
 }
 
 export default EChart
