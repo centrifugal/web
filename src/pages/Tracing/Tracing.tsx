@@ -41,7 +41,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const [filter, setFilter] = useState('')
   const [isValidFilter, setIsValidFilter] = useState(true)
   const streamCancelRef = useRef<(() => void) | null>(null)
-  const filterExpressionRef = useRef<string | null>(null)
+  // Holds the compiled CEL filter (cel-js parse() returns a reusable function) so
+  // each streamed message is evaluated without re-parsing; null when no filter is set.
+  const filterExpressionRef = useRef<any>(null)
   const [traceType, setTraceType] = useState('user')
   const [running, setRunning] = useState(false)
   // Whether the trace stream has actually opened (server flushed response
@@ -58,7 +60,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
 
   // Load CEL-JS dynamically as it's an ESM module
   useEffect(() => {
-    import('cel-js').then(module => {
+    import('@marcbachmann/cel-js').then(module => {
       celJsRef.current = module
     })
   }, [])
@@ -181,16 +183,18 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         return
       }
       try {
-        // Parse to validate the expression
-        const result = celJsRef.current.parse(filter)
-        if (!result.isSuccess) {
-          showAlert('Invalid CEL expression: ' + result.error, {
-            severity: 'error',
-          })
+        // Validate first, then compile once (parse() returns a reusable function) so
+        // each streamed message evaluates without re-parsing the filter string.
+        const checked = celJsRef.current.check(filter)
+        if (!checked.valid) {
+          showAlert(
+            'Invalid CEL expression: ' + (checked.error?.message ?? ''),
+            { severity: 'error' }
+          )
           setRunning(false)
           return
         }
-        filterExpressionRef.current = filter
+        filterExpressionRef.current = celJsRef.current.parse(filter)
       } catch {
         showAlert('Invalid CEL expression', { severity: 'error' })
         setRunning(false)
@@ -316,10 +320,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   const processStreamData = function (data: any) {
     if (filterExpressionRef.current !== null && celJsRef.current) {
       try {
-        const result = celJsRef.current.evaluate(
-          filterExpressionRef.current,
-          data
-        )
+        // Trace fields are namespaced under `event` so field names like `type` don't
+        // collide with CEL built-in identifiers (e.g. the `type` type value).
+        const result = filterExpressionRef.current({ event: data })
         if (!result) {
           return
         }
@@ -424,15 +427,16 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
             <Link href="https://cel.dev/" target={'_blank'}>
               CEL expressions
             </Link>
-            . Example: <code>type == "pub" && pub.data.input == "hello"</code>
+            . Trace fields are available under <code>event</code>. Example:{' '}
+            <code>event.type == "pub" && event.pub.data.input == "hello"</code>
           </span>
         }
         onChange={event => {
           setFilter(event.target.value)
           if (event.target.value && celJsRef.current) {
             try {
-              const result = celJsRef.current.parse(event.target.value)
-              if (!result.isSuccess) {
+              const result = celJsRef.current.check(event.target.value)
+              if (!result.valid) {
                 setIsValidFilter(false)
                 return
               }
