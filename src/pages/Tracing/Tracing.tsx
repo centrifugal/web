@@ -2,11 +2,8 @@ import { useContext, useEffect, useState, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import Link from '@mui/material/Link'
 import Box from '@mui/material/Box'
-import Radio from '@mui/material/Radio'
-import RadioGroup from '@mui/material/RadioGroup'
-import FormControlLabel from '@mui/material/FormControlLabel'
-import FormControl from '@mui/material/FormControl'
-import FormLabel from '@mui/material/FormLabel'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
 import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
@@ -44,7 +41,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   // Holds the compiled CEL filter (cel-js parse() returns a reusable function) so
   // each streamed message is evaluated without re-parsing; null when no filter is set.
   const filterExpressionRef = useRef<any>(null)
-  const [traceType, setTraceType] = useState('user')
+  const [traceType, setTraceType] = useState('channel')
   const [running, setRunning] = useState(false)
   // Whether the trace stream has actually opened (server flushed response
   // headers on connect), so we can distinguish "connecting" from "connected
@@ -90,19 +87,27 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     const searchParams = new URLSearchParams(location.search)
     const clientIdParam = searchParams.get('client_id')
     const channelParam = searchParams.get('channel')
+    const userParam = searchParams.get('user')
 
     if (clientIdParam) {
-      // Pre-select Client radio and set client_id value
+      // Pre-select the Client tab and set client_id value
       setTraceType('client')
       setClientId(clientIdParam)
     } else if (channelParam) {
-      // Pre-select Channel radio and set channel value
+      // Pre-select the Channel tab and set channel value
       setTraceType('channel')
       setChannel(channelParam)
+    } else if (userParam) {
+      // Pre-select the User tab and set user value (e.g. from the Inspector).
+      setTraceType('user')
+      setUser(userParam)
     }
   }, [location.search])
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTabChange = (
+    _event: React.SyntheticEvent,
+    newTraceType: string
+  ) => {
     if (running) {
       // Abort the in-flight stream, not just the UI flag — otherwise the fetch
       // keeps reading and calling setMessages while the Stop button (rendered
@@ -112,7 +117,6 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     setFilter('')
 
     // Clear input fields when switching types
-    const newTraceType = (event.target as HTMLInputElement).value
     if (newTraceType !== traceType) {
       setUser('')
       setChannel('')
@@ -342,195 +346,178 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     traceType === 'user' ? user : traceType === 'channel' ? channel : clientId
 
   return (
-    <Box
-      component="form"
-      onSubmit={handleFormSubmit}
-      className="max-w-8xl mx-auto p-8"
-    >
-      <FormControl>
-        <FormLabel>
-          {traceType === 'user'
-            ? 'Real-time user connections tracing'
-            : traceType === 'channel'
-              ? 'Real-time channel tracing'
-              : 'Real-time individual client tracing (note, Centrifugo client ID changes on every reconnect)'}
-        </FormLabel>
-        <RadioGroup
-          row
-          aria-labelledby="row-radio-buttons-group-label"
-          name="row-radio-buttons-group"
-          value={traceType}
-          onChange={handleChange}
-        >
-          <FormControlLabel value="user" control={<Radio />} label="User" />
-          <FormControlLabel
-            value="channel"
-            control={<Radio />}
-            label="Channel"
+    <Box component="form" onSubmit={handleFormSubmit}>
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2.5 }}>
+        <Tabs value={traceType} onChange={handleTabChange}>
+          <Tab label="Channel" value="channel" />
+          <Tab label="User" value="user" />
+          <Tab label="Client" value="client" />
+        </Tabs>
+      </Box>
+      <Box className="max-w-8xl mx-auto p-8">
+        {traceType === 'user' ? (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="user"
+            label="User ID"
+            type="text"
+            id="text"
+            onChange={event => setUser(event.target.value)}
+            value={user}
+            autoComplete="off"
+            disabled={running}
           />
-          <FormControlLabel value="client" control={<Radio />} label="Client" />
-        </RadioGroup>
-      </FormControl>
-      {traceType === 'user' ? (
+        ) : traceType === 'channel' ? (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="channel"
+            label="Channel"
+            type="text"
+            id="text"
+            onChange={event => setChannel(event.target.value)}
+            value={channel}
+            autoComplete="off"
+            disabled={running}
+          />
+        ) : (
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="clientId"
+            label="Client ID"
+            type="text"
+            id="text"
+            onChange={event => setClientId(event.target.value)}
+            value={clientId}
+            autoComplete="off"
+            disabled={running}
+          />
+        )}
         <TextField
           margin="normal"
-          required
           fullWidth
-          name="user"
-          label="User ID"
+          name="filter"
+          label="Filter expression"
           type="text"
           id="text"
-          onChange={event => setUser(event.target.value)}
-          value={user}
-          autoComplete="off"
-          disabled={running}
-        />
-      ) : traceType === 'channel' ? (
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="channel"
-          label="Channel"
-          type="text"
-          id="text"
-          onChange={event => setChannel(event.target.value)}
-          value={channel}
-          autoComplete="off"
-          disabled={running}
-        />
-      ) : (
-        <TextField
-          margin="normal"
-          required
-          fullWidth
-          name="clientId"
-          label="Client ID"
-          type="text"
-          id="text"
-          onChange={event => setClientId(event.target.value)}
-          value={clientId}
-          autoComplete="off"
-          disabled={running}
-        />
-      )}
-      <TextField
-        margin="normal"
-        fullWidth
-        name="filter"
-        label="Filter expression"
-        type="text"
-        id="text"
-        helperText={
-          <span>
-            Optionally filter tracing messages on the client side using{' '}
-            <Link href="https://cel.dev/" target={'_blank'}>
-              CEL expressions
-            </Link>
-            . Trace fields are available under <code>event</code>. Example:{' '}
-            <code>event.type == "pub" && event.pub.data.input == "hello"</code>
-          </span>
-        }
-        onChange={event => {
-          setFilter(event.target.value)
-          if (event.target.value && celJsRef.current) {
-            try {
-              const result = celJsRef.current.check(event.target.value)
-              if (!result.valid) {
+          helperText={
+            <span>
+              Optionally filter tracing messages on the client side using{' '}
+              <Link href="https://cel.dev/" target={'_blank'}>
+                CEL expressions
+              </Link>
+              . Trace fields are available under <code>event</code>. Example:{' '}
+              <code>
+                event.type == "pub" && event.pub.data.input == "hello"
+              </code>
+            </span>
+          }
+          onChange={event => {
+            setFilter(event.target.value)
+            if (event.target.value && celJsRef.current) {
+              try {
+                const result = celJsRef.current.check(event.target.value)
+                if (!result.valid) {
+                  setIsValidFilter(false)
+                  return
+                }
+              } catch {
                 setIsValidFilter(false)
                 return
               }
-            } catch {
-              setIsValidFilter(false)
-              return
             }
-          }
-          setIsValidFilter(true)
-        }}
-        value={filter}
-        autoComplete="off"
-        disabled={running}
-        sx={filterSx}
-      />
-      <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-        <Box sx={{ position: 'relative' }}>
-          <Button
-            type="submit"
-            variant="contained"
-            sx={buttonSx}
-            disabled={running}
-          >
-            Start
-          </Button>
+            setIsValidFilter(true)
+          }}
+          value={filter}
+          autoComplete="off"
+          disabled={running}
+          sx={filterSx}
+        />
+        <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+          <Box sx={{ position: 'relative' }}>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={buttonSx}
+              disabled={running}
+            >
+              Start
+            </Button>
+            {running && (
+              <CircularProgress
+                size={24}
+                sx={{
+                  color: green[500],
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  marginTop: '-12px',
+                  marginLeft: '-12px',
+                }}
+              />
+            )}
+          </Box>
           {running && (
-            <CircularProgress
-              size={24}
-              sx={{
-                color: green[500],
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                marginTop: '-12px',
-                marginLeft: '-12px',
-              }}
+            <Button
+              variant="contained"
+              sx={stopButtonSx}
+              onClick={handleStopButtonClick}
+            >
+              Stop
+            </Button>
+          )}
+          {running && (
+            <Chip
+              size="small"
+              variant="outlined"
+              color={connected ? 'success' : 'default'}
+              label={connected ? 'Live' : 'Connecting…'}
+              sx={{ ml: 1 }}
             />
           )}
+          {messages.length > 0 && (
+            <Button
+              variant="contained"
+              sx={downloadButtonSx}
+              onClick={handleDownloadClick}
+            >
+              Download ({messages.length})
+            </Button>
+          )}
         </Box>
-        {running && (
-          <Button
-            variant="contained"
-            sx={stopButtonSx}
-            onClick={handleStopButtonClick}
-          >
-            Stop
-          </Button>
-        )}
-        {running && (
-          <Chip
-            size="small"
-            variant="outlined"
-            color={connected ? 'success' : 'default'}
-            label={connected ? 'Live' : 'Connecting…'}
-            sx={{ ml: 1 }}
-          />
-        )}
-        {messages.length > 0 && (
-          <Button
-            variant="contained"
-            sx={downloadButtonSx}
-            onClick={handleDownloadClick}
-          >
-            Download ({messages.length})
-          </Button>
-        )}
-      </Box>
-      <Box sx={{ mt: 2 }}>
-        {running && messages.length === 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            {connected
-              ? `Listening for events${
-                  activeEntity ? ` matching ${activeEntity}` : ''
-                }… Trigger some traffic to see messages here.`
-              : 'Connecting to trace stream…'}
-          </Typography>
-        )}
-        {messages.length >= MAX_MESSAGES && (
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mb: 1 }}
-          >
-            Showing the latest {MAX_MESSAGES} messages — older events are
-            dropped as new ones arrive.
-          </Typography>
-        )}
-        {messages.map((message, i) => (
-          <Box key={i} sx={{ mb: 2 }}>
-            <SyntaxHighlighter language="json" style={codeStyle}>
-              {JSON.stringify(message.json, undefined, 2)}
-            </SyntaxHighlighter>
-          </Box>
-        ))}
+        <Box sx={{ mt: 2 }}>
+          {running && messages.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+              {connected
+                ? `Listening for events${
+                    activeEntity ? ` matching ${activeEntity}` : ''
+                  }… Trigger some traffic to see messages here.`
+                : 'Connecting to trace stream…'}
+            </Typography>
+          )}
+          {messages.length >= MAX_MESSAGES && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mb: 1 }}
+            >
+              Showing the latest {MAX_MESSAGES} messages — older events are
+              dropped as new ones arrive.
+            </Typography>
+          )}
+          {messages.map((message, i) => (
+            <Box key={i} sx={{ mb: 2 }}>
+              <SyntaxHighlighter language="json" style={codeStyle}>
+                {JSON.stringify(message.json, undefined, 2)}
+              </SyntaxHighlighter>
+            </Box>
+          ))}
+        </Box>
       </Box>
     </Box>
   )

@@ -13,6 +13,7 @@ import DataObjectIcon from '@mui/icons-material/DataObject'
 import SignalCellularAltIcon from '@mui/icons-material/SignalCellularAlt'
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment'
 import PlayCircleIcon from '@mui/icons-material/PlayCircle'
+import ManageSearchIcon from '@mui/icons-material/ManageSearch'
 import QueryStatsIcon from '@mui/icons-material/QueryStats'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
@@ -61,6 +62,13 @@ const pages = [
     iconColor: '#ff9800',
     to: routes.ACTIONS,
     oss: true,
+  },
+  {
+    name: 'Inspector',
+    icon: ManageSearchIcon,
+    iconColor: '#26a69a',
+    to: routes.INSPECTOR,
+    oss: false,
   },
   {
     name: 'Tracing',

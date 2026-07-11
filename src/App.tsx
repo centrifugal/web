@@ -17,6 +17,7 @@ import { routes } from 'config/routes'
 import { Status } from 'pages/Status/index'
 import { Settings } from 'pages/Settings'
 import { Actions } from 'pages/Actions'
+import { Inspector } from 'pages/Inspector'
 import { Tracing } from 'pages/Tracing'
 import { Analytics } from 'pages/Analytics'
 import { PushNotification } from 'pages/PushNotification'
@@ -361,6 +362,19 @@ function ShellWrapper({
             />
           }
         />
+        {edition === 'pro' ? (
+          <Route
+            path={routes.INSPECTOR}
+            element={
+              <Inspector
+                signinSilent={signinSilent}
+                authorization={authorization}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
         {edition === 'pro' ? (
           <Route
             path={routes.TRACING}

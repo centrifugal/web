@@ -1,4 +1,5 @@
 import { useEffect, useContext, useState, useCallback, ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
@@ -118,6 +119,7 @@ export function PushNotification({
   edition,
 }: PushNotificationProps) {
   const savedLimit = localStorage.getItem('push_notifications.devices.limit')
+  const [searchParams] = useSearchParams()
   const { setTitle, showAlert } = useContext(ShellContext)
   const { command, handleError } = useAdminApi({ authorization, signinSilent })
   const [nodes, setNodes] = useState<any[]>([])
@@ -132,7 +134,11 @@ export function PushNotification({
   const [selectedItem, setSelectedItem] = useState<any>(null)
 
   const [topicNames, setTopicNames] = useState<any[]>([])
-  const [userIds, setUserIds] = useState<any[]>([])
+  // Pre-fill the user filter when deep-linked from the Inspector (?user=...).
+  const [userIds, setUserIds] = useState<any[]>(() => {
+    const u = searchParams.get('user')
+    return u ? [u] : []
+  })
 
   const [pushTitle, setPushTitle] = useState('')
   const [pushBody, setPushBody] = useState('')

@@ -16,7 +16,7 @@ import { useAdminApi } from 'api/adminApi'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
-import { Card, CardContent, Chip } from '@mui/material'
+import { Card, CardContent } from '@mui/material'
 import {
   InfoOutlined,
   Storage,
@@ -93,6 +93,50 @@ const MiniStat = ({ label, value }: { label: string; value: string }) => (
   </Typography>
 )
 
+// Distribution renders a label plus a compact "key value · key value" breakdown as
+// plain inline text (no chips) so many buckets stay on one line. Each key/value pair
+// is kept unbreakable, but the list may wrap between pairs when it must.
+const Distribution = ({
+  label,
+  data,
+}: {
+  label: string
+  data: Record<string, number>
+}) => {
+  const entries = Object.entries(data)
+  return (
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      sx={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'baseline' }}
+    >
+      <Box component="span" sx={{ mr: 0.75 }}>
+        {label}
+      </Box>
+      {entries.length === 0 ? (
+        '—'
+      ) : (
+        <Box
+          component="span"
+          sx={{ display: 'inline-flex', flexWrap: 'wrap', columnGap: 1 }}
+        >
+          {entries.map(([k, v]) => (
+            <Box component="span" key={k} sx={{ whiteSpace: 'nowrap' }}>
+              {k}{' '}
+              <Box
+                component="span"
+                sx={{ fontWeight: 700, color: 'text.primary' }}
+              >
+                {fmtInt(v)}
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      )}
+    </Typography>
+  )
+}
+
 interface StatusProps {
   signinSilent: () => void
   authorization: string
@@ -110,6 +154,7 @@ function createData(
   cpu: string | number,
   rss: string,
   connectionsByClient: Record<string, number>,
+  connectionsByTransport: Record<string, number>,
   messagesReceived: number,
   messagesSent: number,
   publications: number,
@@ -129,6 +174,7 @@ function createData(
     cpu,
     rss,
     connectionsByClient,
+    connectionsByTransport,
     messagesReceived,
     messagesSent,
     publications,
@@ -176,14 +222,43 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         const items = node.metrics?.items || {}
         const interval = node.metrics?.interval || 1
 
-        // connections by client_name
+        // Connections grouped by client_name. The connections_inflight gauge is
+        // labeled {transport, accept_protocol, client_name, client_version}. The
+        // server reports the name verbatim only when registered, "unregistered" for
+        // an unrecognized name, and "unnamed" when the client sent no name — so every
+        // series carries a client_name segment. Older servers instead left the label
+        // empty and the metric aggregator dropped it (key had no client_name segment
+        // at all, e.g. "...connections_inflight.transport.uni_http_stream"); we treat
+        // that missing-segment case as "unnamed" too. Skip zero series.
         const connectionsByClient: Record<string, number> = {}
+        const connectionsByTransport: Record<string, number> = {}
+        const connPrefix = 'centrifugo.client.connections_inflight.'
         Object.entries(items).forEach(([key, value]) => {
-          const prefix = 'centrifugo.client.connections_inflight.client_name.'
-          if (key.startsWith(prefix)) {
-            const clientName = key.slice(prefix.length).split('.')[0]
-            connectionsByClient[clientName] =
-              (connectionsByClient[clientName] || 0) + Number(value)
+          if (!key.startsWith(connPrefix)) return
+          const n = Number(value)
+          if (!n) return
+          let name = 'unnamed'
+          const marker = 'client_name.'
+          const at = key.indexOf(marker, connPrefix.length)
+          if (at !== -1) {
+            // The client_name value runs until the next label segment. Labels are
+            // emitted alphabetically, so client_version/transport follow client_name.
+            let tail = key.slice(at + marker.length)
+            for (const b of ['.client_version.', '.transport.']) {
+              const cut = tail.indexOf(b)
+              if (cut !== -1) tail = tail.slice(0, cut)
+            }
+            name = tail || 'unnamed'
+          }
+          connectionsByClient[name] = (connectionsByClient[name] || 0) + n
+
+          // transport is the last label alphabetically, so its value runs to the
+          // end of the key (transports have no dots — e.g. "admin:uni_stream").
+          const tAt = key.indexOf('.transport.')
+          if (tAt !== -1) {
+            const transport = key.slice(tAt + '.transport.'.length)
+            connectionsByTransport[transport] =
+              (connectionsByTransport[transport] || 0) + n
           }
         })
 
@@ -243,6 +318,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
             node.process ? (node.process.cpu || 0).toFixed(1) : 'n/a',
             node.process ? HumanSize(node.process.rss) : 'n/a',
             connectionsByClient,
+            connectionsByTransport,
             messagesReceived,
             messagesSent,
             publications,
@@ -441,36 +517,14 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                                     node.publications / node.interval
                                   )}
                                 />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  sx={{ whiteSpace: 'nowrap' }}
-                                >
-                                  Clients:
-                                </Typography>
-                                {Object.keys(node.connectionsByClient).length >
-                                0 ? (
-                                  Object.entries(node.connectionsByClient).map(
-                                    ([client, cnt]) => (
-                                      <Chip
-                                        key={client}
-                                        size="small"
-                                        variant="outlined"
-                                        color="primary"
-                                        label={`${client}: ${fmtInt(
-                                          cnt as number
-                                        )}`}
-                                      />
-                                    )
-                                  )
-                                ) : (
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    —
-                                  </Typography>
-                                )}
+                                <Distribution
+                                  label="Clients:"
+                                  data={node.connectionsByClient}
+                                />
+                                <Distribution
+                                  label="Transports:"
+                                  data={node.connectionsByTransport}
+                                />
                               </Box>
                             </TableCell>
                           </TableRow>
