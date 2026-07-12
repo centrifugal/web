@@ -415,7 +415,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           <Box sx={{ position: 'relative' }}>
             <Button
               type="submit"
-              variant="tonal"
+              variant="solid"
               color="primary"
               disabled={running}
             >
@@ -437,7 +437,7 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           {running && (
             <Button
               variant="tonal"
-              color="secondary"
+              color="inherit"
               sx={{ ml: 2 }}
               onClick={handleStopButtonClick}
             >

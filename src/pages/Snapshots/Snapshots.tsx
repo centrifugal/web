@@ -309,7 +309,7 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
         <>
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
             <Button
-              variant="tonal"
+              variant="solid"
               color="primary"
               startIcon={<AddIcon />}
               onClick={() => setCreateDialogOpen(true)}

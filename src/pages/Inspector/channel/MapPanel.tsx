@@ -110,7 +110,7 @@ export const MapPanel = ({
       {entries === null && numKeys != null && numKeys > 0 && (
         <Button
           variant="tonal"
-          color="secondary"
+          color="inherit"
           size="small"
           onClick={() => loadEntries(true)}
           disabled={entriesLoading}
@@ -209,7 +209,7 @@ export const MapPanel = ({
             {!done && (
               <Button
                 variant="tonal"
-                color="secondary"
+                color="inherit"
                 size="small"
                 onClick={() => loadEntries(false)}
                 disabled={entriesLoading}

@@ -1,8 +1,10 @@
 export interface UserSettings {
   colorMode: 'dark' | 'light'
-  // Optional custom accent (hex) driving the primary button, highlights and
-  // focus. When unset, the built-in green is used.
+  // Optional custom accents (hex). accentColor is the primary accent (primary
+  // button, highlights, focus); accentColor2 is the secondary accent (links,
+  // Trace, info). When unset, the built-in green / blue are used.
   accentColor?: string
+  accentColor2?: string
 }
 
 export interface AdminSettings {

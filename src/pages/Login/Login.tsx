@@ -747,7 +747,7 @@ export function Login({ handleLogin }: LoginProps) {
           <Button
             type="button"
             fullWidth
-            variant="tonal"
+            variant="solid"
             color="primary"
             sx={{ mt: 3, mb: 2 }}
             onClick={() => void auth.signinRedirect()}
@@ -758,7 +758,7 @@ export function Login({ handleLogin }: LoginProps) {
           <Button
             type="button"
             fullWidth
-            variant="tonal"
+            variant="solid"
             color="primary"
             sx={{ mt: 3, mb: 2 }}
             onClick={handleServerSideOIDCLogin}
@@ -769,7 +769,7 @@ export function Login({ handleLogin }: LoginProps) {
           <Button
             type="submit"
             fullWidth
-            variant="tonal"
+            variant="solid"
             color="primary"
             sx={{ mt: 3, mb: 2 }}
             disabled={password.trim() === ''}

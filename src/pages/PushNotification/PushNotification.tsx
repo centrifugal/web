@@ -466,7 +466,7 @@ export function PushNotification({
                         }}
                       />
                       <Button
-                        variant="tonal"
+                        variant="solid"
                         color="primary"
                         disabled={!isPushFilled()}
                         onClick={handlePushToFilteredSubmit}
@@ -666,7 +666,7 @@ export function PushNotification({
                           }}
                         />
                         <Button
-                          variant="tonal"
+                          variant="solid"
                           color="primary"
                           disabled={!isPushFilled()}
                           onClick={handlePushToDeviceSubmit}
@@ -774,7 +774,7 @@ export function PushNotification({
                   )}
                 />
                 <Button
-                  variant="tonal"
+                  variant="solid"
                   size="large"
                   color="primary"
                   disabled={isFilterEmpty() || nodes.length === 0}

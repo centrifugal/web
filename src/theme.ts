@@ -1,6 +1,7 @@
 import {
   createTheme,
   Theme,
+  alpha,
   darken,
   lighten,
   getContrastRatio,
@@ -8,18 +9,22 @@ import {
 
 // The Centrifugo admin design system, expressed as an MUI theme.
 //
-// Direction: charcoal-based neutrals; a single living green drives primary
-// actions AND the healthy/success state; coral is reserved for destructive /
-// error; amber (distinct from coral) is warning; blue is info/links.
+// Buttons come in two honest variants:
+//   • variant="solid" — an opaque fill with a subtly darker edge (the emphatic
+//     primary action, and the escalation coral).
+//   • variant="tonal" — a barely-tinted wash + coloured border + ink (everything
+//     else: info/navigate, destructive, warning, neutral).
+// Neutral tonal buttons use color="inherit" (not "secondary").
 //
-// Buttons are TONAL — barely-tinted (~10%) with a coloured border and ink, so
-// they read as light and fresh, not filled pills. The primary carries the
-// strongest border to lead. One solid coral (`variant="contained" color="error"`)
-// is held in reserve for irreversible, cluster-wide actions.
+// Two user-customisable accents: primary (main actions, highlights, focus) and
+// a secondary that drives the info/navigate family (links, Trace). Both default
+// to the built-in green / blue. Semantic colours (success/warning/error) are
+// fixed so meaning never changes with a theme choice.
 
 declare module '@mui/material/Button' {
   interface ButtonPropsVariantOverrides {
     tonal: true
+    solid: true
   }
 }
 
@@ -34,24 +39,15 @@ interface Tokens {
   text: string
   textMuted: string
   textSubtle: string
-  // green (primary + success share this)
   green: string
-  greenSoft: string
   greenInk: string
-  // info blue
   info: string
-  infoSoft: string
   infoInk: string
-  // danger coral (tonal accent + ink) and the solid escalation coral
   danger: string
   dangerSolid: string
-  dangerSoft: string
   dangerInk: string
-  // warning amber
   warning: string
-  warningSoft: string
   warningInk: string
-  focus: string
   tooltipBg: string
   tooltipFg: string
 }
@@ -66,19 +62,14 @@ const LIGHT: Tokens = {
   textMuted: '#62626C',
   textSubtle: '#8B8B95',
   green: '#1F9D6B',
-  greenSoft: '#E6F5EE',
   greenInk: '#0E5A3D',
   info: '#3667CC',
-  infoSoft: '#E8EEFB',
   infoInk: '#26468C',
   danger: '#D2331F',
   dangerSolid: '#E84C3B',
-  dangerSoft: '#FDEBE9',
   dangerInk: '#8B2114',
   warning: '#D97706',
-  warningSoft: '#FDF0D5',
   warningInk: '#B45309',
-  focus: '#3667CC',
   tooltipBg: '#2B2B31',
   tooltipFg: '#F4F4F5',
 }
@@ -93,26 +84,21 @@ const DARK: Tokens = {
   textMuted: '#9B9BA5',
   textSubtle: '#6B6B75',
   green: '#37C98C',
-  greenSoft: 'rgba(55,201,140,0.14)',
   greenInk: '#92E8C3',
   info: '#6C97F0',
-  infoSoft: 'rgba(108,151,240,0.15)',
   infoInk: '#B6CBF7',
   danger: '#F26456',
   dangerSolid: '#E84C3B',
-  dangerSoft: 'rgba(232,76,59,0.16)',
   dangerInk: '#F7A99F',
   warning: '#F0A83C',
-  warningSoft: 'rgba(240,168,60,0.14)',
   warningInk: '#F5C787',
-  focus: '#6C97F0',
   tooltipBg: '#33333C',
   tooltipFg: '#F4F4F5',
 }
 
-// One tonal button recipe: a wash of `base` with a matching border and `ink`
-// text. `fill`/`hover` are the wash strengths (percent of `base` over the
-// surface). Percentages mirror the reference design system.
+// Tonal recipe: a light wash of `base` (fill/hover as 0-100 opacity), a matching
+// border, and coloured `ink`. Uses alpha() (computed in JS) so there's no
+// color-mix() browser dependency.
 const tonal = (
   base: string,
   ink: string,
@@ -120,92 +106,127 @@ const tonal = (
   border: number,
   hover: number
 ) => ({
-  backgroundColor: `color-mix(in srgb, ${base} ${fill}%, transparent)`,
+  backgroundColor: alpha(base, fill / 100),
   color: ink,
-  border: `1px solid color-mix(in srgb, ${base} ${border}%, transparent)`,
+  border: `1px solid ${alpha(base, border / 100)}`,
   '&:hover': {
-    backgroundColor: `color-mix(in srgb, ${base} ${hover}%, transparent)`,
-    border: `1px solid color-mix(in srgb, ${base} ${border}%, transparent)`,
+    backgroundColor: alpha(base, hover / 100),
+    border: `1px solid ${alpha(base, border / 100)}`,
   },
 })
 
-// Solid flat recipe: an opaque fill, contrast ink, no shadow/gradient — flat
-// design — with a subtly darker edge (derived from the fill) for definition.
-// Hover just shifts the fill slightly.
+// Solid recipe: opaque fill, contrast ink, a subtly darker edge (16% toward
+// black) for definition. Flat — no shadow/gradient.
 const solid = (base: string, ink: string, hover: string) => ({
   backgroundColor: base,
   color: ink,
-  border: `1px solid color-mix(in srgb, ${base} 84%, #000)`,
+  border: `1px solid ${darken(base, 0.16)}`,
   boxShadow: 'none',
   '&:hover': {
     backgroundColor: hover,
     boxShadow: 'none',
-    border: `1px solid color-mix(in srgb, ${hover} 84%, #000)`,
+    border: `1px solid ${darken(hover, 0.16)}`,
   },
 })
 
-const cssVars = (t: Tokens) => `
-  --bg:${t.bg}; --surface:${t.surface}; --surface-2:${t.surface2};
-  --border:${t.border}; --border-strong:${t.borderStrong};
-  --text:${t.text}; --text-muted:${t.textMuted}; --text-subtle:${t.textSubtle};
-  --green:${t.green}; --green-soft:${t.greenSoft}; --green-ink:${t.greenInk};
-  --info:${t.info}; --info-soft:${t.infoSoft}; --info-ink:${t.infoInk};
-  --danger:${t.danger}; --danger-solid:${t.dangerSolid}; --danger-soft:${t.dangerSoft}; --danger-ink:${t.dangerInk};
-  --warning:${t.warning}; --warning-soft:${t.warningSoft}; --warning-ink:${t.warningInk};
-  --focus:${t.focus};
-`
+interface Accent {
+  main: string
+  solidInk: string
+  solidHover: string
+  tonalInk: string
+}
 
-// Derive a full accent (solid button fill, contrast ink, hover) from a single
-// user-chosen base colour, per theme. Invalid input falls back to green.
-const deriveAccent = (mode: Mode, base: string, fallback: string) => {
+// Pick the higher-contrast ink (white or near-black) for text on a solid fill.
+const bestInk = (bg: string): string =>
+  getContrastRatio(bg, '#FFFFFF') >= getContrastRatio(bg, '#141416')
+    ? '#FFFFFF'
+    : '#141416'
+
+// Derive a full accent from one base colour, per theme. Robust: the solid ink is
+// always the higher-contrast of white/near-black, and the tonal ink is a
+// readable shade of the accent. Invalid input falls back.
+const resolveAccent = (
+  mode: Mode,
+  base: string | undefined,
+  fallback: Accent
+): Accent => {
+  if (!base) return fallback
   try {
     const main = mode === 'dark' ? lighten(base, 0.06) : base
     return {
       main,
-      solidInk:
-        getContrastRatio(main, '#FFFFFF') >= 2.9 ? '#FFFFFF' : '#131316',
+      solidInk: bestInk(main),
       solidHover: mode === 'dark' ? lighten(main, 0.12) : darken(main, 0.1),
+      tonalInk: mode === 'dark' ? lighten(base, 0.28) : darken(base, 0.34),
     }
   } catch {
-    return {
-      main: fallback,
-      solidInk: mode === 'dark' ? '#05271C' : '#FFFFFF',
-      solidHover: mode === 'dark' ? '#45D99A' : '#1A8A5E',
-    }
+    return fallback
   }
 }
 
-export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
+export const createAppTheme = (
+  mode: Mode,
+  accentColor?: string,
+  accentColor2?: string
+): Theme => {
   const t = mode === 'dark' ? DARK : LIGHT
 
-  // The accent drives the primary button, highlights and focus. Default is the
-  // built-in green; a custom hex recomputes it. Success/health stays green.
-  const accent = accentColor
-    ? deriveAccent(mode, accentColor, t.green)
-    : {
-        main: t.green,
-        solidInk: mode === 'dark' ? '#05271C' : '#FFFFFF',
-        solidHover: mode === 'dark' ? '#45D99A' : '#1A8A5E',
-      }
-  const solidAccent = solid(accent.main, accent.solidInk, accent.solidHover)
-  // Success buttons keep the semantic green even when the accent is customised.
+  const primaryDefault: Accent = {
+    main: t.green,
+    solidInk: mode === 'dark' ? '#05271C' : '#FFFFFF',
+    solidHover: mode === 'dark' ? '#45D99A' : '#1A8A5E',
+    tonalInk: t.greenInk,
+  }
+  const infoDefault: Accent = {
+    main: t.info,
+    solidInk: bestInk(t.info),
+    solidHover: mode === 'dark' ? lighten(t.info, 0.12) : darken(t.info, 0.1),
+    tonalInk: t.infoInk,
+  }
+  // primary accent → main actions + highlights; secondary accent → info/navigate.
+  const primary = resolveAccent(mode, accentColor, primaryDefault)
+  const info = resolveAccent(mode, accentColor2, infoDefault)
+
+  const solidPrimary = solid(primary.main, primary.solidInk, primary.solidHover)
+  // Success/health stays green even when the accent is customised.
   const solidGreen = solid(
     t.green,
     mode === 'dark' ? '#05271C' : '#FFFFFF',
     mode === 'dark' ? '#45D99A' : '#1A8A5E'
   )
+  // Escalation coral (variant="solid" color="error") — the one loud button.
+  const solidDanger = solid(
+    t.dangerSolid,
+    '#FFFFFF',
+    darken(t.dangerSolid, 0.08)
+  )
+
+  const neutralTonal = {
+    backgroundColor: alpha(t.text, 0.07),
+    color: t.text,
+    border: `1px solid ${t.borderStrong}`,
+    '&:hover': {
+      backgroundColor: alpha(t.text, 0.11),
+      border: `1px solid ${t.textSubtle}`,
+    },
+  }
+
+  const chipTonal = (base: string, ink: string) => ({
+    '&.MuiChip-filled': {
+      backgroundColor: alpha(base, 0.16),
+      color: ink,
+      border: `1px solid ${alpha(base, 0.32)}`,
+    },
+  })
 
   return createTheme({
     palette: {
       mode,
-      primary: {
-        main: accent.main,
-        contrastText: accent.solidInk,
-      },
+      primary: { main: primary.main, contrastText: primary.solidInk },
       secondary: { main: t.textMuted },
       error: { main: t.dangerSolid, contrastText: '#FFFFFF' },
       warning: { main: t.warning },
-      info: { main: t.info },
+      info: { main: info.main },
       success: { main: t.green },
       background: { default: t.bg, paper: t.surface },
       text: { primary: t.text, secondary: t.textMuted, disabled: t.textSubtle },
@@ -223,8 +244,10 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
     },
     components: {
       MuiCssBaseline: {
+        // color-scheme makes native controls (date/time pickers, scrollbars)
+        // render for the active theme.
         styleOverrides: `
-          :root { ${cssVars(t)} color-scheme: ${mode}; }
+          :root { color-scheme: ${mode}; }
           body { background: ${t.bg}; }
         `,
       },
@@ -237,24 +260,28 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
             paddingBottom: 7,
             '&:active': { transform: 'translateY(1px)' },
             '&.Mui-disabled': {
-              backgroundColor: `color-mix(in srgb, ${t.text} 4%, transparent)`,
+              backgroundColor: alpha(t.text, 0.04),
               color: t.textSubtle,
               border: `1px solid ${t.border}`,
             },
           },
         },
         variants: [
+          // Solid — emphatic, opaque.
+          {
+            props: { variant: 'solid', color: 'primary' },
+            style: solidPrimary,
+          },
+          { props: { variant: 'solid', color: 'success' }, style: solidGreen },
+          { props: { variant: 'solid', color: 'error' }, style: solidDanger },
+          // Tonal — soft wash.
           {
             props: { variant: 'tonal', color: 'primary' },
-            style: solidAccent,
-          },
-          {
-            props: { variant: 'tonal', color: 'success' },
-            style: solidGreen,
+            style: tonal(primary.main, primary.tonalInk, 10, 48, 18),
           },
           {
             props: { variant: 'tonal', color: 'info' },
-            style: tonal(t.info, t.infoInk, 9, 48, 16),
+            style: tonal(info.main, info.tonalInk, 9, 48, 16),
           },
           {
             props: { variant: 'tonal', color: 'error' },
@@ -265,29 +292,25 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
             style: tonal(t.warning, t.warningInk, 9, 48, 16),
           },
           {
-            props: { variant: 'tonal', color: 'secondary' },
-            style: {
-              backgroundColor: `color-mix(in srgb, ${t.text} 7%, transparent)`,
-              color: t.text,
-              border: `1px solid ${t.borderStrong}`,
-              '&:hover': {
-                backgroundColor: `color-mix(in srgb, ${t.text} 11%, transparent)`,
-                border: `1px solid ${t.textSubtle}`,
-              },
-            },
+            props: { variant: 'tonal', color: 'success' },
+            style: tonal(t.green, t.greenInk, 9, 48, 16),
           },
-          // Bare `variant="tonal"` with no explicit color → neutral.
+          // Neutral tonal (the quiet button). No bare `{ variant: 'tonal' }`
+          // catch-all — being last it would override the colour-specific styles
+          // above (turning every tonal button grey); a color-less tonal button
+          // already defaults to `primary`.
           {
-            props: { variant: 'tonal' },
-            style: {},
+            props: { variant: 'tonal', color: 'inherit' },
+            style: neutralTonal,
+          },
+          {
+            props: { variant: 'tonal', color: 'secondary' },
+            style: neutralTonal,
           },
         ],
       },
       MuiAlert: {
         styleOverrides: {
-          // Clean, fully-opaque card (so a floating Snackbar never bleeds page
-          // text through) with the severity carried by a colored left stripe and
-          // the icon — not a muddy full-background tint.
           root: {
             borderRadius: 10,
             backgroundColor: t.surface,
@@ -301,8 +324,8 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
             '& .MuiAlert-icon': { color: t.green },
           },
           standardInfo: {
-            borderLeftColor: t.info,
-            '& .MuiAlert-icon': { color: t.info },
+            borderLeftColor: info.main,
+            '& .MuiAlert-icon': { color: info.main },
           },
           standardWarning: {
             borderLeftColor: t.warning,
@@ -328,13 +351,11 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
         },
       },
       MuiLink: {
-        defaultProps: { color: t.info },
+        defaultProps: { color: info.main },
         styleOverrides: { root: { textDecorationColor: 'currentColor' } },
       },
       MuiOutlinedInput: {
         styleOverrides: {
-          // Keep the outline 1px on focus (MUI defaults to 2px), so the field
-          // doesn't visibly thicken/shift — only the border colour changes.
           root: {
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               borderWidth: 1,
@@ -345,56 +366,25 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
       MuiCircularProgress: {
         defaultProps: { color: 'primary' },
       },
-      // Account avatar: a themed accent circle (follows the chosen accent), not
-      // MUI's default grey.
       MuiAvatar: {
         styleOverrides: {
           root: {
-            backgroundColor: accent.main,
-            color: accent.solidInk,
+            backgroundColor: primary.main,
+            color: primary.solidInk,
             fontSize: '0.95rem',
             fontWeight: 600,
           },
         },
       },
-      // Coloured chips render tonal (soft fill + ink text + subtle border), like
-      // the design system — not MUI's solid fill.
       MuiChip: {
         styleOverrides: {
           root: { fontWeight: 500 },
-          colorSuccess: {
-            '&.MuiChip-filled': {
-              backgroundColor: t.greenSoft,
-              color: t.greenInk,
-              border: `1px solid color-mix(in srgb, ${t.green} 32%, transparent)`,
-            },
-          },
-          colorError: {
-            '&.MuiChip-filled': {
-              backgroundColor: t.dangerSoft,
-              color: t.dangerInk,
-              border: `1px solid color-mix(in srgb, ${t.danger} 32%, transparent)`,
-            },
-          },
-          colorWarning: {
-            '&.MuiChip-filled': {
-              backgroundColor: t.warningSoft,
-              color: t.warningInk,
-              border: `1px solid color-mix(in srgb, ${t.warning} 35%, transparent)`,
-            },
-          },
-          colorInfo: {
-            '&.MuiChip-filled': {
-              backgroundColor: t.infoSoft,
-              color: t.infoInk,
-              border: `1px solid color-mix(in srgb, ${t.info} 32%, transparent)`,
-            },
-          },
+          colorSuccess: chipTonal(t.green, t.greenInk),
+          colorError: chipTonal(t.danger, t.dangerInk),
+          colorWarning: chipTonal(t.warning, t.warningInk),
+          colorInfo: chipTonal(info.main, info.tonalInk),
         },
       },
-      // One table-header style everywhere: uppercase, letter-spaced, muted — and a
-      // consistent divider colour on every cell. Density is medium everywhere (the
-      // MUI default) — no page overrides the size.
       MuiTableCell: {
         styleOverrides: {
           root: { borderBottomColor: t.border },
@@ -408,25 +398,9 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
           },
         },
       },
-      MuiAppBar: {
-        // A flat bar defined by its bottom border, not a heavy drop shadow.
-        defaultProps: { elevation: 0 },
-        styleOverrides: {
-          // ShellAppBar renders with color="inherit"; make it a clean themed bar
-          // (light in light, dark in dark). The logo adapts per theme in
-          // ShellAppBar so it stays legible on both.
-          colorInherit: {
-            backgroundColor: t.surface,
-            color: t.text,
-            backgroundImage: 'none',
-            boxShadow: 'none',
-            borderBottom: `1px solid ${t.border}`,
-          },
-        },
-      },
       MuiTabs: {
         styleOverrides: {
-          indicator: { backgroundColor: accent.main, height: 2 },
+          indicator: { backgroundColor: primary.main, height: 2 },
         },
       },
       MuiTab: {
@@ -435,9 +409,19 @@ export const createAppTheme = (mode: Mode, accentColor?: string): Theme => {
             textTransform: 'uppercase',
             fontWeight: 500,
             letterSpacing: '0.05em',
-            // Neutral label with a green underline (rather than a green label),
-            // so the tab bar stays calm and the accent lives in the indicator.
             '&.Mui-selected': { color: t.text },
+          },
+        },
+      },
+      MuiAppBar: {
+        defaultProps: { elevation: 0 },
+        styleOverrides: {
+          colorInherit: {
+            backgroundColor: t.surface,
+            color: t.text,
+            backgroundImage: 'none',
+            boxShadow: 'none',
+            borderBottom: `1px solid ${t.border}`,
           },
         },
       },

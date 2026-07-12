@@ -97,10 +97,11 @@ export const Shell = ({
 
   const colorMode = settingsContext.getUserSettings().colorMode
   const accentColor = settingsContext.getUserSettings().accentColor
+  const accentColor2 = settingsContext.getUserSettings().accentColor2
 
   const theme = useMemo(
-    () => createAppTheme(colorMode, accentColor),
-    [colorMode, accentColor]
+    () => createAppTheme(colorMode, accentColor, accentColor2),
+    [colorMode, accentColor, accentColor2]
   )
 
   const handleAlertClose = (

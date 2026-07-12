@@ -382,7 +382,7 @@ export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
       <Box sx={{ position: 'relative' }}>
         <Button
           type="submit"
-          variant="tonal"
+          variant="solid"
           color="primary"
           disabled={loading}
         >
@@ -831,7 +831,7 @@ export const LabelFilterInput = ({
       })}
       <Button
         variant="tonal"
-        color="secondary"
+        color="inherit"
         size="small"
         startIcon={<AddIcon />}
         onClick={addGroup}

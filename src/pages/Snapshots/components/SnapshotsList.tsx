@@ -215,7 +215,7 @@ export const SnapshotsList = ({
         <Box textAlign="center" mt={2}>
           <Button
             variant="tonal"
-            color="secondary"
+            color="inherit"
             onClick={onLoadMore}
             disabled={loading}
             startIcon={loading ? <CircularProgress size={16} /> : undefined}

@@ -409,7 +409,7 @@ export const ConnectionsTable = ({
             onClick={handlePrev}
             disabled={loading || prevCursors.length === 0}
             variant="tonal"
-            color="secondary"
+            color="inherit"
           >
             Previous
           </Button>
@@ -419,7 +419,7 @@ export const ConnectionsTable = ({
             onClick={handleNext}
             disabled={loading || !nextCursor}
             variant="tonal"
-            color="secondary"
+            color="inherit"
           >
             Next
           </Button>

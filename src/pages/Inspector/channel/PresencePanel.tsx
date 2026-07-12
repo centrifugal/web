@@ -104,7 +104,7 @@ export const PresencePanel = ({
       {clients === null && stats && stats.num_clients > 0 && (
         <Button
           variant="tonal"
-          color="secondary"
+          color="inherit"
           size="small"
           onClick={loadClients}
           disabled={clientsLoading}

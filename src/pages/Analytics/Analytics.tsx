@@ -1053,7 +1053,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -1204,7 +1204,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -1368,7 +1368,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -1534,7 +1534,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -1720,7 +1720,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -1904,7 +1904,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >
@@ -2146,7 +2146,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             />
                             <Button
                               type="submit"
-                              variant="tonal"
+                              variant="solid"
                               color="primary"
                               sx={{ display: 'none' }}
                             >

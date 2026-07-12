@@ -295,7 +295,7 @@ export const CreateSnapshotDialog = ({
         </Button>
         <Button
           onClick={handleSubmit}
-          variant="tonal"
+          variant="solid"
           color="primary"
           disabled={!isValid() || submitting}
           startIcon={

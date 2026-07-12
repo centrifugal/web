@@ -431,7 +431,7 @@ export const SnapshotDetail = ({
               {isRunning && (
                 <Button
                   variant="tonal"
-                  color="secondary"
+                  color="inherit"
                   size="small"
                   startIcon={<RefreshIcon />}
                   onClick={handleManualRefresh}

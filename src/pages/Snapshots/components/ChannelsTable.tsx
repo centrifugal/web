@@ -219,7 +219,7 @@ export const ChannelsTable = ({
             onClick={handlePrev}
             disabled={loading || prevCursors.length === 0}
             variant="tonal"
-            color="secondary"
+            color="inherit"
           >
             Previous
           </Button>
@@ -229,7 +229,7 @@ export const ChannelsTable = ({
             onClick={handleNext}
             disabled={loading || !nextCursor}
             variant="tonal"
-            color="secondary"
+            color="inherit"
           >
             Next
           </Button>
@@ -342,7 +342,7 @@ export const ChannelsTable = ({
                     >
                       <Box display="flex" gap={1}>
                         <Button
-                          variant="tonal"
+                          variant="solid"
                           color="primary"
                           size="small"
                           startIcon={<CameraAltIcon />}

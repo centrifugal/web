@@ -832,7 +832,7 @@ export const FlightRecorder = ({
         </Grid>
         <Grid>
           <Button
-            variant="tonal"
+            variant="solid"
             color="primary"
             size="small"
             onClick={() => load()}
@@ -1175,7 +1175,7 @@ const SessionCard = ({
           <Button
             size="small"
             variant="tonal"
-            color="secondary"
+            color="inherit"
             onClick={copy}
             sx={{ textTransform: 'none' }}
           >

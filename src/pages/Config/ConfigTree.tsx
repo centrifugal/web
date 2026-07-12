@@ -201,7 +201,7 @@ const LongValue = ({ value }: { value: string }) => (
     sx={{
       fontFamily: 'monospace',
       fontSize: 12,
-      color: 'success.main',
+      color: 'primary.main',
       whiteSpace: 'pre-wrap',
       wordBreak: 'break-all',
       maxHeight: 160,
@@ -233,7 +233,7 @@ const ScalarValue = ({ node }: { node: ConfigNode }) => {
     return (
       <Box
         component="span"
-        sx={{ color: 'secondary.main', fontFamily: 'monospace' }}
+        sx={{ color: 'primary.main', fontFamily: 'monospace' }}
       >
         {String(node.value)}
       </Box>
@@ -253,7 +253,7 @@ const ScalarValue = ({ node }: { node: ConfigNode }) => {
     <Box
       component="span"
       sx={{
-        color: 'success.main',
+        color: 'primary.main',
         fontFamily: 'monospace',
         wordBreak: 'break-all',
       }}
@@ -618,7 +618,7 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
         <Button
           size="small"
           variant="tonal"
-          color="secondary"
+          color="inherit"
           startIcon={<UnfoldMoreIcon />}
           onClick={expandAll}
         >
@@ -627,7 +627,7 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
         <Button
           size="small"
           variant="tonal"
-          color="secondary"
+          color="inherit"
           startIcon={<UnfoldLessIcon />}
           onClick={collapseAll}
         >

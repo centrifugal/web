@@ -80,7 +80,7 @@ export const UserActions = ({
         >
           {open => (
             <Button
-              variant="tonal"
+              variant="solid"
               color="primary"
               size="small"
               startIcon={<LockOpenIcon />}
