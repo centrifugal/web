@@ -23,7 +23,6 @@ import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight'
 import LastPageIcon from '@mui/icons-material/LastPage'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import { useTheme } from '@mui/material/styles'
-import Link from '@mui/material/Link'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -114,7 +113,7 @@ const KpiCard = ({
         <Typography
           variant="overline"
           color="text.secondary"
-          sx={{ lineHeight: 1.3 }}
+          sx={{ lineHeight: 1.3, fontSize: '0.8125rem', fontWeight: 600 }}
         >
           {label}
         </Typography>
@@ -136,8 +135,20 @@ const WidgetTitle = ({
   windowLabel: string
   onWindowClick: () => void
 }) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-    <Typography variant="h6" color="text.secondary">
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 1,
+      mb: 1.75,
+    }}
+  >
+    <Typography
+      variant="overline"
+      color="text.secondary"
+      sx={{ lineHeight: 1.3, fontSize: '0.8125rem', fontWeight: 600 }}
+    >
       {title}
     </Typography>
     <PeriodButton label={windowLabel} onClick={onWindowClick} />
@@ -252,7 +263,9 @@ function IntervalDialog(props: IntervalDialogProps) {
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="text" onClick={handleClose}>
+          Cancel
+        </Button>
       </DialogActions>
     </Dialog>
   )
@@ -342,7 +355,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
   const { setTitle, showAlert } = useContext(ShellContext)
   const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [loading, setLoading] = useState(true)
-  const [reloading, setReloading] = useState(true)
   const [enabled, setEnabled] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<null | any>(null)
   const localStorageRequestKey = 'centrifugo_analytics_request_v2'
@@ -612,8 +624,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
 
   const askFullAnalyticsData = useCallback(
     function () {
-      setReloading(true)
-
       const headers: any = {
         Accept: 'application/json',
       }
@@ -649,7 +659,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
           }
           setAnalyticsData(data.result)
           setLoading(false)
-          setReloading(false)
         })
         .catch(e => {
           showAlert('Error connecting to server', { severity: 'error' })
@@ -673,13 +682,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     return () => clearInterval(interval)
   }, [askFullAnalyticsData, signinSilent, authorization, showAlert, didFetch])
 
-  const handleReloadClick = (e: any) => {
-    e.preventDefault()
-    askFullAnalyticsData()
-    return
-  }
-
-  const headCellSx = { fontWeight: 'bold', p: 1.5 }
   const widgetCellSx = { p: 1.5 }
   // Distribution chips (SDKs / transports / push platforms) flow in a wrapping row.
   const distChipsSx = { display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }
@@ -818,7 +820,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
         <Box>
-          <CircularProgress disableShrink color="secondary" />
+          <CircularProgress disableShrink />
         </Box>
       ) : (
         <Box>
@@ -831,21 +833,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
           />
           {enabled ? (
             <Box>
-              <Typography color="text.secondary" gutterBottom>
-                Analytics dashboard to observe a system state,{' '}
-                <Link href="#" onClick={handleReloadClick}>
-                  reload
-                </Link>{' '}
-                {reloading ? (
-                  <CircularProgress
-                    sx={{ maxWidth: '10px', maxHeight: '10px' }}
-                    disableShrink
-                    color="secondary"
-                  />
-                ) : (
-                  <></>
-                )}
-              </Typography>
               <Grid container spacing={2} sx={{ mt: 0 }}>
                 <Grid
                   size={{
@@ -1064,7 +1051,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={userConnectionsUser}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1078,8 +1070,8 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>User ID</TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>User ID</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1210,7 +1202,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={channelSubscriptionsChannel}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1223,8 +1220,8 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>Channel</TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>Channel</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1369,7 +1366,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={userOpsOp}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1383,9 +1385,9 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>User ID</TableCell>
-                                  <TableCell sx={headCellSx}>Op</TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>User ID</TableCell>
+                                  <TableCell>Op</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1530,7 +1532,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={channelPublicationsSource}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1543,9 +1550,9 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>Channel</TableCell>
-                                  <TableCell sx={headCellSx}>Source</TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>Channel</TableCell>
+                                  <TableCell>Source</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1711,7 +1718,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={userErrorsError}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1724,10 +1736,10 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>User ID</TableCell>
-                                  <TableCell sx={headCellSx}>Op</TableCell>
-                                  <TableCell sx={headCellSx}>Error</TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>User ID</TableCell>
+                                  <TableCell>Op</TableCell>
+                                  <TableCell>Error</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1890,7 +1902,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={userDisconnectsDisconnect}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>
@@ -1903,12 +1920,10 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                             <Table aria-label="simple table">
                               <TableHead>
                                 <TableRow>
-                                  <TableCell sx={headCellSx}>User ID</TableCell>
-                                  <TableCell sx={headCellSx}>Op</TableCell>
-                                  <TableCell sx={headCellSx}>
-                                    Disconnect
-                                  </TableCell>
-                                  <TableCell sx={headCellSx}>Count</TableCell>
+                                  <TableCell>User ID</TableCell>
+                                  <TableCell>Op</TableCell>
+                                  <TableCell>Disconnect</TableCell>
+                                  <TableCell>Count</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -2090,9 +2105,15 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                   <Card sx={widgetCardSx}>
                     <CardContent>
                       <Typography
-                        variant="h6"
+                        variant="overline"
                         color="text.secondary"
-                        gutterBottom
+                        sx={{
+                          display: 'block',
+                          lineHeight: 1.3,
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          mb: 1.75,
+                        }}
                       >
                         Individual push stats/rates
                       </Typography>
@@ -2123,7 +2144,12 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
                               }
                               value={pushStatsAnalyticsUID}
                             />
-                            <Button type="submit" sx={{ display: 'none' }}>
+                            <Button
+                              type="submit"
+                              variant="tonal"
+                              color="primary"
+                              sx={{ display: 'none' }}
+                            >
                               Submit
                             </Button>
                           </Grid>

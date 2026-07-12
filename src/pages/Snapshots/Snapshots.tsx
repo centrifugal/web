@@ -3,8 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import AddIcon from '@mui/icons-material/Add'
@@ -255,83 +253,77 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {id && currentSnapshot ? (
-        <Card>
-          <CardContent>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={2}
+        <>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            gap={2}
+            mb={2}
+          >
+            <Typography
+              variant="h6"
+              component="h1"
+              sx={{
+                color: 'text.primary',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                minWidth: 0,
+              }}
             >
+              {currentSnapshot.kind.charAt(0).toUpperCase() +
+                currentSnapshot.kind.slice(1)}{' '}
+              snapshot
               <Typography
-                variant="h5"
-                component="h1"
+                component="span"
+                variant="body2"
                 sx={{
-                  color: 'text.primary',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
+                  color: 'text.secondary',
+                  fontFamily: 'monospace',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                {currentSnapshot.kind.charAt(0).toUpperCase() +
-                  currentSnapshot.kind.slice(1)}{' '}
-                Snapshot, ID
-                <Typography
-                  component="span"
-                  variant="h6"
-                  sx={{
-                    color: 'text.secondary',
-                    fontFamily: 'monospace',
-                    fontWeight: 400,
-                  }}
-                >
-                  {currentSnapshot.snapshot_id}
-                </Typography>
+                {currentSnapshot.snapshot_id}
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<ArrowBackIcon />}
-                onClick={handleBackToList}
-              >
-                Back to List
-              </Button>
-            </Box>
-            <SnapshotDetail
-              snapshot={currentSnapshot}
-              authorization={authorization}
-              signinSilent={signinSilent}
-              onCreateConnectionsSnapshot={handleCreateConnectionsSnapshot}
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              mb={2}
+            </Typography>
+            <Button
+              variant="tonal"
+              color="info"
+              startIcon={<ArrowBackIcon />}
+              onClick={handleBackToList}
+              sx={{ flexShrink: 0 }}
             >
-              <Typography variant="h5" component="h1">
-                All Snapshots
-              </Typography>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={() => setCreateDialogOpen(true)}
-              >
-                Create Snapshot
-              </Button>
-            </Box>
-            <SnapshotsList
-              snapshots={snapshots}
-              loading={loading}
-              nextCursor={nextCursor}
-              onLoadMore={handleLoadMore}
-            />
-          </CardContent>
-        </Card>
+              Back to List
+            </Button>
+          </Box>
+          <SnapshotDetail
+            snapshot={currentSnapshot}
+            authorization={authorization}
+            signinSilent={signinSilent}
+            onCreateConnectionsSnapshot={handleCreateConnectionsSnapshot}
+          />
+        </>
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              variant="tonal"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              Create Snapshot
+            </Button>
+          </Box>
+          <SnapshotsList
+            snapshots={snapshots}
+            loading={loading}
+            nextCursor={nextCursor}
+            onLoadMore={handleLoadMore}
+          />
+        </>
       )}
 
       <CreateSnapshotDialog

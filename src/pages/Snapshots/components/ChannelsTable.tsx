@@ -218,7 +218,8 @@ export const ChannelsTable = ({
             startIcon={<NavigateBeforeIcon />}
             onClick={handlePrev}
             disabled={loading || prevCursors.length === 0}
-            variant="outlined"
+            variant="tonal"
+            color="secondary"
           >
             Previous
           </Button>
@@ -227,7 +228,8 @@ export const ChannelsTable = ({
             endIcon={<NavigateNextIcon />}
             onClick={handleNext}
             disabled={loading || !nextCursor}
-            variant="outlined"
+            variant="tonal"
+            color="secondary"
           >
             Next
           </Button>
@@ -306,7 +308,7 @@ export const ChannelsTable = ({
       ) : (
         <>
           <TableContainer>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Channel</TableCell>
@@ -340,7 +342,8 @@ export const ChannelsTable = ({
                     >
                       <Box display="flex" gap={1}>
                         <Button
-                          variant="outlined"
+                          variant="tonal"
+                          color="primary"
                           size="small"
                           startIcon={<CameraAltIcon />}
                           onClick={() =>
@@ -350,7 +353,8 @@ export const ChannelsTable = ({
                           Snapshot subscribers
                         </Button>
                         <Button
-                          variant="outlined"
+                          variant="tonal"
+                          color="info"
                           size="small"
                           startIcon={<OpenInNewIcon />}
                           onClick={() => handleTraceChannel(channel.channel)}

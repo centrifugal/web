@@ -9,6 +9,7 @@ import {
   Button,
   Chip,
   Box,
+  Paper,
   Typography,
   CircularProgress,
 } from '@mui/material'
@@ -132,8 +133,8 @@ export const SnapshotsList = ({
 
   return (
     <>
-      <TableContainer>
-        <Table size="small">
+      <TableContainer component={Paper}>
+        <Table>
           <TableHead>
             <TableRow>
               <TableCell>Type</TableCell>
@@ -195,7 +196,8 @@ export const SnapshotsList = ({
                   sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}
                 >
                   <Button
-                    variant="outlined"
+                    variant="tonal"
+                    color="info"
                     size="small"
                     startIcon={<VisibilityIcon />}
                     onClick={() => handleViewSnapshot(snapshot.snapshot_id)}
@@ -212,7 +214,8 @@ export const SnapshotsList = ({
       {nextCursor && (
         <Box textAlign="center" mt={2}>
           <Button
-            variant="outlined"
+            variant="tonal"
+            color="secondary"
             onClick={onLoadMore}
             disabled={loading}
             startIcon={loading ? <CircularProgress size={16} /> : undefined}

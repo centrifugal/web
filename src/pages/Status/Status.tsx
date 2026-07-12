@@ -69,7 +69,7 @@ const SummaryCard = ({
           fontWeight: 'bold',
           color: theme =>
             theme.palette.mode === 'dark'
-              ? '#FE5E5E'
+              ? theme.palette.primary.main
               : theme.palette.text.primary,
         }}
       >
@@ -348,13 +348,11 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
     return () => clearInterval(intervalId)
   }, [command, handleError, visible])
 
-  const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
-
   return (
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
         <Box>
-          <CircularProgress disableShrink color="secondary" />
+          <CircularProgress disableShrink />
         </Box>
       ) : (
         <Box>
@@ -389,34 +387,18 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
               <Table aria-label="detailed status table">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={headCellSx}>Node name</TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Version
-                    </TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Uptime
-                    </TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Clients
-                    </TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Users
-                    </TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Subs
-                    </TableCell>
-                    <TableCell sx={headCellSx} align="right">
-                      Channels
-                    </TableCell>
+                    <TableCell>Node name</TableCell>
+                    <TableCell align="right">Version</TableCell>
+                    <TableCell align="right">Uptime</TableCell>
+                    <TableCell align="right">Clients</TableCell>
+                    <TableCell align="right">Users</TableCell>
+                    <TableCell align="right">Subs</TableCell>
+                    <TableCell align="right">Channels</TableCell>
                     {edition === 'pro' && (
-                      <TableCell sx={headCellSx} align="right">
-                        CPU %
-                      </TableCell>
+                      <TableCell align="right">CPU %</TableCell>
                     )}
                     {edition === 'pro' && (
-                      <TableCell sx={headCellSx} align="right">
-                        RSS
-                      </TableCell>
+                      <TableCell align="right">RSS</TableCell>
                     )}
                   </TableRow>
                 </TableHead>

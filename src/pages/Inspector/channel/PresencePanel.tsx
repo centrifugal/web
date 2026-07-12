@@ -103,7 +103,8 @@ export const PresencePanel = ({
     <>
       {clients === null && stats && stats.num_clients > 0 && (
         <Button
-          variant="outlined"
+          variant="tonal"
+          color="secondary"
           size="small"
           onClick={loadClients}
           disabled={clientsLoading}
@@ -142,7 +143,7 @@ export const PresencePanel = ({
           </Typography>
         ) : (
           <TableContainer sx={{ maxHeight: 320 }}>
-            <Table size="small" stickyHeader>
+            <Table stickyHeader>
               <TableHead>
                 <TableRow>
                   <TableCell>User</TableCell>

@@ -1,5 +1,8 @@
 export interface UserSettings {
   colorMode: 'dark' | 'light'
+  // Optional custom accent (hex) driving the primary button, highlights and
+  // focus. When unset, the built-in green is used.
+  accentColor?: string
 }
 
 export interface AdminSettings {

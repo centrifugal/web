@@ -9,7 +9,6 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
-import { green, red, blue } from '@mui/material/colors'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import {
   a11yDark,
@@ -135,39 +134,10 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
     }
   }
 
-  const buttonSx = {
-    ...{
-      bgcolor: green[500],
-      '&:hover': {
-        bgcolor: green[700],
-      },
-    },
-  }
-
-  const stopButtonSx = {
-    ...{
-      ml: 2,
-      bgcolor: red[500],
-      '&:hover': {
-        bgcolor: red[700],
-      },
-    },
-  }
-
-  const downloadButtonSx = {
-    ...{
-      ml: 2,
-      bgcolor: blue[500],
-      '&:hover': {
-        bgcolor: blue[700],
-      },
-    },
-  }
-
   const filterSx = {
     ...(!isValidFilter && {
       input: {
-        color: red[500],
+        color: 'error.main',
       },
     }),
   }
@@ -445,8 +415,8 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           <Box sx={{ position: 'relative' }}>
             <Button
               type="submit"
-              variant="contained"
-              sx={buttonSx}
+              variant="tonal"
+              color="primary"
               disabled={running}
             >
               Start
@@ -455,7 +425,6 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
               <CircularProgress
                 size={24}
                 sx={{
-                  color: green[500],
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
@@ -467,8 +436,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           </Box>
           {running && (
             <Button
-              variant="contained"
-              sx={stopButtonSx}
+              variant="tonal"
+              color="secondary"
+              sx={{ ml: 2 }}
               onClick={handleStopButtonClick}
             >
               Stop
@@ -485,8 +455,9 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           )}
           {messages.length > 0 && (
             <Button
-              variant="contained"
-              sx={downloadButtonSx}
+              variant="tonal"
+              color="info"
+              sx={{ ml: 2 }}
               onClick={handleDownloadClick}
             >
               Download ({messages.length})

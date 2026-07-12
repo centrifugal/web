@@ -290,12 +290,13 @@ export const CreateSnapshotDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose} disabled={submitting}>
+        <Button variant="text" onClick={handleClose} disabled={submitting}>
           Cancel
         </Button>
         <Button
           onClick={handleSubmit}
-          variant="contained"
+          variant="tonal"
+          color="primary"
           disabled={!isValid() || submitting}
           startIcon={
             submitting ? (

@@ -766,7 +766,7 @@ export const FlightRecorder = ({
             value={entity}
             onChange={e => setEntity(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && load()}
-            sx={{ minWidth: 280 }}
+            sx={{ width: 200 }}
           />
         </Grid>
         <Grid>
@@ -778,6 +778,7 @@ export const FlightRecorder = ({
             onChange={e => setFromStr(e.target.value)}
             inputProps={{ step: 1 }}
             InputLabelProps={{ shrink: true }}
+            sx={{ width: 250 }}
           />
         </Grid>
         <Grid>
@@ -789,6 +790,7 @@ export const FlightRecorder = ({
             onChange={e => setToStr(e.target.value)}
             inputProps={{ step: 1 }}
             InputLabelProps={{ shrink: true }}
+            sx={{ width: 250 }}
           />
         </Grid>
         <Grid>
@@ -830,7 +832,8 @@ export const FlightRecorder = ({
         </Grid>
         <Grid>
           <Button
-            variant="contained"
+            variant="tonal"
+            color="primary"
             size="small"
             onClick={() => load()}
             disabled={loading}
@@ -959,7 +962,8 @@ export const FlightRecorder = ({
             <Box sx={{ flexGrow: 1 }} />
             <Button
               size="small"
-              variant="outlined"
+              variant="tonal"
+              color="info"
               onClick={downloadCsv}
               disabled={downloading}
               sx={{ textTransform: 'none' }}
@@ -1170,7 +1174,8 @@ const SessionCard = ({
           <Box sx={{ flexGrow: 1 }} />
           <Button
             size="small"
-            variant="text"
+            variant="tonal"
+            color="secondary"
             onClick={copy}
             sx={{ textTransform: 'none' }}
           >

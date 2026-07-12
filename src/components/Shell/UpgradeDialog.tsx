@@ -42,7 +42,12 @@ export const UpgradeDialog = ({ appNeedsUpdate }: UpgradeDialogProps) => {
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleRestartClick} autoFocus>
+        <Button
+          variant="tonal"
+          color="primary"
+          onClick={handleRestartClick}
+          autoFocus
+        >
           Refresh
         </Button>
       </DialogActions>

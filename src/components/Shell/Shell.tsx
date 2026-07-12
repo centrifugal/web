@@ -8,10 +8,11 @@ import {
   useState,
 } from 'react'
 import CssBaseline from '@mui/material/CssBaseline'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { ThemeProvider } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import { AlertColor } from '@mui/material/Alert'
 
+import { createAppTheme } from 'theme'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { AlertOptions } from 'models/shell'
@@ -95,22 +96,11 @@ export const Shell = ({
   )
 
   const colorMode = settingsContext.getUserSettings().colorMode
+  const accentColor = settingsContext.getUserSettings().accentColor
 
   const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: colorMode,
-        },
-        typography: {
-          // Native UI font of each OS (San Francisco on macOS, Segoe UI on
-          // Windows, Roboto on Android/ChromeOS). No web font is downloaded, so
-          // there's no swap/jump. Helvetica is intentionally omitted.
-          fontFamily:
-            'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
-        },
-      }),
-    [colorMode]
+    () => createAppTheme(colorMode, accentColor),
+    [colorMode, accentColor]
   )
 
   const handleAlertClose = (

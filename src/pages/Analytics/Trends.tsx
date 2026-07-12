@@ -13,7 +13,7 @@ import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import Link from '@mui/material/Link'
+import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete'
 import ToggleButton from '@mui/material/ToggleButton'
@@ -603,9 +603,15 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
           </>
         )}
         <Grid>
-          <Link component="button" type="button" onClick={() => fetchData()}>
+          <Button
+            variant="tonal"
+            color="info"
+            size="small"
+            type="button"
+            onClick={() => fetchData()}
+          >
             reload
-          </Link>
+          </Button>
         </Grid>
       </Grid>
 

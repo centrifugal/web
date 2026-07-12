@@ -408,7 +408,8 @@ export const ConnectionsTable = ({
             startIcon={<NavigateBeforeIcon />}
             onClick={handlePrev}
             disabled={loading || prevCursors.length === 0}
-            variant="outlined"
+            variant="tonal"
+            color="secondary"
           >
             Previous
           </Button>
@@ -417,7 +418,8 @@ export const ConnectionsTable = ({
             endIcon={<NavigateNextIcon />}
             onClick={handleNext}
             disabled={loading || !nextCursor}
-            variant="outlined"
+            variant="tonal"
+            color="secondary"
           >
             Next
           </Button>
@@ -496,7 +498,7 @@ export const ConnectionsTable = ({
       ) : (
         <>
           <TableContainer>
-            <Table size="small">
+            <Table>
               <TableHead>
                 <TableRow>
                   <TableCell>Client ID</TableCell>
@@ -584,7 +586,8 @@ export const ConnectionsTable = ({
                     >
                       <Box display="flex" gap={1}>
                         <Button
-                          variant="outlined"
+                          variant="tonal"
+                          color="info"
                           size="small"
                           startIcon={<InfoIcon />}
                           onClick={() => setSelectedConnection(connection)}
@@ -592,7 +595,8 @@ export const ConnectionsTable = ({
                           Details
                         </Button>
                         <Button
-                          variant="outlined"
+                          variant="tonal"
+                          color="info"
                           size="small"
                           startIcon={<OpenInNewIcon />}
                           onClick={() =>
@@ -1172,16 +1176,16 @@ export const ConnectionsTable = ({
             >
               <Box display="flex" gap={1}>
                 <Button
-                  variant="outlined"
+                  variant="tonal"
                   startIcon={<LinkIcon />}
                   onClick={() => handleReconnect(selectedConnection)}
-                  color="success"
+                  color="warning"
                   disabled={actionInFlight}
                 >
                   Reconnect
                 </Button>
                 <Button
-                  variant="outlined"
+                  variant="tonal"
                   startIcon={<LinkOffIcon />}
                   onClick={() => handleDisconnect(selectedConnection)}
                   color="error"
@@ -1190,7 +1194,12 @@ export const ConnectionsTable = ({
                   Disconnect
                 </Button>
               </Box>
-              <Button onClick={() => setSelectedConnection(null)}>Close</Button>
+              <Button
+                variant="text"
+                onClick={() => setSelectedConnection(null)}
+              >
+                Close
+              </Button>
             </DialogActions>
           </>
         )}

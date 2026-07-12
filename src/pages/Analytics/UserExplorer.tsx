@@ -317,7 +317,12 @@ export const UserExplorer = ({
                   />
                 )}
                 <Box sx={{ flexGrow: 1 }} />
-                <Button size="small" variant="outlined" onClick={goToRecorder}>
+                <Button
+                  size="small"
+                  variant="tonal"
+                  color="info"
+                  onClick={goToRecorder}
+                >
                   Flight recorder →
                 </Button>
               </Box>
@@ -484,7 +489,7 @@ export const UserExplorer = ({
                   No errors or disconnects in this window 🎉
                 </Box>
               ) : (
-                <Table size="small">
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Time</TableCell>

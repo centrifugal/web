@@ -53,7 +53,7 @@ export const ConfirmButton = ({
             Cancel
           </Button>
           <Button
-            variant="contained"
+            variant="tonal"
             color={confirmColor}
             onClick={handleConfirm}
             disabled={busy}

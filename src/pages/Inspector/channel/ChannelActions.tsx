@@ -17,7 +17,8 @@ export const ChannelActions = ({
   return (
     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
       <Button
-        variant="outlined"
+        variant="tonal"
+        color="info"
         size="small"
         startIcon={<TimelineIcon />}
         onClick={() =>
@@ -28,7 +29,8 @@ export const ChannelActions = ({
       </Button>
       {analyticsEnabled && (
         <Button
-          variant="outlined"
+          variant="tonal"
+          color="info"
           size="small"
           startIcon={<QueryStatsIcon />}
           onClick={() =>

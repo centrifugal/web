@@ -743,50 +743,40 @@ export function Login({ handleLogin }: LoginProps) {
           />
         )}
 
-        <ThemeProvider theme={redTheme}>
-          {useIDP && usePKCE ? (
-            <Button
-              type="button"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 3, mb: 2 }}
-              onClick={() => void auth.signinRedirect()}
-            >
-              Log in with {adminSettings.oidc?.display_name}
-            </Button>
-          ) : useIDP && !usePKCE ? (
-            <Button
-              type="button"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 3, mb: 2 }}
-              onClick={handleServerSideOIDCLogin}
-            >
-              Log in with {adminSettings.oidc?.display_name}
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{
-                mt: 3,
-                mb: 2,
-                '&.Mui-disabled': {
-                  backgroundColor: '#ccc',
-                  color: '#666',
-                  opacity: 0.7,
-                },
-              }}
-              disabled={password.trim() === ''}
-            >
-              Log in
-            </Button>
-          )}
-        </ThemeProvider>
+        {useIDP && usePKCE ? (
+          <Button
+            type="button"
+            fullWidth
+            variant="tonal"
+            color="primary"
+            sx={{ mt: 3, mb: 2 }}
+            onClick={() => void auth.signinRedirect()}
+          >
+            Log in with {adminSettings.oidc?.display_name}
+          </Button>
+        ) : useIDP && !usePKCE ? (
+          <Button
+            type="button"
+            fullWidth
+            variant="tonal"
+            color="primary"
+            sx={{ mt: 3, mb: 2 }}
+            onClick={handleServerSideOIDCLogin}
+          >
+            Log in with {adminSettings.oidc?.display_name}
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            fullWidth
+            variant="tonal"
+            color="primary"
+            sx={{ mt: 3, mb: 2 }}
+            disabled={password.trim() === ''}
+          >
+            Log in
+          </Button>
+        )}
       </Box>
       <MemoCanvas />
       {isDarkTheme && <Ray />}

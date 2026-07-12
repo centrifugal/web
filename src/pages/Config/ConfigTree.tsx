@@ -617,7 +617,8 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
         />
         <Button
           size="small"
-          color="inherit"
+          variant="tonal"
+          color="secondary"
           startIcon={<UnfoldMoreIcon />}
           onClick={expandAll}
         >
@@ -625,7 +626,8 @@ export const ConfigTree = ({ fields }: { fields: ConfigNode[] }) => {
         </Button>
         <Button
           size="small"
-          color="inherit"
+          variant="tonal"
+          color="secondary"
           startIcon={<UnfoldLessIcon />}
           onClick={collapseAll}
         >

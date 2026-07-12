@@ -136,7 +136,8 @@ export const HistoryPanel = ({
       />
       {pubs === null && (
         <Button
-          variant="outlined"
+          variant="tonal"
+          color="secondary"
           size="small"
           onClick={loadPubs}
           disabled={pubsLoading}

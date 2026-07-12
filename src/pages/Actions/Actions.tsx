@@ -13,7 +13,6 @@ import {
   IconButton,
   MenuItem,
 } from '@mui/material'
-import { green, red } from '@mui/material/colors'
 import CircularProgress from '@mui/material/CircularProgress'
 import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
@@ -323,11 +322,11 @@ export const Actions = ({
                     <Typography variant="h6">
                       Response{' '}
                       {!response.error ? (
-                        <Box component="span" sx={{ color: green[500] }}>
+                        <Box component="span" sx={{ color: 'success.main' }}>
                           OK
                         </Box>
                       ) : (
-                        <Box component="span" sx={{ color: red[500] }}>
+                        <Box component="span" sx={{ color: 'error.main' }}>
                           ERROR
                         </Box>
                       )}
@@ -381,14 +380,19 @@ export const SubmitButton = ({ loading, text }: SubmitButtonProps) => {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
       <Box sx={{ position: 'relative' }}>
-        <Button type="submit" variant="contained" disabled={loading}>
+        <Button
+          type="submit"
+          variant="tonal"
+          color="primary"
+          disabled={loading}
+        >
           {text}
         </Button>
         {loading && (
           <CircularProgress
             size={24}
             sx={{
-              color: green[500],
+              color: 'primary.main',
               position: 'absolute',
               top: '50%',
               left: '50%',
@@ -825,7 +829,13 @@ export const LabelFilterInput = ({
           </Box>
         )
       })}
-      <Button size="small" startIcon={<AddIcon />} onClick={addGroup}>
+      <Button
+        variant="tonal"
+        color="secondary"
+        size="small"
+        startIcon={<AddIcon />}
+        onClick={addGroup}
+      >
         Add group
       </Button>
     </Box>

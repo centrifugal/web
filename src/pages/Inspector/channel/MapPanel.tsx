@@ -109,7 +109,8 @@ export const MapPanel = ({
     <>
       {entries === null && numKeys != null && numKeys > 0 && (
         <Button
-          variant="outlined"
+          variant="tonal"
+          color="secondary"
           size="small"
           onClick={() => loadEntries(true)}
           disabled={entriesLoading}
@@ -153,7 +154,7 @@ export const MapPanel = ({
         ) : (
           <>
             <TableContainer sx={{ maxHeight: 340 }}>
-              <Table size="small" stickyHeader>
+              <Table stickyHeader>
                 <TableHead>
                   <TableRow>
                     <TableCell>Key</TableCell>
@@ -207,6 +208,8 @@ export const MapPanel = ({
             </TableContainer>
             {!done && (
               <Button
+                variant="tonal"
+                color="secondary"
                 size="small"
                 onClick={() => loadEntries(false)}
                 disabled={entriesLoading}

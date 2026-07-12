@@ -114,7 +114,7 @@ export const LeaderboardTable = ({
   )
 
   return (
-    <Table size="small">
+    <Table>
       <TableHead>
         <TableRow>
           <TableCell sx={{ width: 28 }}>#</TableCell>

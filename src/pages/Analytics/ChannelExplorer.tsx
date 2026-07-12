@@ -449,7 +449,7 @@ export const ChannelExplorer = ({
                   No errors in this window 🎉
                 </Box>
               ) : (
-                <Table size="small">
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>Time</TableCell>

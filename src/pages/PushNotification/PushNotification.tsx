@@ -401,7 +401,6 @@ export function PushNotification({
     getDeviceFilter,
   ])
 
-  const headCellSx = { fontWeight: 'bold', fontSize: '1em' }
   // Constrain long identifier columns: truncate with an ellipsis (full value in
   // a tooltip) so device IDs / user IDs don't blow out the table width.
   const ellipsisSx = {
@@ -419,7 +418,7 @@ export function PushNotification({
     <Box className="max-w-8xl mx-auto p-8">
       {loading ? (
         <Box>
-          <CircularProgress disableShrink color="secondary" />
+          <CircularProgress disableShrink />
         </Box>
       ) : (
         <Box>
@@ -467,8 +466,8 @@ export function PushNotification({
                         }}
                       />
                       <Button
-                        variant="outlined"
-                        color="secondary"
+                        variant="tonal"
+                        color="primary"
                         disabled={!isPushFilled()}
                         onClick={handlePushToFilteredSubmit}
                       >
@@ -667,8 +666,8 @@ export function PushNotification({
                           }}
                         />
                         <Button
-                          variant="outlined"
-                          color="secondary"
+                          variant="tonal"
+                          color="primary"
                           disabled={!isPushFilled()}
                           onClick={handlePushToDeviceSubmit}
                         >
@@ -775,9 +774,9 @@ export function PushNotification({
                   )}
                 />
                 <Button
-                  variant="outlined"
+                  variant="tonal"
                   size="large"
-                  color="secondary"
+                  color="primary"
                   disabled={isFilterEmpty() || nodes.length === 0}
                   onClick={handlePushToFilteredClick}
                   style={{
@@ -790,18 +789,18 @@ export function PushNotification({
                 </Button>
               </Box>
               <TableContainer sx={{ mt: 4 }} component={Paper}>
-                <Table size="medium" aria-label="simple table">
+                <Table aria-label="simple table">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={headCellSx}>Device ID</TableCell>
-                      <TableCell sx={headCellSx}>Provider</TableCell>
-                      <TableCell sx={headCellSx}>Platform</TableCell>
-                      <TableCell sx={headCellSx}>User</TableCell>
-                      <TableCell sx={headCellSx}>Timezone</TableCell>
-                      <TableCell sx={headCellSx}>Language</TableCell>
-                      <TableCell sx={headCellSx}>Created</TableCell>
-                      <TableCell sx={headCellSx}>Updated</TableCell>
-                      <TableCell sx={headCellSx} align="right"></TableCell>
+                      <TableCell>Device ID</TableCell>
+                      <TableCell>Provider</TableCell>
+                      <TableCell>Platform</TableCell>
+                      <TableCell>User</TableCell>
+                      <TableCell>Timezone</TableCell>
+                      <TableCell>Language</TableCell>
+                      <TableCell>Created</TableCell>
+                      <TableCell>Updated</TableCell>
+                      <TableCell align="right"></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>

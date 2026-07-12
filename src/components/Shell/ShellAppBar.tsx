@@ -23,9 +23,9 @@ import Box from '@mui/material/Box'
 import Menu from '@mui/material/Menu'
 import * as React from 'react'
 import Avatar from '@mui/material/Avatar'
-import { ImageListItem } from '@mui/material'
 
 import { routes } from 'config/routes'
+import { Logo } from './Logo'
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean
@@ -52,56 +52,56 @@ const pages = [
   {
     name: 'Status',
     icon: SignalCellularAltIcon,
-    iconColor: '#4caf50',
+    iconColor: '#2FB37D',
     to: routes.ROOT,
     oss: true,
   },
   {
     name: 'Actions',
     icon: LocalFireDepartmentIcon,
-    iconColor: '#ff9800',
+    iconColor: '#E0952A',
     to: routes.ACTIONS,
     oss: true,
   },
   {
     name: 'Inspector',
     icon: ManageSearchIcon,
-    iconColor: '#26a69a',
+    iconColor: '#17A2A0',
     to: routes.INSPECTOR,
     oss: false,
   },
   {
     name: 'Tracing',
     icon: PlayCircleIcon,
-    iconColor: '#03a9f4',
+    iconColor: '#3D6FD6',
     to: routes.TRACING,
     oss: false,
   },
   {
     name: 'Snapshots',
     icon: CameraAltIcon,
-    iconColor: '#f387b6',
+    iconColor: '#D6468F',
     to: routes.SNAPSHOTS,
     oss: false,
   },
   {
     name: 'Analytics',
     icon: QueryStatsIcon,
-    iconColor: '#8ab200',
+    iconColor: '#6E5AE0',
     to: routes.ANALYTICS,
     oss: false,
   },
   {
     name: 'Push Notifications',
     icon: NotificationsIcon,
-    iconColor: '#f44336',
+    iconColor: '#E84C3B',
     to: routes.PUSH_NOTIFICATION,
     oss: false,
   },
   {
     name: 'Config',
     icon: DataObjectIcon,
-    iconColor: '#9c27b0',
+    iconColor: '#7A7A84',
     to: routes.CONFIG,
     oss: false,
   },
@@ -167,16 +167,9 @@ export const ShellAppBar = ({
     <AppBar position="static" color="inherit">
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          <ImageListItem
-            sx={{
-              display: { xs: 'none', md: 'flex' },
-              mr: 1,
-              width: 30,
-              height: 30,
-            }}
-          >
-            <img src="logo.svg" alt="Centrifugo logo" />
-          </ImageListItem>
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }}>
+            <Logo size={30} />
+          </Box>
           <Typography
             noWrap
             component="a"
@@ -235,16 +228,9 @@ export const ShellAppBar = ({
                 ))}
             </Menu>
           </Box>
-          <ImageListItem
-            sx={{
-              display: { xs: 'flex', md: 'none' },
-              mr: 1,
-              width: 30,
-              height: 30,
-            }}
-          >
-            <img src="logo.svg" alt="Centrifugo logo" />
-          </ImageListItem>
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, mr: 1 }}>
+            <Logo size={30} />
+          </Box>
           <Typography
             variant="h5"
             noWrap
@@ -276,8 +262,8 @@ export const ShellAppBar = ({
                     onClick={handleCloseNavMenu}
                     component={Link}
                     to={page.to}
-                    sx={{ display: 'block' }}
                     selected={page.to === location.pathname}
+                    sx={{ display: 'block' }}
                   >
                     <page.icon
                       sx={{
@@ -299,7 +285,9 @@ export const ShellAppBar = ({
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Account menu">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt={username || 'Account'} />
+                <Avatar alt={username || 'Account'}>
+                  {username ? username.charAt(0).toUpperCase() : null}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu

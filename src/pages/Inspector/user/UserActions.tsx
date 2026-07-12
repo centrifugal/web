@@ -60,7 +60,7 @@ export const UserActions = ({
       sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}
     >
       <Button
-        variant="outlined"
+        variant="tonal"
         size="small"
         color="error"
         startIcon={<BlockIcon />}
@@ -80,7 +80,8 @@ export const UserActions = ({
         >
           {open => (
             <Button
-              variant={blockKnown && blocked ? 'contained' : 'outlined'}
+              variant="tonal"
+              color="primary"
               size="small"
               startIcon={<LockOpenIcon />}
               onClick={open}
@@ -105,7 +106,7 @@ export const UserActions = ({
       >
         {open => (
           <Button
-            variant="outlined"
+            variant="tonal"
             size="small"
             color="warning"
             startIcon={<KeyOffIcon />}
@@ -125,7 +126,7 @@ export const UserActions = ({
       >
         {open => (
           <Button
-            variant="outlined"
+            variant="tonal"
             size="small"
             color="error"
             startIcon={<PowerSettingsNewIcon />}
@@ -138,7 +139,8 @@ export const UserActions = ({
 
       <Box sx={{ flexGrow: 1 }} />
       <Button
-        variant="outlined"
+        variant="tonal"
+        color="info"
         size="small"
         startIcon={<TimelineIcon />}
         onClick={() => navigate(`/tracing?user=${encodeURIComponent(user)}`)}
@@ -206,7 +208,7 @@ const BlockDialog = ({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" color="error" onClick={submit}>
+        <Button variant="tonal" color="error" onClick={submit}>
           Block
         </Button>
       </DialogActions>

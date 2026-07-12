@@ -149,7 +149,7 @@ export const ConnectionsPanel = ({
         </Typography>
       ) : rows ? (
         <TableContainer sx={{ maxHeight: 420 }}>
-          <Table size="small" stickyHeader>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>Client ID</TableCell>
@@ -402,6 +402,8 @@ const ConnectionDetails = ({
       </DialogContent>
       <DialogActions sx={{ flexWrap: 'wrap', gap: 1, px: 3, py: 2 }}>
         <Button
+          variant="tonal"
+          color="info"
           size="small"
           startIcon={<TimelineIcon />}
           onClick={() => onTrace(conn.client)}
@@ -410,6 +412,8 @@ const ConnectionDetails = ({
         </Button>
         {onSessionHistory && (
           <Button
+            variant="tonal"
+            color="info"
             size="small"
             startIcon={<QueryStatsIcon />}
             onClick={() => onSessionHistory(conn.client)}
@@ -426,7 +430,7 @@ const ConnectionDetails = ({
             onConfirm={revoke}
           >
             {open => (
-              <Button size="small" color="warning" onClick={open}>
+              <Button variant="tonal" size="small" color="error" onClick={open}>
                 Revoke token
               </Button>
             )}
@@ -440,7 +444,7 @@ const ConnectionDetails = ({
           onConfirm={() => disconnect(3011, 'force reconnect')}
         >
           {open => (
-            <Button size="small" color="warning" onClick={open}>
+            <Button variant="tonal" size="small" color="warning" onClick={open}>
               Reconnect
             </Button>
           )}
@@ -452,7 +456,7 @@ const ConnectionDetails = ({
           onConfirm={() => disconnect(3503, 'force disconnect')}
         >
           {open => (
-            <Button size="small" color="error" onClick={open}>
+            <Button variant="tonal" size="small" color="error" onClick={open}>
               Disconnect
             </Button>
           )}

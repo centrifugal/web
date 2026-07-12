@@ -79,7 +79,12 @@ export const ConfirmDialog = ({
         <Button onClick={onCancel} autoFocus disabled={confirming}>
           Cancel
         </Button>
-        <Button onClick={handleConfirm} color="error" disabled={confirming}>
+        <Button
+          onClick={handleConfirm}
+          variant="tonal"
+          color="error"
+          disabled={confirming}
+        >
           Confirm
         </Button>
       </DialogActions>
