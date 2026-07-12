@@ -194,7 +194,7 @@ export const Settings = () => {
         label="Primary accent"
         hint="Main buttons, highlights and focus."
         value={accentColor}
-        defaultHex="#1F9D6B"
+        defaultHex="#A38FFB"
         onChange={v => updateUserSettings({ accentColor: v })}
       />
       <AccentPicker

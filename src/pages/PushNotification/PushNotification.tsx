@@ -693,6 +693,7 @@ export function PushNotification({
               >
                 <Autocomplete
                   multiple
+                  size="small"
                   limitTags={3}
                   style={{
                     width: '400px',
@@ -712,7 +713,7 @@ export function PushNotification({
                       return (
                         <Chip
                           key={key}
-                          size="medium"
+                          size="small"
                           variant="filled"
                           label={option}
                           {...tagProps}
@@ -731,6 +732,7 @@ export function PushNotification({
                 />
                 <Autocomplete
                   multiple
+                  size="small"
                   limitTags={3}
                   style={{
                     width: '400px',
@@ -756,7 +758,7 @@ export function PushNotification({
                       return (
                         <Chip
                           key={key}
-                          size="medium"
+                          size="small"
                           variant="filled"
                           label={option}
                           {...tagProps}
@@ -775,15 +777,11 @@ export function PushNotification({
                 />
                 <Button
                   variant="solid"
-                  size="large"
+                  size="small"
                   color="primary"
                   disabled={isFilterEmpty() || nodes.length === 0}
                   onClick={handlePushToFilteredClick}
-                  style={{
-                    float: 'right',
-                    padding: '14px',
-                    marginBottom: '20px',
-                  }}
+                  style={{ float: 'right', marginBottom: '20px' }}
                 >
                   Push to filtered ({totalCount})
                 </Button>

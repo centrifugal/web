@@ -419,14 +419,19 @@ export const JsonField = ({ colorMode, onChange }: JsonFieldProps) => {
   // both light and dark modes, instead of the built-in dark theme's bluish grey.
   const fieldBackground = theme.palette.background.default
   return (
-    <div
-      style={{
-        border:
+    <Box
+      sx={{
+        border: `1px solid ${
           colorMode === 'dark'
-            ? '1px solid rgba(255, 255, 255, 0.23)'
-            : '1px solid rgba(0, 0, 0, 0.23)',
+            ? 'rgba(255, 255, 255, 0.23)'
+            : 'rgba(0, 0, 0, 0.23)'
+        }`,
         borderRadius: '4px',
         overflow: 'hidden',
+        transition: 'border-color .15s',
+        // The inner CodeMirror suppresses its own focus outline; light up this
+        // wrapper's border instead, matching the outlined inputs' focus.
+        '&:focus-within': { borderColor: 'primary.main' },
       }}
     >
       <CodeMirror
@@ -462,7 +467,7 @@ export const JsonField = ({ colorMode, onChange }: JsonFieldProps) => {
           autocompletion: false,
         }}
       />
-    </div>
+    </Box>
   )
 }
 

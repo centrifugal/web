@@ -184,7 +184,8 @@ export const createAppTheme = (
     tonalInk: t.infoInk,
   }
   // primary accent → main actions + highlights; secondary accent → info/navigate.
-  const primary = resolveAccent(mode, accentColor, primaryDefault)
+  // The built-in primary default is violet (#A38FFB); success/health stays green.
+  const primary = resolveAccent(mode, accentColor ?? '#A38FFB', primaryDefault)
   const info = resolveAccent(mode, accentColor2, infoDefault)
 
   const solidPrimary = solid(primary.main, primary.solidInk, primary.solidHover)
