@@ -8,7 +8,8 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 
 // Wraps a destructive action in a confirmation dialog. The trigger is supplied via
-// a render prop so callers can use any control (icon button, menu item, etc.).
+// a render prop so callers can use any control (icon button, menu item, etc.). For
+// a fully controlled confirm (no trigger) see the sibling ConfirmDialog.
 export const ConfirmButton = ({
   title,
   body,

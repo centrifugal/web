@@ -19,8 +19,8 @@ export const Settings = () => {
   const { getPersistedStorage } = useContext(StorageContext)
   const colorMode = getUserSettings().colorMode
   const [
-    isDeleteSettingsConfirmDiaglogOpen,
-    setIsDeleteSettingsConfirmDiaglogOpen,
+    isDeleteSettingsConfirmDialogOpen,
+    setIsDeleteSettingsConfirmDialogOpen,
   ] = useState(false)
 
   const handleColorModeToggleClick = () => {
@@ -31,15 +31,15 @@ export const Settings = () => {
   const persistedStorage = getPersistedStorage()
 
   useEffect(() => {
-    setTitle('Settings')
+    setTitle('Centrifugo | Settings')
   }, [setTitle])
 
   const handleDeleteSettingsClick = () => {
-    setIsDeleteSettingsConfirmDiaglogOpen(true)
+    setIsDeleteSettingsConfirmDialogOpen(true)
   }
 
   const handleDeleteSettingsCancel = () => {
-    setIsDeleteSettingsConfirmDiaglogOpen(false)
+    setIsDeleteSettingsConfirmDialogOpen(false)
   }
 
   const handleDeleteSettingsConfirm = async () => {
@@ -49,15 +49,7 @@ export const Settings = () => {
   }
 
   return (
-    <Box className="max-w-8xl p-8">
-      <Typography
-        variant="h4"
-        sx={{
-          mb: 2,
-        }}
-      >
-        Settings
-      </Typography>
+    <Box className="max-w-8xl mx-auto p-8">
       <FormGroup>
         <FormControlLabel
           control={
@@ -73,24 +65,17 @@ export const Settings = () => {
       <Button
         variant="outlined"
         color="error"
-        sx={_theme => ({
-          mb: 2,
-        })}
+        sx={{ mb: 2 }}
         onClick={handleDeleteSettingsClick}
       >
         Drop saved settings, tokens and restart
       </Button>
       <ConfirmDialog
-        isOpen={isDeleteSettingsConfirmDiaglogOpen}
+        isOpen={isDeleteSettingsConfirmDialogOpen}
         onCancel={handleDeleteSettingsCancel}
         onConfirm={handleDeleteSettingsConfirm}
       />
-      <Typography
-        variant="subtitle2"
-        sx={_theme => ({
-          mb: 2,
-        })}
-      >
+      <Typography variant="subtitle2" sx={{ mb: 2 }}>
         Centrifugo admin panel only stores user preferences data locally on your
         device and not a server.
       </Typography>

@@ -16,7 +16,10 @@ import {
   solarizedLight,
 } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline'
+
 import { globalUrlPrefix } from 'config/url'
+import { EmptyState } from 'components/EmptyState'
 import { useAdminApi, AdminApiError } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
@@ -492,13 +495,21 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
         </Box>
         <Box sx={{ mt: 2 }}>
           {running && messages.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-              {connected
-                ? `Listening for events${
-                    activeEntity ? ` matching ${activeEntity}` : ''
-                  }… Trigger some traffic to see messages here.`
-                : 'Connecting to trace stream…'}
-            </Typography>
+            <EmptyState
+              icon={<PlayCircleOutlineIcon sx={{ fontSize: 40 }} />}
+              title={
+                connected
+                  ? `Listening for events${
+                      activeEntity ? ` matching ${activeEntity}` : ''
+                    }…`
+                  : 'Connecting to trace stream…'
+              }
+              hint={
+                connected
+                  ? 'Trigger some traffic to see messages appear here in real time.'
+                  : undefined
+              }
+            />
           )}
           {messages.length >= MAX_MESSAGES && (
             <Typography

@@ -14,6 +14,9 @@ import {
 } from '@mui/material'
 import { styled } from '@mui/material/styles'
 import VisibilityIcon from '@mui/icons-material/Visibility'
+import CameraAltIcon from '@mui/icons-material/CameraAlt'
+
+import { EmptyState } from 'components/EmptyState'
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   '&:nth-of-type(odd)': {
@@ -119,11 +122,11 @@ export const SnapshotsList = ({
 
   if (snapshots.length === 0 && !loading) {
     return (
-      <Box textAlign="center" py={4}>
-        <Typography variant="body1" color="text.secondary">
-          No snapshots found. Create your first snapshot to get started.
-        </Typography>
-      </Box>
+      <EmptyState
+        icon={<CameraAltIcon sx={{ fontSize: 40 }} />}
+        title="No snapshots yet"
+        hint="Create your first snapshot to capture the current channels and connections state."
+      />
     )
   }
 

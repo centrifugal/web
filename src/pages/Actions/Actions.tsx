@@ -233,14 +233,14 @@ export const Actions = ({
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         Execute server API command
       </Typography>
-      <FormControl fullWidth sx={{}}>
+      <FormControl fullWidth>
         <Autocomplete
-          value={methodOptions.find((opt: any) => opt.value === method) || null}
+          value={
+            methodOptions.find((opt: MethodOption) => opt.value === method) ||
+            null
+          }
           onChange={handleMethodChange}
           options={methodOptions}
-          // {...(edition === 'pro'
-          //   ? { groupBy: (opt: MethodOption) => opt.category }
-          //   : {})}
           getOptionLabel={(opt: MethodOption) => opt.name}
           renderInput={params => (
             <TextField

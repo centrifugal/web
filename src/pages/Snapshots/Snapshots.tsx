@@ -140,12 +140,12 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
   useEffect(() => {
     if (id) {
-      setTitle('Snapshot Details')
+      setTitle('Centrifugo | Snapshot Details')
       setCurrentSnapshot(null) // Clear previous snapshot data
       setLoading(true) // Show loading state
       fetchSnapshotDetails(id)
     } else {
-      setTitle('Snapshots')
+      setTitle('Centrifugo | Snapshots')
       setCurrentSnapshot(null) // Clear snapshot data when going back to list
       fetchSnapshots()
 

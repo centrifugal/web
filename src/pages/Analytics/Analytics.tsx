@@ -653,7 +653,7 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
         })
         .catch(e => {
           showAlert('Error connecting to server', { severity: 'error' })
-          console.log(e)
+          console.error(e)
         })
     },
     [signinSilent, showAlert, request, rawRequest]

@@ -22,10 +22,10 @@ import RefreshIcon from '@mui/icons-material/Refresh'
 import LanIcon from '@mui/icons-material/Lan'
 import TimelineIcon from '@mui/icons-material/Timeline'
 import QueryStatsIcon from '@mui/icons-material/QueryStats'
-import { useTheme } from '@mui/material/styles'
+import { useTheme, Theme } from '@mui/material/styles'
 
 import { Widget } from '../ui'
-import { ConfirmButton } from '../components/ConfirmButton'
+import { ConfirmButton } from 'components/ConfirmButton'
 import { InspectorApi, GoToChannel } from '../types'
 import {
   renderData,
@@ -57,7 +57,7 @@ export interface ConnectionInfo {
 }
 type ConnEntry = ConnectionInfo & { client: string }
 
-const latencyColor = (theme: any, ms?: number): string | undefined => {
+const latencyColor = (theme: Theme, ms?: number): string | undefined => {
   if (ms == null || ms < 0) return undefined
   if (ms < 50) return theme.palette.success.main
   if (ms < 100) return theme.palette.warning.main

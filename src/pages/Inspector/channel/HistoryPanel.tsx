@@ -12,7 +12,7 @@ import HistoryIcon from '@mui/icons-material/History'
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 
 import { Widget } from '../ui'
-import { ConfirmButton } from '../components/ConfirmButton'
+import { ConfirmButton } from 'components/ConfirmButton'
 import { InspectorApi } from '../types'
 import { renderData } from '../format'
 

@@ -14,7 +14,7 @@ import KeyOffIcon from '@mui/icons-material/KeyOff'
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import TimelineIcon from '@mui/icons-material/Timeline'
 
-import { ConfirmButton } from '../components/ConfirmButton'
+import { ConfirmButton } from 'components/ConfirmButton'
 import { DurabilityBadge } from '../components/DurabilityBadge'
 import { InspectorApi } from '../types'
 import { ServerConfig } from '../useServerConfig'

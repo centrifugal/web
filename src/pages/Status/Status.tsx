@@ -186,11 +186,8 @@ function createData(
 }
 
 export function Status({ signinSilent, authorization, edition }: StatusProps) {
-  // if (localStorage.getItem('centrifugo-edition') == 'oss') {
-  //   edition = 'oss'
-  // }
   const { command, handleError } = useAdminApi({ authorization, signinSilent })
-  const [nodes, setNodes] = useState<any[]>([])
+  const [nodes, setNodes] = useState<ReturnType<typeof createData>[]>([])
   const [numNodes, setNumNodes] = useState(0)
   const [numConns, setNumConns] = useState(0)
   const [numSubs, setNumSubs] = useState(0)

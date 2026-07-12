@@ -22,7 +22,7 @@ export const Config = ({ authorization }: ConfigProps) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setTitle('Configuration')
+    setTitle('Centrifugo | Configuration')
   }, [setTitle])
 
   useEffect(() => {

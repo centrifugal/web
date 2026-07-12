@@ -263,7 +263,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       })
       .catch(e => {
         showAlert('Error connecting to server', { severity: 'error' })
-        console.log(e)
+        console.error(e)
       })
   }, [rawRequest, handleHttpError, showAlert])
 
@@ -400,7 +400,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       .catch(e => {
         setError('Error loading trend')
         setLoading(false)
-        console.log(e)
+        console.error(e)
       })
   }, [
     metricId,

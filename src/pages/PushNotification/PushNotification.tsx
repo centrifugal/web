@@ -1,4 +1,11 @@
-import { useEffect, useContext, useState, useCallback, ReactNode } from 'react'
+import {
+  useEffect,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+  MouseEvent as ReactMouseEvent,
+} from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { styled } from '@mui/material/styles'
 import Box from '@mui/material/Box'
@@ -145,24 +152,22 @@ export function PushNotification({
 
   const [pushDialogOpen, setPushDialogOpen] = useState(false)
   const [
-    isPushToFilteredConfirmDiaglogOpen,
-    setIsPushToFilteredConfirmDiaglogOpen,
+    isPushToFilteredConfirmDialogOpen,
+    setIsPushToFilteredConfirmDialogOpen,
   ] = useState(false)
 
-  const [
-    isPushToDeviceConfirmDiaglogOpen,
-    setIsPushToDeviceConfirmDiaglogOpen,
-  ] = useState(false)
+  const [isPushToDeviceConfirmDialogOpen, setIsPushToDeviceConfirmDialogOpen] =
+    useState(false)
 
   const handlePushToFilteredCancel = () => {
-    setIsPushToFilteredConfirmDiaglogOpen(false)
+    setIsPushToFilteredConfirmDialogOpen(false)
   }
 
   const handlePushToFilteredConfirm = async () => {
     // Await the send before closing so the ConfirmDialog keeps its Confirm
     // button disabled for the duration and a double-click can't send twice.
     await sendPush(getDeviceFilter())
-    setIsPushToFilteredConfirmDiaglogOpen(false)
+    setIsPushToFilteredConfirmDialogOpen(false)
     setPushTitle('')
     setPushBody('')
     setPushDialogOpen(false)
@@ -177,18 +182,18 @@ export function PushNotification({
       showAlert('Push title and body required', { severity: 'warning' })
       return
     }
-    setIsPushToFilteredConfirmDiaglogOpen(true)
+    setIsPushToFilteredConfirmDialogOpen(true)
   }
 
   const handlePushToDeviceCancel = () => {
-    setIsPushToDeviceConfirmDiaglogOpen(false)
+    setIsPushToDeviceConfirmDialogOpen(false)
   }
 
   const handlePushToDeviceConfirm = async () => {
     // Await the send before closing so the ConfirmDialog keeps its Confirm
     // button disabled for the duration and a double-click can't send twice.
     await sendPush({ ids: [selectedItem.deviceId] })
-    setIsPushToDeviceConfirmDiaglogOpen(false)
+    setIsPushToDeviceConfirmDialogOpen(false)
   }
 
   const handlePushToDeviceSubmit = () => {
@@ -196,7 +201,7 @@ export function PushNotification({
       showAlert('Push title and body required', { severity: 'warning' })
       return
     }
-    setIsPushToDeviceConfirmDiaglogOpen(true)
+    setIsPushToDeviceConfirmDialogOpen(true)
   }
 
   const filterData = () => {
@@ -205,7 +210,10 @@ export function PushNotification({
     setCursorMap(new Map<number, string>())
   }
 
-  const handleChangePage = (event: any, newPage: number) => {
+  const handleChangePage = (
+    _event: ReactMouseEvent<HTMLButtonElement> | null,
+    newPage: number
+  ) => {
     setPage(newPage)
     if (newPage > page) {
       setCursor(nextCursor)
@@ -311,7 +319,7 @@ export function PushNotification({
   }, [topicNames, userIds])
 
   useEffect(() => {
-    setTitle('Push notifications')
+    setTitle('Centrifugo | Push notifications')
 
     const handleDevices = function (page: number, result: any) {
       const rows: any[] = []
@@ -467,7 +475,7 @@ export function PushNotification({
                         Push to filtered
                       </Button>
                       <ConfirmDialog
-                        isOpen={isPushToFilteredConfirmDiaglogOpen}
+                        isOpen={isPushToFilteredConfirmDialogOpen}
                         onCancel={handlePushToFilteredCancel}
                         onConfirm={handlePushToFilteredConfirm}
                       />
@@ -667,7 +675,7 @@ export function PushNotification({
                           Push to device
                         </Button>
                         <ConfirmDialog
-                          isOpen={isPushToDeviceConfirmDiaglogOpen}
+                          isOpen={isPushToDeviceConfirmDialogOpen}
                           onCancel={handlePushToDeviceCancel}
                           onConfirm={handlePushToDeviceConfirm}
                         />
