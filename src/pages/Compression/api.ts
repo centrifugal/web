@@ -279,6 +279,10 @@ export interface CandidateValue {
   witnesses: number
   contribution: number
   decided: boolean | null
+  // True when this profile's operator turned the value down in an earlier
+  // review. Shown marked rather than filtered out, so a rejection made by
+  // mistake stays visible and reversible.
+  previously_denied: boolean
 }
 
 export interface DeniedSummary {

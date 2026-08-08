@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
@@ -485,8 +486,19 @@ export const ReviewScreen = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
+                      {v.previously_denied && (
+                        <Chip
+                          size="small"
+                          label="rejected before"
+                          color="warning"
+                          variant="outlined"
+                          sx={{ mr: 1 }}
+                          title="You turned this down in an earlier review for this profile. Tick it to approve it after all."
+                        />
+                      )}
                       <Typography
                         variant="body2"
+                        component="span"
                         sx={{ fontFamily: 'monospace' }}
                       >
                         {v.value}
