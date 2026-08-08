@@ -70,6 +70,11 @@ const DENIED_LABELS: {
     label: 'Length',
     hint: 'Outside the length bounds a dictionary entry is allowed to have.',
   },
+  {
+    key: 'prior_decision',
+    label: 'Already rejected',
+    hint: 'You turned these down for this profile before. They are not shown again.',
+  },
 ]
 
 // ReviewScreen: the value-by-value approval gate between a training session

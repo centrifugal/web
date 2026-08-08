@@ -185,9 +185,13 @@ export interface CreateSessionRequest {
   filter: TrainingFilter
   training_mode: TrainingMode
   duration_seconds: number
+  // The profile this session trains FOR - distinct from filter.profile, which
+  // chooses which connections to sample. Supplying it is what lets review skip
+  // values already rejected for that profile.
+  profile_id?: string
 }
 
-export type SessionStatus = 'running' | 'collected' | 'failed' | 'cancelled'
+export type SessionStatus = 'running' | 'collected' | 'failed'
 
 export interface SizeCurvePoint {
   size_bytes: number
@@ -231,6 +235,7 @@ export interface Session {
   nodes_expected: number
   nodes_reported: number
   error_message: string
+  profile_id?: string
   progress?: SessionProgress
 }
 
@@ -277,6 +282,9 @@ export interface DeniedSummary {
   shape: number
   channel_name: number
   length: number
+  // Values this profile's operator rejected in an earlier review. Only
+  // non-zero when the session named a profile to train for.
+  prior_decision: number
 }
 
 export interface CandidateValuesResponse {

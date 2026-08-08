@@ -12,6 +12,7 @@ import Radio from '@mui/material/Radio'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
+import MenuItem from '@mui/material/MenuItem'
 import CircularProgress from '@mui/material/CircularProgress'
 
 import { CreateSessionRequest, TrainingFilter, TrainingMode } from '../api'
@@ -24,6 +25,9 @@ interface CreateSessionDialogProps {
   onClose: () => void
   // Must not throw — errors are shown by the caller via showAlert.
   onSubmit: (req: CreateSessionRequest) => Promise<void>
+  // Profiles this session can be trained FOR. Empty is fine: binding one is
+  // optional and only matters when retraining.
+  profiles?: { id: string; name: string }[]
 }
 
 // CreateSessionDialog: the connection filter is the same shape the Inspector
@@ -35,6 +39,7 @@ export const CreateSessionDialog = ({
   open,
   onClose,
   onSubmit,
+  profiles = [],
 }: CreateSessionDialogProps) => {
   const [identity, setIdentity] = useState<Identity>('any')
   const [user, setUser] = useState('')
@@ -43,11 +48,13 @@ export const CreateSessionDialog = ({
   const [profileName, setProfileName] = useState('')
   const [trainingMode, setTrainingMode] = useState<TrainingMode>('values')
   const [durationMinutes, setDurationMinutes] = useState(60)
+  const [trainForProfileId, setTrainForProfileId] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (!open) {
       setIdentity('any')
+      setTrainForProfileId('')
       setUser('')
       setChannel('')
       setClassification('any')
@@ -74,6 +81,7 @@ export const CreateSessionDialog = ({
       filter: buildFilter(),
       training_mode: trainingMode,
       duration_seconds: Math.round(durationMinutes * 60),
+      ...(trainForProfileId ? { profile_id: trainForProfileId } : {}),
     },
     null,
     2
@@ -208,6 +216,27 @@ export const CreateSessionDialog = ({
             which compresses better but needs a look before it ships.
           </Typography>
         </FormControl>
+
+        {profiles.length > 0 && (
+          <TextField
+            select
+            value={trainForProfileId}
+            onChange={e => setTrainForProfileId(e.target.value)}
+            label="Train for profile (optional)"
+            fullWidth
+            helperText="Set this when retraining an existing profile: values you already rejected for it will not be proposed again. Leave blank to explore first and choose the profile when you approve."
+            sx={{ mb: 2 }}
+          >
+            <MenuItem value="">
+              <em>Not decided yet</em>
+            </MenuItem>
+            {profiles.map(p => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
 
         <TextField
           type="number"

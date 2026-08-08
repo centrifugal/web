@@ -51,6 +51,10 @@ export const SessionsTab = ({
   const [nextCursor, setNextCursor] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // Offered as the optional "train for" binding when creating a session. A
+  // failure here is not worth surfacing: the binding is optional, so an empty
+  // list simply hides the field.
+  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([])
 
   const load = useCallback(
     async (cursor?: string) => {
@@ -72,6 +76,24 @@ export const SessionsTab = ({
 
   useEffect(() => {
     load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listProfiles()
+      .then(data => {
+        if (!cancelled) {
+          setProfiles(
+            (data.profiles || []).map(p => ({ id: p.id, name: p.name }))
+          )
+        }
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -207,6 +229,7 @@ export const SessionsTab = ({
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
+        profiles={profiles}
       />
     </Box>
   )
