@@ -152,11 +152,17 @@ export const SessionDetail = ({
         api={api}
         candidate={reviewCandidate}
         onBack={() => setReviewCandidate(null)}
-        onCandidateUpdated={updated =>
+        onCandidateUpdated={updated => {
           setCandidates(prev =>
             prev ? prev.map(c => (c.id === updated.id ? updated : c)) : prev
           )
-        }
+          // The screen still open is looking at this candidate. Refreshing only
+          // the list behind it left it showing the draft count and expiry from
+          // before the save, and counting rejections against a stale total.
+          setReviewCandidate(prev =>
+            prev && prev.id === updated.id ? updated : prev
+          )
+        }}
         onApproved={() => setReviewCandidate(null)}
       />
     )

@@ -376,6 +376,7 @@ export const ReviewScreen = ({
           <TextField
             size="small"
             type="number"
+            inputProps={{ min: 0 }}
             placeholder="Min witnesses"
             value={minWitnessDraft}
             onChange={e => setMinWitnessDraft(e.target.value)}
@@ -474,6 +475,9 @@ export const ReviewScreen = ({
                     <TableCell padding="checkbox">
                       <Checkbox
                         checked={selected.has(v.value_hash)}
+                        inputProps={{
+                          'aria-label': `Approve ${v.path} = ${v.value}`,
+                        }}
                         onChange={(_, checked) =>
                           toggleValue(v.value_hash, checked)
                         }
