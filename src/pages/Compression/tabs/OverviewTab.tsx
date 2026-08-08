@@ -319,7 +319,7 @@ export const OverviewTab = ({
         title="Per-profile delivery"
         subtitle="Measured from real traffic, not a training-time estimate."
       >
-        {!serving || serving.by_profile.length === 0 ? (
+        {!serving || (serving.by_profile?.length ?? 0) === 0 ? (
           <EmptyState
             title="No profile traffic reporting yet"
             hint="A profile appears here once a connection using it has exchanged traffic."
@@ -338,7 +338,7 @@ export const OverviewTab = ({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {serving.by_profile.map(p => {
+                  {(serving.by_profile ?? []).map(p => {
                     const totalConnects = p.cold_connects + p.warm_connects
                     const warmPct =
                       totalConnects > 0
