@@ -200,6 +200,13 @@ export interface SizeCurvePoint {
   ratio: number
   wire_size: number
   cpu_nanos: number
+  // How much of the vocabulary this size actually held. A size that held a
+  // fraction reports the same ratio shape as one that held everything, so
+  // without these a small rung looks indistinguishable from a good one.
+  shapes_held: number
+  shapes_total: number
+  values_held: number
+  values_total: number
 }
 
 export interface SessionProgress {

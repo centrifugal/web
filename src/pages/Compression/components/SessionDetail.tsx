@@ -504,6 +504,7 @@ export const SessionDetail = ({
                               <TableCell>Size</TableCell>
                               <TableCell align="right">Ratio</TableCell>
                               <TableCell align="right">Wire</TableCell>
+                              <TableCell align="right">Covers</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -517,6 +518,31 @@ export const SessionDetail = ({
                                 </TableCell>
                                 <TableCell align="right">
                                   {HumanSize(sp.wire_size)}
+                                </TableCell>
+                                {/* A size that holds part of the vocabulary
+                                    reports the same ratio shape as one that
+                                    holds all of it. Without this an operator
+                                    picking a small size cannot see that the
+                                    dictionary covers little of their traffic. */}
+                                <TableCell align="right">
+                                  <Typography
+                                    variant="body2"
+                                    component="span"
+                                    color={
+                                      sp.shapes_held < sp.shapes_total
+                                        ? 'warning.main'
+                                        : 'text.secondary'
+                                    }
+                                    title={
+                                      sp.shapes_held < sp.shapes_total
+                                        ? `This size holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes. The ratio is real, but measured on the part that fit.`
+                                        : 'This size holds everything the session learned.'
+                                    }
+                                  >
+                                    {sp.shapes_held}/{sp.shapes_total} shapes
+                                    {sp.values_total > 0 &&
+                                      `, ${sp.values_held}/${sp.values_total} values`}
+                                  </Typography>
                                 </TableCell>
                               </TableRow>
                             ))}
