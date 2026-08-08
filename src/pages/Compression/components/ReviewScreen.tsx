@@ -74,7 +74,7 @@ const DENIED_LABELS: {
   {
     key: 'prior_decision',
     label: 'Already rejected',
-    hint: 'You turned these down for this profile before. They are not shown again.',
+    hint: 'You turned these down for this profile before. They are still listed, marked "rejected before" - tick one to approve it after all.',
   },
 ]
 
@@ -261,7 +261,12 @@ export const ReviewScreen = ({
     }
   }
 
-  const rejectedCount = Math.max(total - selected.size, 0)
+  // Against the candidate's whole vocabulary, never the filtered page count.
+  // `total` narrows with a search or witness filter, so counting against it
+  // reported almost nothing rejected at exactly the moment thousands were -
+  // the operator has looked at a slice and is about to reject the rest, which
+  // is precisely what this number exists to tell them.
+  const rejectedCount = Math.max(candidate.values_total - selected.size, 0)
   const shownApprovedCount = values.filter(v =>
     selected.has(v.value_hash)
   ).length
@@ -363,7 +368,9 @@ export const ReviewScreen = ({
             placeholder="Search value or key path"
             value={searchDraft}
             onChange={e => setSearchDraft(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !loading) handleApplyFilters()
+            }}
             sx={{ minWidth: 260 }}
           />
           <TextField
@@ -372,7 +379,9 @@ export const ReviewScreen = ({
             placeholder="Min witnesses"
             value={minWitnessDraft}
             onChange={e => setMinWitnessDraft(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleApplyFilters()}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !loading) handleApplyFilters()
+            }}
             sx={{ width: 160 }}
           />
           <IconButton
@@ -593,7 +602,7 @@ export const ReviewScreen = ({
         open={approveOpen}
         candidateId={candidate.id}
         approvedHashes={Array.from(selected)}
-        totalValues={total}
+        totalValues={candidate.values_total}
         onClose={() => setApproveOpen(false)}
         onApproved={() => {
           setApproveOpen(false)

@@ -76,16 +76,19 @@ export const CreateSessionDialog = ({
     return filter
   }
 
-  const jsonPreview = JSON.stringify(
-    {
-      filter: buildFilter(),
-      training_mode: trainingMode,
-      duration_seconds: Math.round(durationMinutes * 60),
-      ...(trainForProfileId ? { profile_id: trainForProfileId } : {}),
-    },
-    null,
-    2
-  )
+  // Built once and used for both the preview and the submit, so the panel
+  // showing what will be sent cannot drift from what is sent. It already had:
+  // the preview carried profile_id while the request quietly did not, so an
+  // operator who chose "train for profile" got a session bound to nothing and
+  // was shown otherwise.
+  const buildRequest = (): CreateSessionRequest => ({
+    filter: buildFilter(),
+    training_mode: trainingMode,
+    duration_seconds: Math.round(durationMinutes * 60),
+    ...(trainForProfileId ? { profile_id: trainForProfileId } : {}),
+  })
+
+  const jsonPreview = JSON.stringify(buildRequest(), null, 2)
 
   const valid =
     (identity !== 'user' || user.trim() !== '') &&
@@ -96,11 +99,7 @@ export const CreateSessionDialog = ({
     if (!valid || submitting) return
     setSubmitting(true)
     try {
-      await onSubmit({
-        filter: buildFilter(),
-        training_mode: trainingMode,
-        duration_seconds: Math.round(durationMinutes * 60),
-      })
+      await onSubmit(buildRequest())
     } finally {
       setSubmitting(false)
     }
