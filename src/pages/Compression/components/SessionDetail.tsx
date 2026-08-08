@@ -190,6 +190,7 @@ export const SessionDetail = ({
   const p = session.progress
   const parseRateLow = p != null && p.payload_parse_rate < PARSE_RATE_WARN_BELOW
   const hasHoldoutLeaks = (p?.holdout_leaks ?? 0) > 0
+  const holdoutUnscanned = p != null && !p.holdout_scanned
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -301,6 +302,15 @@ export const SessionDetail = ({
               : undefined
           }
         >
+          {holdoutUnscanned && !hasHoldoutLeaks && (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <strong>Holdout scan did not run for this session.</strong> No
+              leak was reported, but nothing checked either — treat this as
+              unverified rather than clear, and review the proposed values on
+              their own merits.
+            </Alert>
+          )}
+
           {hasHoldoutLeaks && (
             <Alert severity="error" icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
               <strong>

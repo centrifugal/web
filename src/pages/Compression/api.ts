@@ -221,6 +221,10 @@ export interface SessionProgress {
   ratio_by_protocol: Record<string, number>
   size_curve: SizeCurvePoint[]
   holdout_leaks: number
+  // Distinguishes "scanned and clear" from "never scanned". A zero
+  // holdout_leaks means nothing on its own, and presenting it as a passed
+  // check would claim assurance nobody has.
+  holdout_scanned: boolean
   warmup_complete: boolean
 }
 
