@@ -17,6 +17,7 @@ import ManageSearchIcon from '@mui/icons-material/ManageSearch'
 import QueryStatsIcon from '@mui/icons-material/QueryStats'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import CameraAltIcon from '@mui/icons-material/CameraAlt'
+import CompressIcon from '@mui/icons-material/Compress'
 import MenuItem from '@mui/material/MenuItem'
 import Container from '@mui/material/Container'
 import Box from '@mui/material/Box'
@@ -103,6 +104,13 @@ const pages = [
     icon: DataObjectIcon,
     iconColor: '#7A7A84',
     to: routes.CONFIG,
+    oss: false,
+  },
+  {
+    name: 'Compression',
+    icon: CompressIcon,
+    iconColor: '#2FA6D6',
+    to: routes.COMPRESSION,
     oss: false,
   },
 ]

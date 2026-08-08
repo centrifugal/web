@@ -23,6 +23,7 @@ import { Analytics } from 'pages/Analytics'
 import { PushNotification } from 'pages/PushNotification'
 import { Snapshots } from 'pages/Snapshots'
 import { Config } from 'pages/Config'
+import { Compression } from 'pages/Compression'
 import { AdminSettings, UserSettings } from 'models/settings'
 import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
@@ -446,6 +447,19 @@ function ShellWrapper({
             path={routes.CONFIG}
             element={
               <Config
+                signinSilent={signinSilent}
+                authorization={authorization}
+              />
+            }
+          />
+        ) : (
+          <></>
+        )}
+        {edition === 'pro' ? (
+          <Route
+            path={routes.COMPRESSION}
+            element={
+              <Compression
                 signinSilent={signinSilent}
                 authorization={authorization}
               />

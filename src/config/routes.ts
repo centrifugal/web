@@ -10,4 +10,5 @@ export enum routes {
   PUSH_NOTIFICATION = '/push',
   SNAPSHOTS = '/snapshots',
   CONFIG = '/config',
+  COMPRESSION = '/compression',
 }
