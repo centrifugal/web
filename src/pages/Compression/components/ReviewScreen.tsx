@@ -125,22 +125,19 @@ export const ReviewScreen = ({
   // The build's measured recommendation, applied once when the screen opens on
   // an untouched candidate. A saved draft always wins: an operator who has
   // already made decisions must not have them replaced by a machine's.
+  //
+  // Seeded from the hashes the build chose, not from the rows on screen: the
+  // list is paged 50 at a time, so seeding from the loaded page ticked 50 of a
+  // 60-value recommendation and left the rest looking rejected on page two.
   const recommendedRef = useRef(false)
   useEffect(() => {
     if (recommendedRef.current) return
-    if (candidate.recommended_count <= 0) return
+    const hashes = candidate.recommended_hashes
+    if (!hashes || hashes.length === 0) return
     if (candidate.draft_count > 0) return
-    if (values.length === 0) return
     recommendedRef.current = true
-    setSelected(prev => {
-      if (prev.size > 0) return prev
-      const next = new Set(prev)
-      values
-        .slice(0, candidate.recommended_count)
-        .forEach(v => next.add(v.value_hash))
-      return next
-    })
-  }, [candidate.recommended_count, candidate.draft_count, values])
+    setSelected(prev => (prev.size > 0 ? prev : new Set(hashes)))
+  }, [candidate.recommended_hashes, candidate.draft_count])
 
   // Guards re-seeding `selected` from a prior draft's `decided` flag more than
   // once per value, so paging back to a page the operator already unchecked a
@@ -557,6 +554,16 @@ export const ReviewScreen = ({
                         whiteSpace: 'nowrap',
                       }}
                     >
+                      {v.recommended && (
+                        <Chip
+                          size="small"
+                          label="recommended"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ mr: 1 }}
+                          title="Measured as worth approving against traffic held back from training. Ticked for you — untick it if it should not be disclosed to this profile's audience."
+                        />
+                      )}
                       {v.previously_denied && (
                         <Chip
                           size="small"

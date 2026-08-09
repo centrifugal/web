@@ -292,6 +292,10 @@ export interface Candidate {
   // Zero when the session had no control window.
   recommended_count: number
   recommended_ratio: number
+  // The recommendation itself. Seed the selection from this, never from "the
+  // first recommended_count rows" — the list is paged, so that only ever ticks
+  // what is loaded, and ticks the wrong rows under a search or another sort.
+  recommended_hashes?: string[]
   // The rung of the size ladder the measurements favour, and the size
   // recommended_count was measured at. Zero when nothing was measured.
   recommended_size: number
@@ -323,6 +327,9 @@ export interface CandidateValue {
   // review. Shown marked rather than filtered out, so a rejection made by
   // mistake stays visible and reversible.
   previously_denied: boolean
+  // The build measured this value as worth approving. Recommended rows sort to
+  // the top of the list and arrive ticked.
+  recommended: boolean
 }
 
 export interface DeniedSummary {
