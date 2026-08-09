@@ -42,7 +42,9 @@ export const AssignCandidateDialog = ({
         (max, p) => (p.size_bytes > max ? p.size_bytes : max),
         candidate.size_curve[0]?.size_bytes ?? 4096
       )
-      setSizeBytes(largest)
+      setSizeBytes(
+        candidate.recommended_size > 0 ? candidate.recommended_size : largest
+      )
     } else {
       setSubmitting(false)
     }
@@ -87,6 +89,8 @@ export const AssignCandidateDialog = ({
           onProfileChange={setProfileId}
           sizeBytes={sizeBytes}
           onSizeChange={setSizeBytes}
+          curve={candidate.size_curve}
+          recommendedSize={candidate.recommended_size}
         />
       </DialogContent>
       <DialogActions>

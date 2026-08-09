@@ -9,6 +9,7 @@ import CardContent from '@mui/material/CardContent'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import Chip from '@mui/material/Chip'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
@@ -539,6 +540,20 @@ export const SessionDetail = ({
 
                     {c.size_curve.length > 0 && (
                       <TableContainer sx={{ mt: 1.5 }}>
+                        {/* Which size to build at was the least-supported
+                            decision in the whole flow: a free-form byte count
+                            with no way to see what it bought. Every rung here
+                            was built and scored, so the answer is on screen
+                            rather than left to intuition. */}
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block', mb: 0.5 }}
+                        >
+                          {c.size_curve.some(sp => sp.measured)
+                            ? 'Each size built and measured on traffic held back from training.'
+                            : 'Projected — this session had no control window, so ratios are optimistic.'}
+                        </Typography>
                         <Table size="small">
                           <TableHead>
                             <TableRow>
@@ -550,12 +565,35 @@ export const SessionDetail = ({
                           </TableHead>
                           <TableBody>
                             {c.size_curve.map(sp => (
-                              <TableRow key={sp.size_bytes}>
+                              <TableRow
+                                key={sp.size_bytes}
+                                selected={sp.size_bytes === c.recommended_size}
+                              >
                                 <TableCell>
                                   {HumanSize(sp.size_bytes)}
+                                  {sp.size_bytes === c.recommended_size && (
+                                    <Chip
+                                      size="small"
+                                      color="primary"
+                                      variant="outlined"
+                                      label="Recommended"
+                                      sx={{ ml: 1 }}
+                                      title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
+                                    />
+                                  )}
                                 </TableCell>
                                 <TableCell align="right">
                                   {fmtRatio(sp.ratio)}
+                                  {sp.recommended_values > 0 && (
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                      sx={{ display: 'block' }}
+                                      title="How many of the ranked values were worth approving at this size. It differs down the ladder: a smaller dictionary fills up sooner, so extra values only push useful fragments out."
+                                    >
+                                      {sp.recommended_values} values
+                                    </Typography>
+                                  )}
                                 </TableCell>
                                 <TableCell align="right">
                                   {HumanSize(sp.delivery_bytes)}

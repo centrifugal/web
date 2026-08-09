@@ -24,6 +24,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { HumanSize } from 'utils/Functions'
 import { Panel, FieldRow } from 'pages/Inspector/ui'
 import { EmptyState } from 'components/EmptyState'
 
@@ -629,15 +630,25 @@ export const ReviewScreen = ({
               {fmtInt(candidate.recommended_count)} values are selected for you
               {candidate.recommended_ratio > 0 &&
                 `, measured at ${candidate.recommended_ratio.toFixed(2)}x`}
+              {candidate.recommended_size > 0 &&
+                ` in a ${HumanSize(candidate.recommended_size)} dictionary`}
               .
             </strong>{' '}
             This session held back its last quarter and the build tried several
-            cut-offs against it — traffic no dictionary here was built from — so
-            this is what the selection actually achieved, not what it is
-            projected to. Approving more is usually worse: past the peak, extra
-            values push the useful fragments out of range and the ratio falls.
-            Read these, untick anything that should not be disclosed, and
+            cut-offs and sizes against it — traffic no dictionary here was built
+            from — so this is what the selection actually achieved, not what it
+            is projected to. Approving more is usually worse: past the peak,
+            extra values push the useful fragments out of range and the ratio
+            falls. Read these, untick anything that should not be disclosed, and
             approve.
+            {candidate.recommended_size > 0 && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                The size and the selection are one answer: this many values was
+                the best cut-off <em>at that size</em>. The approve dialog
+                defaults to it, and the candidate&apos;s size curve shows what
+                every other rung was measured at.
+              </Typography>
+            )}
           </Alert>
         )}
         {totalContribution > 0 && (
@@ -723,6 +734,8 @@ export const ReviewScreen = ({
         candidateId={candidate.id}
         approvedHashes={Array.from(selected)}
         totalValues={candidate.values_total}
+        sizeCurve={candidate.size_curve}
+        recommendedSize={candidate.recommended_size}
         onClose={() => setApproveOpen(false)}
         onApproved={() => {
           setApproveOpen(false)

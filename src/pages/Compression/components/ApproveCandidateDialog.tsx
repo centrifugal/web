@@ -9,7 +9,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Typography from '@mui/material/Typography'
 
-import { CompressionApiHook } from '../api'
+import { CompressionApiHook, SizeCurvePoint } from '../api'
 import { ProfileSizeFields } from './ProfileSizeFields'
 
 interface ApproveCandidateDialogProps {
@@ -21,6 +21,12 @@ interface ApproveCandidateDialogProps {
   // "everything matching a filter" selection.
   approvedHashes: string[]
   totalValues: number
+  // The measured size ladder and the rung the build recommends. The dialog
+  // defaults to that rung: the recommended selection was measured at it, and
+  // moving to another size makes the selection no longer the one that was
+  // searched for.
+  sizeCurve: SizeCurvePoint[]
+  recommendedSize: number
   onClose: () => void
   onApproved: () => void
 }
@@ -36,11 +42,13 @@ export const ApproveCandidateDialog = ({
   candidateId,
   approvedHashes,
   totalValues,
+  sizeCurve,
+  recommendedSize,
   onClose,
   onApproved,
 }: ApproveCandidateDialogProps) => {
   const [profileId, setProfileId] = useState('')
-  const [sizeBytes, setSizeBytes] = useState(4096)
+  const [sizeBytes, setSizeBytes] = useState(0)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -49,8 +57,13 @@ export const ApproveCandidateDialog = ({
       setProfileId('')
       setNotes('')
       setSubmitting(false)
+      return
     }
-  }, [open])
+    // Fall back to the largest rung when nothing was measured - the old
+    // behaviour, and still the safest guess when there is no evidence.
+    const largest = sizeCurve.reduce((max, p) => Math.max(max, p.size_bytes), 0)
+    setSizeBytes(recommendedSize > 0 ? recommendedSize : largest || 4096)
+  }, [open, recommendedSize, sizeCurve])
 
   const rejected = Math.max(totalValues - approvedHashes.length, 0)
   const valid = profileId !== '' && sizeBytes > 0
@@ -98,6 +111,8 @@ export const ApproveCandidateDialog = ({
           profileId={profileId}
           onProfileChange={setProfileId}
           sizeBytes={sizeBytes}
+          curve={sizeCurve}
+          recommendedSize={recommendedSize}
           onSizeChange={setSizeBytes}
         />
         <TextField

@@ -211,6 +211,13 @@ export interface SizeCurvePoint {
   cpu_per_compression_ns: number
   // Frames of savings needed to earn delivery_bytes back.
   payback_frames: number
+  // true when ratio was measured against the session's held-out control
+  // window rather than projected from the dictionary's own contents. A
+  // projection is systematically optimistic - never present the two alike.
+  measured: boolean
+  // For reviewed candidates: how many values the search approved at THIS size.
+  // The selection is searched per size, so it differs down the ladder.
+  recommended_values: number
   // How much of the vocabulary this size actually held. A size that held a
   // fraction reports the same ratio shape as one that held everything, so
   // without these a small rung looks indistinguishable from a good one.
@@ -285,6 +292,9 @@ export interface Candidate {
   // Zero when the session had no control window.
   recommended_count: number
   recommended_ratio: number
+  // The rung of the size ladder the measurements favour, and the size
+  // recommended_count was measured at. Zero when nothing was measured.
+  recommended_size: number
   id: string
   fidelity: string
   ratio_by_protocol: Record<string, number>
