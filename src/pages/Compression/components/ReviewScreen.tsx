@@ -802,10 +802,10 @@ export const ReviewScreen = ({
                 </>
               ) : (
                 <>
-                  All {preview.values_held} fit. Adding more grows the
-                  dictionary until it reaches {HumanSize(targetSize)}, after
-                  which extra values are dropped from it and can lower the ratio
-                  rather than raise it.
+                  All {preview.values_held} fit. Ticking more raises the ratio
+                  while there is room, and once the dictionary reaches{' '}
+                  {HumanSize(targetSize)} the rest are dropped from it — still
+                  disclosed as approved, but contributing nothing.
                 </>
               )}
             </Typography>
