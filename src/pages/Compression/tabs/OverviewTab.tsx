@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Switch from '@mui/material/Switch'
@@ -18,7 +18,7 @@ import { useTheme } from '@mui/material/styles'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
-import { Panel, CapabilityChip, ChipTone } from 'pages/Inspector/ui'
+import { Panel, CapabilityChip, ChipTone, InlineStat } from 'pages/Inspector/ui'
 import { HumanSize } from 'utils/Functions'
 
 import {
@@ -26,24 +26,6 @@ import {
   CompressionOverview,
   ConnectionsByTier,
 } from '../api'
-
-// InlineStat is a label and its value on one line, so the deployment summary
-// reads as a strip rather than a column of near-empty rows - four facts that
-// are each a word long do not need four rows to say so.
-const InlineStat = ({
-  label,
-  children,
-}: {
-  label: string
-  children: ReactNode
-}) => (
-  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-    <Typography variant="body2" color="text.secondary">
-      {label}
-    </Typography>
-    {children}
-  </Box>
-)
 
 const POLL_MS = 5000
 

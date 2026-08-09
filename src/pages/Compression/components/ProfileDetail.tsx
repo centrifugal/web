@@ -16,7 +16,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import UndoIcon from '@mui/icons-material/Undo'
 
 import { ShellContext } from 'contexts/ShellContext'
-import { Panel, FieldRow, CapabilityChip } from 'pages/Inspector/ui'
+import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
 import { EmptyState } from 'components/EmptyState'
 import { ConfirmButton } from 'components/ConfirmButton'
 import { CopyButton } from 'components/CopyButton'
@@ -247,43 +247,50 @@ export const ProfileDetail = ({
         </ConfirmButton>
       </Box>
 
-      <Panel title="Profile">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <FieldRow label="Notes">
-            <Typography variant="body2">{profile.notes || '—'}</Typography>
-          </FieldRow>
-          <FieldRow label="Training mode">
-            <Typography variant="body2">{profile.training_mode}</Typography>
-          </FieldRow>
-          <FieldRow label="Client declarable">
+      <Panel title="Profile" subtitle={profile.notes || undefined}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            columnGap: 3,
+            rowGap: 1,
+          }}
+        >
+          <InlineStat label="Client declarable">
             <CapabilityChip
               label={profile.client_declarable ? 'Yes' : 'No'}
               tone={profile.client_declarable ? 'on' : 'off'}
               title="Whether a client may request this profile by name in its subscription."
             />
-          </FieldRow>
-          <FieldRow label="Serve as default">
+          </InlineStat>
+          <InlineStat label="Serve as default">
             <CapabilityChip
               label={profile.serve_as_default ? 'Yes' : 'No'}
               tone={profile.serve_as_default ? 'on' : 'off'}
               title="Whether unmatched connections receive this profile automatically."
             />
-          </FieldRow>
-          <FieldRow label="Live connections">
+          </InlineStat>
+          <InlineStat label="Training mode">
+            <Typography variant="body2">{profile.training_mode}</Typography>
+          </InlineStat>
+          <InlineStat label="Live connections">
             <Typography variant="body2">
               {profile.connections != null ? profile.connections : '—'}
             </Typography>
-          </FieldRow>
-          <FieldRow label="Revision">
+          </InlineStat>
+          <InlineStat label="Revision">
             <Typography variant="body2">{profile.revision}</Typography>
-          </FieldRow>
-          <FieldRow label="Created / updated">
-            <Typography variant="body2">
-              {fmtDateTime(profile.created_at)} ·{' '}
-              {fmtDateTime(profile.updated_at)}
-            </Typography>
-          </FieldRow>
+          </InlineStat>
         </Box>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block', mt: 1.5 }}
+        >
+          Created {fmtDateTime(profile.created_at)} · updated{' '}
+          {fmtDateTime(profile.updated_at)}
+        </Typography>
       </Panel>
 
       <Panel

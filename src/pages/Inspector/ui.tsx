@@ -177,6 +177,28 @@ export const FieldRow = ({
   </Box>
 )
 
+// ---- InlineStat: FieldRow's compact sibling -------------------------------
+
+// A label and its value on one line, for summaries whose facts are each a word
+// long. FieldRow gives every field its own row and a 150px label column, which
+// is right for a detail list and wrong for four short facts - they end up as a
+// column of near-empty rows. Put several of these in a wrapping flex row
+// instead.
+export const InlineStat = ({
+  label,
+  children,
+}: {
+  label: ReactNode
+  children: ReactNode
+}) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    {children}
+  </Box>
+)
+
 // ---- SearchBar: entity input with submit + optional suggestions -----------
 
 export const SearchBar = ({
