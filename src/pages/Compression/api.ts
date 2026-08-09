@@ -296,6 +296,10 @@ export interface Candidate {
   // first recommended_count rows" — the list is paged, so that only ever ticks
   // what is loaded, and ticks the wrong rows under a search or another sort.
   recommended_hashes?: string[]
+  // The value ranking, cut at the longest selection any rung was measured
+  // with. A rung's recommended_values indexes into it, so choosing a different
+  // size can apply the selection measured there.
+  ranked_hashes?: string[]
   // The rung of the size ladder the measurements favour, and the size
   // recommended_count was measured at. Zero when nothing was measured.
   recommended_size: number

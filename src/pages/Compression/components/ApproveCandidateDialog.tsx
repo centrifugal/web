@@ -28,6 +28,14 @@ interface ApproveCandidateDialogProps {
   // searched for.
   sizeCurve: SizeCurvePoint[]
   recommendedSize: number
+  // The value ranking, so picking a different size can apply the selection
+  // that was measured there. Every rung's recommendation is a prefix of it.
+  rankedHashes: string[]
+  // Replaces the review screen's selection. Choosing a size whose measured
+  // selection differs from what is ticked leaves the operator holding a
+  // selection for a dictionary they are not building, and no way to know
+  // which values to drop - this is that way.
+  onSelectionChange: (hashes: string[]) => void
   onClose: () => void
   onApproved: () => void
 }
@@ -48,6 +56,8 @@ export const ApproveCandidateDialog = ({
   totalValues,
   sizeCurve,
   recommendedSize,
+  rankedHashes,
+  onSelectionChange,
   onClose,
   onApproved,
 }: ApproveCandidateDialogProps) => {
@@ -103,6 +113,19 @@ export const ApproveCandidateDialog = ({
     // approvedHashes is fixed for the lifetime of an open dialog.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sizeBytes, candidateId])
+
+  // The selection this size was measured with, when it differs from what is
+  // ticked. Offered, never applied silently: the ticks are someone's review.
+  const rung = sizeCurve.find(p => p.size_bytes === sizeBytes)
+  const measuredCount = rung?.recommended_values ?? 0
+  const measuredSelection =
+    measuredCount > 0 && measuredCount <= rankedHashes.length
+      ? rankedHashes.slice(0, measuredCount)
+      : null
+  const selectionMatchesRung =
+    measuredSelection !== null &&
+    measuredSelection.length === approvedHashes.length &&
+    measuredSelection.every(h => approvedHashes.includes(h))
 
   const rejected = Math.max(totalValues - approvedHashes.length, 0)
   const valid = profileId !== '' && sizeBytes > 0
@@ -197,6 +220,25 @@ export const ApproveCandidateDialog = ({
             ) : (
               'Measuring this selection…'
             )}
+          </Alert>
+        )}
+        {measuredSelection && !selectionMatchesRung && (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            <Typography variant="body2">
+              {HumanSize(sizeBytes)} was measured with{' '}
+              <strong>{measuredCount.toLocaleString()} values</strong>
+              {rung && rung.ratio > 0 && ` at ${rung.ratio.toFixed(2)}x`} — you
+              have {approvedHashes.length.toLocaleString()} ticked. The
+              selection and the size are one answer, so the two are only
+              comparable together.
+            </Typography>
+            <Button
+              size="small"
+              sx={{ mt: 1 }}
+              onClick={() => onSelectionChange(measuredSelection)}
+            >
+              Select the {measuredCount.toLocaleString()} measured for this size
+            </Button>
           </Alert>
         )}
         <TextField

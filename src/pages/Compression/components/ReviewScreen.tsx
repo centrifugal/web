@@ -750,6 +750,8 @@ export const ReviewScreen = ({
         totalValues={candidate.values_total}
         sizeCurve={candidate.size_curve}
         recommendedSize={candidate.recommended_size}
+        rankedHashes={candidate.ranked_hashes || []}
+        onSelectionChange={hashes => setSelected(new Set(hashes))}
         onClose={() => setApproveOpen(false)}
         onApproved={() => {
           setApproveOpen(false)
