@@ -106,23 +106,22 @@ export const SessionDetail = ({
   // building is not idempotent - a second click leaves two sets of candidates
   // from one session, with the half-finished review on the set you can no
   // longer see.
-  useEffect(() => {
-    let cancelled = false
-    api
-      .listCandidates(sessionId)
-      .then(res => {
-        if (!cancelled && res.candidates && res.candidates.length > 0) {
-          setCandidates(res.candidates)
-        }
-      })
-      .catch(() => {
-        // A session with nothing built yet is the ordinary case, and the Build
-        // button below is the answer either way.
-      })
-    return () => {
-      cancelled = true
+  const refreshCandidates = useCallback(async () => {
+    try {
+      const res = await api.listCandidates(sessionId)
+      if (res.candidates && res.candidates.length > 0) {
+        setCandidates(res.candidates)
+      }
+    } catch {
+      // A session with nothing built yet is the ordinary case, and the Build
+      // button below is the answer either way.
     }
-  }, [api, sessionId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
+  useEffect(() => {
+    void refreshCandidates()
+  }, [refreshCandidates])
 
   // Poll while (and only while) the session is running; the interval is torn
   // down both on unmount and the instant status stops being 'running'.
@@ -160,8 +159,14 @@ export const SessionDetail = ({
     setBuilding(true)
     try {
       const res = await api.buildCandidates(sessionId)
-      setCandidates(res.candidates)
       setBuildReason(res.reason || null)
+      // Read the list back rather than showing what the build returned. A
+      // build returns only the set it just made, so the page showed two cards
+      // until the next reload put every earlier set back on screen - the same
+      // session looking like it had lost candidates and then found them again.
+      if (res.candidates && res.candidates.length > 0) {
+        await refreshCandidates()
+      }
     } catch (err) {
       api.handleError(err)
     } finally {
@@ -596,6 +601,20 @@ export const SessionDetail = ({
                               ? 'Each size built and measured on traffic held back from training.'
                               : 'Projected — this session had no control window, so ratios are optimistic.'}
                           </Typography>
+                          {c.recommended_size > 0 && (
+                            <Typography
+                              variant="caption"
+                              color="primary"
+                              sx={{ display: 'block', mb: 0.5 }}
+                              title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
+                            >
+                              Recommended: {HumanSize(c.recommended_size)}
+                              {c.recommended_count > 0 &&
+                                ` · ${fmtInt(c.recommended_count)} values`}
+                              {c.recommended_ratio > 0 &&
+                                ` · ${fmtRatio(c.recommended_ratio)}`}
+                            </Typography>
+                          )}
                           <Table size="small">
                             <TableHead>
                               <TableRow>
@@ -613,18 +632,19 @@ export const SessionDetail = ({
                                     sp.size_bytes === c.recommended_size
                                   }
                                 >
-                                  <TableCell>
-                                    {HumanSize(sp.size_bytes)}
-                                    {sp.size_bytes === c.recommended_size && (
-                                      <Chip
-                                        size="small"
-                                        color="primary"
-                                        variant="outlined"
-                                        label="Recommended"
-                                        sx={{ ml: 1 }}
-                                        title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
-                                      />
-                                    )}
+                                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                                    <Typography
+                                      variant="body2"
+                                      component="span"
+                                      sx={{
+                                        fontWeight:
+                                          sp.size_bytes === c.recommended_size
+                                            ? 600
+                                            : 400,
+                                      }}
+                                    >
+                                      {HumanSize(sp.size_bytes)}
+                                    </Typography>
                                   </TableCell>
                                   <TableCell align="right">
                                     {fmtRatio(sp.ratio)}
@@ -662,19 +682,24 @@ export const SessionDetail = ({
                                           ? 'warning.main'
                                           : 'text.secondary'
                                       }
+                                      // The full sentences live here, where
+                                      // length costs nothing. In the cell they
+                                      // wrapped over three lines and pushed
+                                      // the table wider than its card.
                                       title={
-                                        sp.shapes_held < sp.shapes_total
-                                          ? `This size holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes. The ratio is real, but measured on the part that fit.`
-                                          : 'This size holds every message shape the session learned.'
+                                        (sp.shapes_held < sp.shapes_total
+                                          ? `Holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes — the ratio is real, but measured on the part that fit. `
+                                          : 'Holds every message shape the session learned. ') +
+                                        (sp.values_total === 0
+                                          ? ''
+                                          : sp.values_held === sp.values_total
+                                            ? `All ${sp.values_total} values measured at this size fit.`
+                                            : `Only ${sp.values_held} of the ${sp.values_total} values measured at this size fit; the rest would be approved without being in the dictionary.`)
                                       }
                                     >
-                                      {sp.shapes_held === sp.shapes_total
-                                        ? `all ${sp.shapes_total} shapes`
-                                        : `${sp.shapes_held} of ${sp.shapes_total} shapes`}
+                                      {sp.shapes_held}/{sp.shapes_total} shapes
                                       {sp.values_total > 0 &&
-                                        (sp.values_held === sp.values_total
-                                          ? `, all ${sp.values_total} selected values fit`
-                                          : `, only ${sp.values_held} of ${sp.values_total} selected values fit`)}
+                                        `, ${sp.values_held}/${sp.values_total} values`}
                                     </Typography>
                                   </TableCell>
                                 </TableRow>
