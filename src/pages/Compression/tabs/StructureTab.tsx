@@ -169,10 +169,11 @@ export const StructureTab = ({
             color="text.secondary"
             sx={{ display: 'block', mt: 0.5 }}
           >
-            Every node is told at once; the poll interval is only a backstop.
-            Connections already established keep what they were given until they
-            reconnect — flipping this off does not recall a dictionary already
-            delivered. It also needs "Serve dictionaries" on to have any effect.
+            Applies to every server within a second or two — up to 20 seconds if
+            one misses the signal. Connections that are already open keep the
+            dictionary they have until they reconnect, so switching this off
+            stops new connections getting one but takes nothing back from
+            anyone. Nothing is served at all unless "Serve dictionaries" is on.
           </Typography>
         </Box>
       </Panel>

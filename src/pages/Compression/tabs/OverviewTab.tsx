@@ -219,12 +219,12 @@ export const OverviewTab = ({
             />
             <Tooltip
               title={
-                'Every node is told at once; the ~20s poll is only a backstop ' +
-                'for a node that missed it. Connections already established ' +
-                'keep the dictionary they were given until they reconnect - ' +
-                'turning this off stops new connections being served, it does ' +
-                'not recall anything already delivered. Training sessions keep ' +
-                'collecting either way.'
+                'Applies to every server within a second or two - up to 20 ' +
+                'seconds if one misses the signal. Connections that are ' +
+                'already open keep the dictionary they have until they ' +
+                'reconnect, so switching this off stops new connections ' +
+                'getting one but takes nothing back from anyone. Training ' +
+                'sessions carry on collecting either way.'
               }
             >
               <InfoOutlinedIcon
