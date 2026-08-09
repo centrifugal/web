@@ -26,9 +26,16 @@ import { EmptyState } from 'components/EmptyState'
 import { ConfirmButton } from 'components/ConfirmButton'
 import { HumanSize } from 'utils/Functions'
 
-import { CompressionApiHook, Session, Candidate, TrainingFilter } from '../api'
+import { CompressionApiHook, Session, Candidate } from '../api'
 import { useUrlSelection } from '../useUrlSelection'
-import { fmtDateTime, fmtInt, fmtPct, fmtRatio, fmtRelative } from '../format'
+import {
+  fmtDateTime,
+  fmtFilter,
+  fmtInt,
+  fmtPct,
+  fmtRatio,
+  fmtRelative,
+} from '../format'
 import { AssignCandidateDialog } from './AssignCandidateDialog'
 import { ReviewScreen } from './ReviewScreen'
 
@@ -49,16 +56,6 @@ const statusTone = (status: Session['status']) => {
     default:
       return 'off' as const
   }
-}
-
-const formatFilter = (filter: TrainingFilter): string => {
-  const parts: string[] = []
-  if (filter.user) parts.push(`user: ${filter.user}`)
-  if (filter.anonymous) parts.push('anonymous')
-  if (filter.channel) parts.push(`channel: ${filter.channel}`)
-  if (filter.profile) parts.push(`profile: ${filter.profile}`)
-  if (filter.unclassified) parts.push('unclassified')
-  return parts.length > 0 ? parts.join(' · ') : 'all connections'
 }
 
 // PARSE_RATE_WARN_BELOW: below this, payload_parse_rate gets called out — most
@@ -287,9 +284,7 @@ export const SessionDetail = ({
             <Typography variant="body2">{session.training_mode}</Typography>
           </FieldRow>
           <FieldRow label="Filter">
-            <Typography variant="body2">
-              {formatFilter(session.filter)}
-            </Typography>
+            <Typography variant="body2">{fmtFilter(session.filter)}</Typography>
           </FieldRow>
           <FieldRow label="Started">
             <Typography variant="body2">

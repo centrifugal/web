@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Table from '@mui/material/Table'
@@ -17,7 +18,7 @@ import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
 import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateSessionRequest, Session } from '../api'
-import { fmtDateTime, fmtRelative } from '../format'
+import { fmtDateTime, fmtFilter, fmtRelative } from '../format'
 import { CreateSessionDialog } from '../components/CreateSessionDialog'
 import { SessionDetail } from '../components/SessionDetail'
 
@@ -164,6 +165,7 @@ export const SessionsTab = ({
                 <TableHead>
                   <TableRow>
                     <TableCell>Status</TableCell>
+                    <TableCell>Audience</TableCell>
                     <TableCell>Mode</TableCell>
                     <TableCell>Started</TableCell>
                     <TableCell>Deadline</TableCell>
@@ -184,6 +186,18 @@ export const SessionsTab = ({
                           label={s.status}
                           tone={statusTone(s.status)}
                         />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {fmtFilter(s.filter)}
+                        </Typography>
+                        {s.profile_id && (
+                          <Typography variant="caption" color="text.secondary">
+                            trains for{' '}
+                            {profiles.find(p => p.id === s.profile_id)?.name ??
+                              'a deleted profile'}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell>{s.training_mode}</TableCell>
                       <TableCell>{fmtDateTime(s.started_at)}</TableCell>

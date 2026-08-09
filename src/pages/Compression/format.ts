@@ -1,3 +1,5 @@
+import { TrainingFilter } from './api'
+
 // Small, self-contained formatters for the Compression pages. Kept local (a
 // little copy is fine) so the page has no fragile cross-page imports — same
 // rationale as pages/Inspector/format.ts.
@@ -37,4 +39,17 @@ export const fmtRelative = (s: string | undefined | null): string => {
   if (hr < 24) return unit(hr, 'h')
   const day = Math.floor(hr / 24)
   return unit(day, 'd')
+}
+
+// fmtFilter renders a session's connection filter as one line - the only thing
+// that says what a session was about. Two sessions in the same mode are
+// otherwise identical on a list except for their timestamps.
+export const fmtFilter = (filter: TrainingFilter): string => {
+  const parts: string[] = []
+  if (filter.user) parts.push(`user: ${filter.user}`)
+  if (filter.anonymous) parts.push('anonymous')
+  if (filter.channel) parts.push(`channel: ${filter.channel}`)
+  if (filter.profile) parts.push(`profile: ${filter.profile}`)
+  if (filter.unclassified) parts.push('unclassified')
+  return parts.length > 0 ? parts.join(' · ') : 'all connections'
 }
