@@ -37,7 +37,15 @@ export const EmptyState = ({ icon, title, hint }: EmptyStateProps) => (
       {title}
     </Typography>
     {hint && (
-      <Typography variant="body2" color="text.disabled" sx={{ maxWidth: 420 }}>
+      // component="div" because hint is a ReactNode: callers pass buttons and
+      // laid-out blocks, and a <p> may not contain them. Typography resets its
+      // own margin, so this renders identically to the paragraph it replaces.
+      <Typography
+        component="div"
+        variant="body2"
+        color="text.disabled"
+        sx={{ maxWidth: 420 }}
+      >
         {hint}
       </Typography>
     )}
