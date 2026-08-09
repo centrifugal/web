@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Switch from '@mui/material/Switch'
@@ -13,11 +13,12 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { useTheme } from '@mui/material/styles'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
-import { Panel, FieldRow, CapabilityChip } from 'pages/Inspector/ui'
+import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 import { HumanSize } from 'utils/Functions'
 
 import {
@@ -25,6 +26,24 @@ import {
   CompressionOverview,
   ConnectionsByTier,
 } from '../api'
+
+// InlineStat is a label and its value on one line, so the deployment summary
+// reads as a strip rather than a column of near-empty rows - four facts that
+// are each a word long do not need four rows to say so.
+const InlineStat = ({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Typography variant="body2" color="text.secondary">
+      {label}
+    </Typography>
+    {children}
+  </Box>
+)
 
 const POLL_MS = 5000
 
@@ -177,52 +196,65 @@ export const OverviewTab = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-      <Panel title="Deployment">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <FieldRow label="Status">
-            <CapabilityChip
-              label={overview.enabled ? 'Serving' : 'Stopped'}
-              tone={overview.enabled ? 'on' : 'off'}
+      <Panel
+        title="Deployment"
+        action={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={overview.enabled}
+                  disabled={toggling}
+                  onChange={handleToggleEnabled}
+                />
+              }
+              label={
+                <Typography variant="body2">Serve dictionaries</Typography>
+              }
+              sx={{ mr: 0 }}
             />
-          </FieldRow>
-          <FieldRow label="Structure dictionary">
+            <Tooltip
+              title={
+                'Every node is told at once; the ~20s poll is only a backstop ' +
+                'for a node that missed it. Connections already established ' +
+                'keep the dictionary they were given until they reconnect - ' +
+                'turning this off stops new connections being served, it does ' +
+                'not recall anything already delivered. Training sessions keep ' +
+                'collecting either way.'
+              }
+            >
+              <InfoOutlinedIcon
+                fontSize="small"
+                sx={{ color: 'text.disabled' }}
+              />
+            </Tooltip>
+          </Box>
+        }
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            columnGap: 3,
+            rowGap: 1,
+          }}
+        >
+          <InlineStat label="Structure dictionary">
             <CapabilityChip
               label={overview.structure_active ? 'Active' : 'Inactive'}
               tone={overview.structure_active ? 'on' : 'off'}
             />
-          </FieldRow>
-          <FieldRow label="Profiles">
+          </InlineStat>
+          <InlineStat label="Profiles">
             <Typography variant="body2">{fmtInt(overview.profiles)}</Typography>
-          </FieldRow>
-          <FieldRow label="Active versions">
+          </InlineStat>
+          <InlineStat label="Active versions">
             <Typography variant="body2">
               {fmtInt(overview.active_versions)}
             </Typography>
-          </FieldRow>
-        </Box>
-
-        <Box sx={{ mt: 2 }}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={overview.enabled}
-                disabled={toggling}
-                onChange={handleToggleEnabled}
-              />
-            }
-            label="Serve dictionaries"
-          />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mt: 0.5 }}
-          >
-            Every node is told at once; the ~20s poll is only a backstop for a
-            node that missed it. Connections already established keep the
-            dictionary they were given until they reconnect — turning this off
-            stops new connections being served, it does not recall anything
-            already delivered. Training sessions keep collecting either way.
-          </Typography>
+          </InlineStat>
         </Box>
       </Panel>
 
