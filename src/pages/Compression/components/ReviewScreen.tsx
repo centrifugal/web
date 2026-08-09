@@ -121,6 +121,26 @@ export const ReviewScreen = ({
   // pages and searches for the lifetime of this screen. This is the only
   // input to the approve request.
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // The build's measured recommendation, applied once when the screen opens on
+  // an untouched candidate. A saved draft always wins: an operator who has
+  // already made decisions must not have them replaced by a machine's.
+  const recommendedRef = useRef(false)
+  useEffect(() => {
+    if (recommendedRef.current) return
+    if (candidate.recommended_count <= 0) return
+    if (candidate.draft_count > 0) return
+    if (values.length === 0) return
+    recommendedRef.current = true
+    setSelected(prev => {
+      if (prev.size > 0) return prev
+      const next = new Set(prev)
+      values
+        .slice(0, candidate.recommended_count)
+        .forEach(v => next.add(v.value_hash))
+      return next
+    })
+  }, [candidate.recommended_count, candidate.draft_count, values])
+
   // Guards re-seeding `selected` from a prior draft's `decided` flag more than
   // once per value, so paging back to a page the operator already unchecked a
   // box on doesn't silently re-check it.
@@ -603,6 +623,23 @@ export const ReviewScreen = ({
       </Panel>
 
       <Panel title="Decision">
+        {candidate.recommended_count > 0 && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <strong>
+              {fmtInt(candidate.recommended_count)} values are selected for you
+              {candidate.recommended_ratio > 0 &&
+                `, measured at ${candidate.recommended_ratio.toFixed(2)}x`}
+              .
+            </strong>{' '}
+            This session held back its last quarter and the build tried several
+            cut-offs against it — traffic no dictionary here was built from — so
+            this is what the selection actually achieved, not what it is
+            projected to. Approving more is usually worse: past the peak, extra
+            values push the useful fragments out of range and the ratio falls.
+            Read these, untick anything that should not be disclosed, and
+            approve.
+          </Alert>
+        )}
         {totalContribution > 0 && (
           <Box sx={{ mb: 2 }}>
             <Box

@@ -279,6 +279,12 @@ export interface ListSessionsParams {
 export interface Candidate {
   // How many values are already ticked in a saved draft.
   draft_count: number
+  // How far down the ranked list the build measured as best, and what that
+  // selection achieved against the session's control window - traffic the
+  // dictionary was not built from, so a measurement rather than a projection.
+  // Zero when the session had no control window.
+  recommended_count: number
+  recommended_ratio: number
   id: string
   fidelity: string
   ratio_by_protocol: Record<string, number>
