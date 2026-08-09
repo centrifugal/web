@@ -114,9 +114,17 @@ export const ReviewScreen = ({
   const [minWitnessDraft, setMinWitnessDraft] = useState('')
   const [minWitnessApplied, setMinWitnessApplied] = useState('')
 
-  const currentCursorRef = useRef('')
   const [nextCursor, setNextCursor] = useState('')
-  const [prevCursors, setPrevCursors] = useState<string[]>([])
+  // The cursor of every page visited to get here, the current one last. Going
+  // back is popping this, so page N-1 is always cursors[length - 2].
+  //
+  // This used to be a stack of previous cursors plus a ref holding the current
+  // one, and the ref was read inside setPrevCursors' updater - which React runs
+  // later, after the ref had already been reassigned. Every Next pushed the
+  // page it had just landed on, so Previous re-fetched the page you were
+  // already looking at and nothing appeared to happen. One array has no
+  // ordering to get wrong.
+  const [cursors, setCursors] = useState<string[]>([''])
 
   // Every value_hash the operator has explicitly approved, accumulated across
   // pages and searches for the lifetime of this screen. This is the only
@@ -171,13 +179,12 @@ export const ReviewScreen = ({
         )
         setNextCursor(data.next_cursor || '')
         if (opts.direction === 'next') {
-          setPrevCursors(prev => [...prev, currentCursorRef.current])
+          setCursors(prev => [...prev, opts.cursor || ''])
         } else if (opts.direction === 'prev') {
-          setPrevCursors(prev => prev.slice(0, -1))
+          setCursors(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
         } else {
-          setPrevCursors([])
+          setCursors([''])
         }
-        currentCursorRef.current = opts.cursor || ''
 
         // Seed selection from prior decisions, once per value ever seen.
         const newlyApproved: string[] = []
@@ -236,9 +243,9 @@ export const ReviewScreen = ({
     })
   }
   const handlePrev = () => {
-    if (prevCursors.length === 0 || loading) return
+    if (cursors.length < 2 || loading) return
     fetchValues({
-      cursor: prevCursors[prevCursors.length - 1],
+      cursor: cursors[cursors.length - 2],
       direction: 'prev',
       search: searchApplied,
       minWitness: minWitnessApplied,
@@ -610,7 +617,7 @@ export const ReviewScreen = ({
               size="small"
               startIcon={<NavigateBeforeIcon />}
               onClick={handlePrev}
-              disabled={loading || prevCursors.length === 0}
+              disabled={loading || cursors.length < 2}
               variant="tonal"
               color="inherit"
             >
