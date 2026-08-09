@@ -44,6 +44,12 @@ export interface ConnectionsByTier {
 export interface ProfileServing {
   profile: string
   protocol: string
+  // What these bytes were compressed against. A profile can hold several rows
+  // at once — connections outside a staged rollout are on the structure tier,
+  // and a version just replaced keeps its own row until the connections
+  // holding it reconnect.
+  tier: string
+  dictionary_id: string
   cold_connects: number
   warm_connects: number
   bytes_in: number

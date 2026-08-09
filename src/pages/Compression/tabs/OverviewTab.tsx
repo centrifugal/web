@@ -71,6 +71,11 @@ const TIERS: Tier[] = [
   },
 ]
 
+// tierLabel reuses the tier descriptions above so the delivery table names a
+// tier the same way the breakdown above it does.
+const tierLabel = (tier: string): string =>
+  TIERS.find(t => t.key === tier)?.label ?? tier ?? '—'
+
 // OverviewTab: the operator's "is this working" view — the deployment switch,
 // the live tier breakdown, and the per-profile net savings that is the single
 // most important number this page can show.
@@ -380,13 +385,26 @@ export const OverviewTab = ({
                   <TableRow>
                     <TableCell>Profile</TableCell>
                     <TableCell>Protocol</TableCell>
+                    <TableCell>Serving</TableCell>
                     <TableCell align="right">Realized ratio</TableCell>
                     <TableCell align="right">Cold / warm connects</TableCell>
                     <TableCell align="right">Net bytes saved</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {(serving.by_profile ?? []).map(p => {
+                  {(serving.by_profile ?? []).map((p, i, rows) => {
+                    // A second row for the same profile and protocol is a
+                    // different dictionary: the structure tier for connections
+                    // outside a rollout, or a version being retired that some
+                    // connections still hold. Naming it is the whole point of
+                    // splitting the rows - one blended ratio was comparable
+                    // with neither the client's number nor the version's.
+                    const split = rows.some(
+                      o =>
+                        o !== p &&
+                        o.profile === p.profile &&
+                        o.protocol === p.protocol
+                    )
                     const totalConnects = p.cold_connects + p.warm_connects
                     const warmPct =
                       totalConnects > 0
@@ -394,7 +412,9 @@ export const OverviewTab = ({
                         : 0
                     const negative = p.net_saved_bytes < 0
                     return (
-                      <TableRow key={`${p.profile}:${p.protocol}`}>
+                      <TableRow
+                        key={`${p.profile}:${p.protocol}:${p.tier}:${p.dictionary_id}`}
+                      >
                         <TableCell>
                           {p.profile !== '' ? (
                             p.profile
@@ -418,6 +438,28 @@ export const OverviewTab = ({
                           )}
                         </TableCell>
                         <TableCell>{p.protocol}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" component="span">
+                            {tierLabel(p.tier)}
+                          </Typography>
+                          {p.dictionary_id !== '' && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: 'block',
+                                fontFamily: 'monospace',
+                              }}
+                              title={
+                                split
+                                  ? 'This profile is serving more than one dictionary right now. Each row counts only the frames compressed against its own, so the ratios are comparable with what a client reports and with the ratio that version was approved at.'
+                                  : 'The dictionary these frames were compressed against.'
+                              }
+                            >
+                              {p.dictionary_id}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell align="right">
                           {fmtRatio(p.realized_ratio)}
                         </TableCell>
