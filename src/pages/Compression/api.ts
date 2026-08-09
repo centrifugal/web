@@ -195,11 +195,15 @@ export type SessionStatus = 'running' | 'collected' | 'failed'
 
 export interface SizeCurvePoint {
   size_bytes: number
-  fidelity: string
-  protocol: string
   ratio: number
-  wire_size: number
-  cpu_nanos: number
+  // What delivering this dictionary costs a connection: deflated, and base64
+  // on top of that for JSON. Named for what the server sends - it was declared
+  // as wire_size here and rendered as such, so the Wire column showed nothing
+  // at all while a whole row of plausible numbers sat beside it.
+  delivery_bytes: number
+  cpu_per_compression_ns: number
+  // Frames of savings needed to earn delivery_bytes back.
+  payback_frames: number
   // How much of the vocabulary this size actually held. A size that held a
   // fraction reports the same ratio shape as one that held everything, so
   // without these a small rung looks indistinguishable from a good one.
@@ -224,9 +228,13 @@ export interface SessionProgress {
   channel_frames: Record<string, number>
   unparseable_by_channel: Record<string, number>
   payload_parse_rate: number
-  new_shapes_over_time: { at: string; count: number }[]
-  ratio_by_protocol: Record<string, number>
-  size_curve: SizeCurvePoint[]
+  // Null until measured, never an empty array standing in for it: an
+  // unmeasured ratio rendered as zero reads as "measured, and terrible". The
+  // server sends null deliberately, so anything consuming these must handle it
+  // rather than mapping straight over them.
+  new_shapes_over_time: { at: string; count: number }[] | null
+  ratio_by_protocol: Record<string, number> | null
+  size_curve: SizeCurvePoint[] | null
   holdout_leaks: number
   // Distinguishes "scanned and clear" from "never scanned". A zero
   // holdout_leaks means nothing on its own, and presenting it as a passed

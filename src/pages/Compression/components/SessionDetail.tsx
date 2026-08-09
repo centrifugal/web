@@ -515,7 +515,7 @@ export const SessionDetail = ({
                           </TableHead>
                           <TableBody>
                             {c.size_curve.map(sp => (
-                              <TableRow key={`${sp.size_bytes}:${sp.protocol}`}>
+                              <TableRow key={sp.size_bytes}>
                                 <TableCell>
                                   {HumanSize(sp.size_bytes)}
                                 </TableCell>
@@ -523,7 +523,7 @@ export const SessionDetail = ({
                                   {fmtRatio(sp.ratio)}
                                 </TableCell>
                                 <TableCell align="right">
-                                  {HumanSize(sp.wire_size)}
+                                  {HumanSize(sp.delivery_bytes)}
                                 </TableCell>
                                 {/* A size that holds part of the vocabulary
                                     reports the same ratio shape as one that
