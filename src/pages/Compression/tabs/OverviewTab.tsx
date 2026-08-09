@@ -57,7 +57,7 @@ const TIERS: Tier[] = [
   {
     key: 'structure',
     label: 'Structure only',
-    hint: 'The untrained, envelope-only dictionary — no application data.',
+    hint: 'Trained on the protocol, not on your traffic, and shipped with the server. No application data in it.',
   },
   {
     key: 'default_profile',

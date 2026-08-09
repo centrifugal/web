@@ -18,10 +18,15 @@ interface StructureTabProps {
   signinSilent: () => void
 }
 
-// StructureTab: the untrained protocol-envelope dictionary. Unlike a profile
-// dictionary it carries no application data (nothing learned from traffic), so
-// it needs no training session and no review — it is safe to turn on for every
-// connection and is the floor every other tier falls back to.
+// StructureTab: the dictionary trained on the protocol rather than on traffic.
+// It is a compile-time constant in the protocol package - not a row in the
+// database - so it is available on a deployment that has collected nothing, and
+// its content-addressed id is identical on every node and across restarts,
+// which lets a client cache it once and never fetch it again.
+//
+// Carrying no application data is what makes it free to turn on: no training
+// session, no review, nothing of the operator's in it. It is the floor every
+// other tier falls back to.
 export const StructureTab = ({
   authorization,
   signinSilent,
@@ -92,7 +97,7 @@ export const StructureTab = ({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Panel
         title="Structure dictionary"
-        subtitle="An untrained dictionary of the protocol envelope only — the field names and framing every Centrifugo message shares. It carries no application data, so nothing learned from traffic ends up in it, and it needs no review. This is the floor every connection falls back to when no profile dictionary applies."
+        subtitle="Trained on the Centrifugo protocol itself — the field names and framing every message shares — and shipped with the server, so it is ready before you have collected anything. It holds no application data, which is why there is nothing to review. Every connection that has no profile dictionary of its own falls back to it: unclassified connections, profiles not yet trained, and connections a staged rollout has not reached."
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <FieldRow label="Status">
