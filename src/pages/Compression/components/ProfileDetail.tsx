@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import Tooltip from '@mui/material/Tooltip'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -274,10 +275,22 @@ export const ProfileDetail = ({
           <InlineStat label="Training mode">
             <Typography variant="body2">{profile.training_mode}</Typography>
           </InlineStat>
-          <InlineStat label="Live connections">
-            <Typography variant="body2">
-              {profile.connections != null ? profile.connections : '—'}
-            </Typography>
+          <InlineStat label="Serving now">
+            <Tooltip
+              title={
+                profile.connections != null
+                  ? 'Connections currently being served a dictionary under ' +
+                    'this profile, across the cluster. Connections classified ' +
+                    'here but served nothing - while Serve dictionaries is ' +
+                    'off, for instance - are not counted.'
+                  : 'No node answered the survey, so this is unknown rather ' +
+                    'than zero.'
+              }
+            >
+              <Typography variant="body2">
+                {profile.connections != null ? profile.connections : '—'}
+              </Typography>
+            </Tooltip>
           </InlineStat>
           <InlineStat label="Revision">
             <Typography variant="body2">{profile.revision}</Typography>
