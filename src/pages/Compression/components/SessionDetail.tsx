@@ -27,6 +27,7 @@ import { ConfirmButton } from 'components/ConfirmButton'
 import { HumanSize } from 'utils/Functions'
 
 import { CompressionApiHook, Session, Candidate, TrainingFilter } from '../api'
+import { useUrlSelection } from '../useUrlSelection'
 import { fmtDateTime, fmtInt, fmtPct, fmtRatio, fmtRelative } from '../format'
 import { AssignCandidateDialog } from './AssignCandidateDialog'
 import { ReviewScreen } from './ReviewScreen'
@@ -84,7 +85,8 @@ export const SessionDetail = ({
   const [buildReason, setBuildReason] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [assignTarget, setAssignTarget] = useState<Candidate | null>(null)
-  const [reviewCandidate, setReviewCandidate] = useState<Candidate | null>(null)
+  const [reviewId, setReviewId] = useUrlSelection('candidate')
+  const reviewCandidate = candidates?.find(c => c.id === reviewId) ?? null
 
   const load = useCallback(async () => {
     try {
@@ -100,6 +102,29 @@ export const SessionDetail = ({
   useEffect(() => {
     load()
   }, [load])
+
+  // Candidates already built for this session, read rather than rebuilt.
+  // Without this the page could only offer to build again after a reload, and
+  // building is not idempotent - a second click leaves two sets of candidates
+  // from one session, with the half-finished review on the set you can no
+  // longer see.
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listCandidates(sessionId)
+      .then(res => {
+        if (!cancelled && res.candidates && res.candidates.length > 0) {
+          setCandidates(res.candidates)
+        }
+      })
+      .catch(() => {
+        // A session with nothing built yet is the ordinary case, and the Build
+        // button below is the answer either way.
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [api, sessionId])
 
   // Poll while (and only while) the session is running; the interval is torn
   // down both on unmount and the instant status stops being 'running'.
@@ -151,19 +176,18 @@ export const SessionDetail = ({
       <ReviewScreen
         api={api}
         candidate={reviewCandidate}
-        onBack={() => setReviewCandidate(null)}
-        onCandidateUpdated={updated => {
+        onBack={() => setReviewId(null)}
+        // The open screen is derived from this list by id, so refreshing the
+        // list refreshes what it is rendering. It used to be a separate copy
+        // that had to be updated in step, and did not always get updated -
+        // leaving the screen showing a draft count and total from before the
+        // save.
+        onCandidateUpdated={updated =>
           setCandidates(prev =>
             prev ? prev.map(c => (c.id === updated.id ? updated : c)) : prev
           )
-          // The screen still open is looking at this candidate. Refreshing only
-          // the list behind it left it showing the draft count and expiry from
-          // before the save, and counting rejections against a stale total.
-          setReviewCandidate(prev =>
-            prev && prev.id === updated.id ? updated : prev
-          )
-        }}
-        onApproved={() => setReviewCandidate(null)}
+        }
+        onApproved={() => setReviewId(null)}
       />
     )
   }
@@ -572,7 +596,7 @@ export const SessionDetail = ({
                           variant="solid"
                           color="primary"
                           size="small"
-                          onClick={() => setReviewCandidate(c)}
+                          onClick={() => setReviewId(c.id)}
                         >
                           Review
                         </Button>

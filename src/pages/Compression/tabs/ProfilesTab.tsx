@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -16,6 +17,7 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 import { EmptyState } from 'components/EmptyState'
 import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
+import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateProfileRequest, Profile } from '../api'
 import { fmtRatio } from '../format'
 import { CreateProfileDialog } from '../components/CreateProfileDialog'
@@ -48,7 +50,7 @@ export const ProfilesTab = ({
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useUrlSelection('profile')
 
   const load = useCallback(async () => {
     try {

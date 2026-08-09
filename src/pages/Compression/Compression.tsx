@@ -49,6 +49,12 @@ export const Compression = ({
     const next = new URLSearchParams(searchParams)
     if (value === 'overview') next.delete('tab')
     else next.set('tab', value)
+    // Drill-downs belong to the tab that opened them (see useUrlSelection).
+    // Carrying ?profile= into the sessions tab would leave the URL describing
+    // a place nothing is rendering, and restore it if you came back.
+    next.delete('profile')
+    next.delete('session')
+    next.delete('candidate')
     setSearchParams(next, { replace: true })
   }
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -14,6 +15,7 @@ import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 import { EmptyState } from 'components/EmptyState'
 import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
+import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateSessionRequest, Session } from '../api'
 import { fmtDateTime, fmtRelative } from '../format'
 import { CreateSessionDialog } from '../components/CreateSessionDialog'
@@ -50,7 +52,7 @@ export const SessionsTab = ({
   const [loading, setLoading] = useState(true)
   const [nextCursor, setNextCursor] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useUrlSelection('session')
   // Offered as the optional "train for" binding when creating a session. A
   // failure here is not worth surfacing: the binding is optional, so an empty
   // list simply hides the field.

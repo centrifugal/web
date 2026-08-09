@@ -277,6 +277,8 @@ export interface ListSessionsParams {
 }
 
 export interface Candidate {
+  // How many values are already ticked in a saved draft.
+  draft_count: number
   id: string
   fidelity: string
   ratio_by_protocol: Record<string, number>
@@ -383,6 +385,10 @@ export interface CompressionApiHook {
 
   // Build, candidates, review
   buildCandidates: (sessionId: string) => Promise<BuildCandidatesResponse>
+  // Whatever a session has already been built into, without building. Build
+  // is not idempotent - it mints a new set every call - so a screen that lost
+  // its copy has to read rather than rebuild.
+  listCandidates: (sessionId: string) => Promise<BuildCandidatesResponse>
   getCandidateValues: (
     candidateId: string,
     params?: GetCandidateValuesParams
@@ -551,6 +557,8 @@ export function useCompressionApi({
         }),
       stopSession: id => del<void>(`/sessions/${id}`),
 
+      listCandidates: sessionId =>
+        getJson<BuildCandidatesResponse>(`/sessions/${sessionId}/candidates`),
       buildCandidates: sessionId =>
         postJson<BuildCandidatesResponse>(`/sessions/${sessionId}/build`),
       getCandidateValues: (candidateId, params) =>
