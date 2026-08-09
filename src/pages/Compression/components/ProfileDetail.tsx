@@ -58,7 +58,12 @@ const fmtApprovedRatio = (r: Version['approved_ratio']): string => {
 // each to its own label steps the column in and out by the width of two
 // characters. One width for both keeps the edge straight however the rows are
 // mixed.
-const versionActionSx = { minWidth: 104 }
+//
+// It has to clear the LONGER label, not sit between them: buttons render
+// uppercase with letter-spacing (see theme.ts), so DEACTIVATE lays out around
+// 109px and the previous 104 pinned ACTIVATE while DEACTIVATE grew past it -
+// the two ended up different widths despite sharing this.
+const versionActionSx = { minWidth: 124, whiteSpace: 'nowrap' as const }
 
 export const ProfileDetail = ({
   api,
