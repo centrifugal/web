@@ -9,9 +9,9 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Typography from '@mui/material/Typography'
 
-import { CandidatePreview, CompressionApiHook, SizeCurvePoint } from '../api'
+import { CandidatePreview, CompressionApiHook } from '../api'
 import { HumanSize } from 'utils/Functions'
-import { ProfileSizeFields } from './ProfileSizeFields'
+import { ProfileField } from './ProfileSizeFields'
 
 interface ApproveCandidateDialogProps {
   api: CompressionApiHook
@@ -22,20 +22,11 @@ interface ApproveCandidateDialogProps {
   // "everything matching a filter" selection.
   approvedHashes: string[]
   totalValues: number
-  // The measured size ladder and the rung the build recommends. The dialog
-  // defaults to that rung: the recommended selection was measured at it, and
-  // moving to another size makes the selection no longer the one that was
-  // searched for.
-  sizeCurve: SizeCurvePoint[]
-  recommendedSize: number
-  // The value ranking, so picking a different size can apply the selection
-  // that was measured there. Every rung's recommendation is a prefix of it.
-  rankedHashes: string[]
-  // Replaces the review screen's selection. Choosing a size whose measured
-  // selection differs from what is ticked leaves the operator holding a
-  // selection for a dictionary they are not building, and no way to know
-  // which values to drop - this is that way.
-  onSelectionChange: (hashes: string[]) => void
+  // The size the review was done for, chosen on the review screen and carried
+  // here. It is not re-asked: which values are worth approving depends on how
+  // much room there is for them, so a size picked after the review would
+  // silently invalidate it.
+  sizeBytes: number
   onClose: () => void
   onApproved: () => void
 }
@@ -54,15 +45,11 @@ export const ApproveCandidateDialog = ({
   candidateId,
   approvedHashes,
   totalValues,
-  sizeCurve,
-  recommendedSize,
-  rankedHashes,
-  onSelectionChange,
+  sizeBytes,
   onClose,
   onApproved,
 }: ApproveCandidateDialogProps) => {
   const [profileId, setProfileId] = useState('')
-  const [sizeBytes, setSizeBytes] = useState(0)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   // What this exact selection produces at this exact size. The candidate's
@@ -80,12 +67,8 @@ export const ApproveCandidateDialog = ({
       setSubmitting(false)
       return
     }
-    // Fall back to the largest rung when nothing was measured - the old
-    // behaviour, and still the safest guess when there is no evidence.
-    const largest = sizeCurve.reduce((max, p) => Math.max(max, p.size_bytes), 0)
-    setSizeBytes(recommendedSize > 0 ? recommendedSize : largest || 4096)
     setPreview(null)
-  }, [open, recommendedSize, sizeCurve])
+  }, [open])
 
   useEffect(() => {
     if (!open || sizeBytes <= 0) return
@@ -113,19 +96,6 @@ export const ApproveCandidateDialog = ({
     // approvedHashes is fixed for the lifetime of an open dialog.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sizeBytes, candidateId])
-
-  // The selection this size was measured with, when it differs from what is
-  // ticked. Offered, never applied silently: the ticks are someone's review.
-  const rung = sizeCurve.find(p => p.size_bytes === sizeBytes)
-  const measuredCount = rung?.recommended_values ?? 0
-  const measuredSelection =
-    measuredCount > 0 && measuredCount <= rankedHashes.length
-      ? rankedHashes.slice(0, measuredCount)
-      : null
-  const selectionMatchesRung =
-    measuredSelection !== null &&
-    measuredSelection.length === approvedHashes.length &&
-    measuredSelection.every(h => approvedHashes.includes(h))
 
   const rejected = Math.max(totalValues - approvedHashes.length, 0)
   const valid = profileId !== '' && sizeBytes > 0
@@ -168,14 +138,10 @@ export const ApproveCandidateDialog = ({
             resubmitting; use undo on the resulting decisions if needed.
           </Typography>
         </Alert>
-        <ProfileSizeFields
+        <ProfileField
           api={api}
           profileId={profileId}
           onProfileChange={setProfileId}
-          sizeBytes={sizeBytes}
-          curve={sizeCurve}
-          recommendedSize={recommendedSize}
-          onSizeChange={setSizeBytes}
         />
         {(preview || previewing) && (
           <Alert
@@ -194,7 +160,14 @@ export const ApproveCandidateDialog = ({
                   {jsonRatio(preview) > 0 &&
                     `, ${jsonRatio(preview).toFixed(2)}x`}
                   .
-                </strong>
+                </strong>{' '}
+                {/* The budget is a ceiling, not a target - synthesis stops when
+                    the vocabulary runs out - so the artifact is often smaller
+                    than the size reviewed for, and saying only one of the two
+                    reads as a discrepancy. */}
+                <Typography variant="body2" component="span">
+                  Reviewed for a {HumanSize(sizeBytes)} budget.
+                </Typography>
                 <Typography variant="body2" sx={{ mt: 0.5 }}>
                   {HumanSize(preview.delivery_bytes)} crosses the wire once per
                   cold connect. It holds {preview.shapes_held} of{' '}
@@ -220,25 +193,6 @@ export const ApproveCandidateDialog = ({
             ) : (
               'Measuring this selection…'
             )}
-          </Alert>
-        )}
-        {measuredSelection && !selectionMatchesRung && (
-          <Alert severity="info" sx={{ mt: 1 }}>
-            <Typography variant="body2">
-              {HumanSize(sizeBytes)} was measured with{' '}
-              <strong>{measuredCount.toLocaleString()} values</strong>
-              {rung && rung.ratio > 0 && ` at ${rung.ratio.toFixed(2)}x`} — you
-              have {approvedHashes.length.toLocaleString()} ticked. The
-              selection and the size are one answer, so the two are only
-              comparable together.
-            </Typography>
-            <Button
-              size="small"
-              sx={{ mt: 1 }}
-              onClick={() => onSelectionChange(measuredSelection)}
-            >
-              Select the {measuredCount.toLocaleString()} measured for this size
-            </Button>
           </Alert>
         )}
         <TextField

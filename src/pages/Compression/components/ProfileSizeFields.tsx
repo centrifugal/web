@@ -8,6 +8,61 @@ import Typography from '@mui/material/Typography'
 import { CompressionApiHook, Profile, SizeCurvePoint } from '../api'
 import { HumanSize } from 'utils/Functions'
 
+interface ProfileFieldProps {
+  api: CompressionApiHook
+  profileId: string
+  onProfileChange: (id: string) => void
+}
+
+// ProfileField: just the audience. Approving a reviewed candidate uses this
+// alone - the size was chosen on the review screen, because it decides which
+// values are worth approving and therefore has to precede the review, not
+// follow it.
+export const ProfileField = ({
+  api,
+  profileId,
+  onProfileChange,
+}: ProfileFieldProps) => {
+  const [profiles, setProfiles] = useState<Profile[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listProfiles()
+      .then(data => {
+        if (!cancelled) setProfiles(data.profiles || [])
+      })
+      .catch(err => api.handleError(err))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <TextField
+      select
+      fullWidth
+      margin="normal"
+      label="Target profile"
+      value={profileId}
+      onChange={e => onProfileChange(e.target.value)}
+      disabled={loading}
+      helperText="The audience this dictionary version will serve."
+    >
+      {profiles.map(p => (
+        <MenuItem key={p.id} value={p.id}>
+          {p.name}
+        </MenuItem>
+      ))}
+    </TextField>
+  )
+}
+
 interface ProfileSizeFieldsProps {
   api: CompressionApiHook
   profileId: string

@@ -6,6 +6,7 @@ import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
 import Checkbox from '@mui/material/Checkbox'
 import CircularProgress from '@mui/material/CircularProgress'
 import Table from '@mui/material/Table'
@@ -146,6 +147,36 @@ export const ReviewScreen = ({
     recommendedRef.current = true
     setSelected(prev => (prev.size > 0 ? prev : new Set(hashes)))
   }, [candidate.recommended_hashes, candidate.draft_count])
+
+  // The size of the dictionary being reviewed FOR. It belongs here rather than
+  // in the approve dialog: which values are worth approving depends on how much
+  // room there is for them, so asking for the size after the review made the
+  // review answer a question nobody had asked yet. Changing it re-selects what
+  // was measured at the new size, and the approve step just carries it.
+  const [targetSize, setTargetSize] = useState(0)
+  useEffect(() => {
+    const largest = candidate.size_curve.reduce(
+      (max, p) => Math.max(max, p.size_bytes),
+      0
+    )
+    setTargetSize(
+      candidate.recommended_size > 0
+        ? candidate.recommended_size
+        : largest || 4096
+    )
+  }, [candidate.id, candidate.recommended_size, candidate.size_curve])
+
+  const ranked = candidate.ranked_hashes || []
+  const handleTargetSize = (size: number) => {
+    setTargetSize(size)
+    const rung = candidate.size_curve.find(p => p.size_bytes === size)
+    const n = rung?.recommended_values ?? 0
+    // Only when the ranking actually covers that rung - otherwise leave the
+    // ticks alone rather than applying a selection nobody measured.
+    if (n > 0 && n <= ranked.length) {
+      setSelected(new Set(ranked.slice(0, n)))
+    }
+  }
 
   // Guards re-seeding `selected` from a prior draft's `decided` flag more than
   // once per value, so paging back to a page the operator already unchecked a
@@ -638,6 +669,48 @@ export const ReviewScreen = ({
       </Panel>
 
       <Panel title="Decision">
+        {candidate.size_curve.length > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              label="Dictionary size to review for"
+              value={targetSize}
+              onChange={e => handleTargetSize(Number(e.target.value))}
+              helperText="Every size here was built and measured. Changing it re-ticks the values measured for that size — the two are one answer, so reviewing 60 values for a dictionary with room for 5 would be reviewing the wrong list."
+            >
+              {candidate.size_curve.map(p => (
+                <MenuItem key={p.size_bytes} value={p.size_bytes}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      width: '100%',
+                    }}
+                  >
+                    <span>{HumanSize(p.size_bytes)}</span>
+                    <Typography variant="body2" color="text.secondary">
+                      {p.ratio.toFixed(2)}x · {p.recommended_values} value
+                      {p.recommended_values === 1 ? '' : 's'} ·{' '}
+                      {HumanSize(p.delivery_bytes)} per cold connect
+                    </Typography>
+                    {candidate.recommended_size === p.size_bytes && (
+                      <Chip
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                        label="Recommended"
+                        sx={{ ml: 'auto' }}
+                      />
+                    )}
+                  </Box>
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+        )}
         {candidate.recommended_count > 0 && (
           <Alert severity="info" sx={{ mb: 2 }}>
             <strong>
@@ -658,9 +731,8 @@ export const ReviewScreen = ({
             {candidate.recommended_size > 0 && (
               <Typography variant="body2" sx={{ mt: 1 }}>
                 The size and the selection are one answer: this many values was
-                the best cut-off <em>at that size</em>. The approve dialog
-                defaults to it, and the candidate&apos;s size curve shows what
-                every other rung was measured at.
+                the best cut-off <em>at that size</em>. Pick another size above
+                and the ticks follow it.
               </Typography>
             )}
           </Alert>
@@ -748,10 +820,7 @@ export const ReviewScreen = ({
         candidateId={candidate.id}
         approvedHashes={Array.from(selected)}
         totalValues={candidate.values_total}
-        sizeCurve={candidate.size_curve}
-        recommendedSize={candidate.recommended_size}
-        rankedHashes={candidate.ranked_hashes || []}
-        onSelectionChange={hashes => setSelected(new Set(hashes))}
+        sizeBytes={targetSize}
         onClose={() => setApproveOpen(false)}
         onApproved={() => {
           setApproveOpen(false)
