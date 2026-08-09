@@ -365,7 +365,7 @@ export const OverviewTab = ({
 
       <Panel
         title="Per-profile delivery"
-        subtitle="Measured from real traffic, not a training-time estimate."
+        subtitle="Measured from real traffic, not a training-time estimate. Totals count from each server's last restart and are held in memory, so restarting one resets its share of every figure here."
       >
         {!serving || (serving.by_profile?.length ?? 0) === 0 ? (
           <EmptyState
