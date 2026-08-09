@@ -146,9 +146,10 @@ export const StructureTab = ({
             color="text.secondary"
             sx={{ display: 'block', mt: 0.5 }}
           >
-            Nodes pick this up within one poll interval. Connections already
-            established keep what they were given until they reconnect —
-            flipping this off does not recall a dictionary already delivered.
+            Every node is told at once; the poll interval is only a backstop.
+            Connections already established keep what they were given until they
+            reconnect — flipping this off does not recall a dictionary already
+            delivered. It also needs "Serve dictionaries" on to have any effect.
           </Typography>
         </Box>
       </Panel>

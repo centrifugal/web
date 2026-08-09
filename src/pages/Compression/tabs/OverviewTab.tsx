@@ -217,10 +217,11 @@ export const OverviewTab = ({
             color="text.secondary"
             sx={{ display: 'block', mt: 0.5 }}
           >
-            Nodes pick this up within one poll interval (~20s). Connections
-            already established keep the dictionary they were given until they
-            reconnect — turning this off does not recall anything already
-            delivered.
+            Every node is told at once; the ~20s poll is only a backstop for a
+            node that missed it. Connections already established keep the
+            dictionary they were given until they reconnect — turning this off
+            stops new connections being served, it does not recall anything
+            already delivered. Training sessions keep collecting either way.
           </Typography>
         </Box>
       </Panel>
