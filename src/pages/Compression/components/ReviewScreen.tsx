@@ -32,6 +32,7 @@ import { EmptyState } from 'components/EmptyState'
 import {
   CompressionApiHook,
   Candidate,
+  CandidatePreview,
   CandidateValue,
   DeniedSummary,
   GetCandidateValuesParams,
@@ -166,6 +167,14 @@ export const ReviewScreen = ({
     )
   }, [candidate.id, candidate.recommended_size, candidate.size_curve])
 
+  // What the current ticks produce at the current size, measured against the
+  // held-out control window. Ticking is not a free-form act - the artifact has
+  // a ceiling, and past it extra values are dropped from the dictionary while
+  // still being disclosed - so the consequence belongs next to the act rather
+  // than in a dialog three clicks later.
+  const [preview, setPreview] = useState<CandidatePreview | null>(null)
+  const [previewStale, setPreviewStale] = useState(false)
+
   const ranked = candidate.ranked_hashes || []
   const handleTargetSize = (size: number) => {
     setTargetSize(size)
@@ -282,6 +291,35 @@ export const ReviewScreen = ({
       minWitness: minWitnessApplied,
     })
   }
+
+  useEffect(() => {
+    if (targetSize <= 0) return
+    setPreviewStale(true)
+    const hashes = Array.from(selected)
+    // Debounced: ticking a dozen boxes should measure once, not a dozen times.
+    const timer = setTimeout(() => {
+      let cancelled = false
+      api
+        .previewCandidate(candidate.id, {
+          approved: hashes,
+          size_bytes: targetSize,
+        })
+        .then(p => {
+          if (!cancelled) {
+            setPreview(p)
+            setPreviewStale(false)
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setPreviewStale(false)
+        })
+      return () => {
+        cancelled = true
+      }
+    }, 400)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, targetSize, candidate.id])
 
   const toggleValue = (hash: string, checked: boolean) => {
     setSelected(prev => {
@@ -735,6 +773,42 @@ export const ReviewScreen = ({
                 and the ticks follow it.
               </Typography>
             )}
+          </Alert>
+        )}
+        {preview && (
+          <Alert
+            severity={
+              preview.values_held < preview.values_offered
+                ? 'warning'
+                : 'success'
+            }
+            sx={{ mb: 2, opacity: previewStale ? 0.6 : 1 }}
+          >
+            <strong>
+              What you have ticked: {HumanSize(preview.artifact_bytes)}{' '}
+              dictionary
+              {(preview.ratio_by_protocol?.json ?? 0) > 0 &&
+                `, ${preview.ratio_by_protocol.json.toFixed(2)}x`}
+              , {HumanSize(preview.delivery_bytes)} per cold connect.
+            </strong>
+            <Typography variant="body2" sx={{ mt: 0.5 }}>
+              {preview.values_held < preview.values_offered ? (
+                <>
+                  Only {preview.values_held} of your {preview.values_offered}{' '}
+                  ticked values fit in {HumanSize(targetSize)}. The rest are
+                  recorded as approved — disclosed to everyone this profile
+                  reaches — while contributing nothing. Untick some, or review
+                  for a larger size.
+                </>
+              ) : (
+                <>
+                  All {preview.values_held} fit. Adding more grows the
+                  dictionary until it reaches {HumanSize(targetSize)}, after
+                  which extra values are dropped from it and can lower the ratio
+                  rather than raise it.
+                </>
+              )}
+            </Typography>
           </Alert>
         )}
         {totalContribution > 0 && (

@@ -82,6 +82,12 @@ describe('ReviewScreen paging', () => {
 
     const api = {
       getCandidateValues,
+      // The screen measures the current selection as it changes; the paging
+      // assertions do not depend on it, but leaving it out would have the
+      // component call undefined.
+      previewCandidate: vi.fn(async () => {
+        throw new Error('not measured in this test')
+      }),
       handleError: vi.fn(),
     } as unknown as CompressionApiHook
 
