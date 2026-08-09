@@ -52,6 +52,13 @@ export const SessionsTab = ({
   const [loading, setLoading] = useState(true)
   const [nextCursor, setNextCursor] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  // Arriving from a profile that has nothing trained yet: open the dialog
+  // already bound to it, so the step that journey exists for is not a field
+  // the operator has to find.
+  const [trainFor, setTrainFor] = useUrlSelection('train_for')
+  useEffect(() => {
+    if (trainFor) setCreateOpen(true)
+  }, [trainFor])
   const [selectedId, setSelectedId] = useUrlSelection('session')
   // Offered as the optional "train for" binding when creating a session. A
   // failure here is not worth surfacing: the binding is optional, so an empty
@@ -228,8 +235,13 @@ export const SessionsTab = ({
       </Panel>
 
       <CreateSessionDialog
+        key={trainFor ?? 'new'}
+        defaultProfileId={trainFor ?? undefined}
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false)
+          if (trainFor) setTrainFor(null)
+        }}
         onSubmit={handleCreate}
         profiles={profiles}
       />

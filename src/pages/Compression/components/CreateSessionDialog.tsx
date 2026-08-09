@@ -28,6 +28,10 @@ interface CreateSessionDialogProps {
   // Profiles this session can be trained FOR. Empty is fine: binding one is
   // optional and only matters when retraining.
   profiles?: { id: string; name: string }[]
+  // Pre-bind the session to this profile. Set when the operator arrived from a
+  // profile that has nothing trained yet, so the one field that matters for
+  // that journey is already filled in.
+  defaultProfileId?: string
 }
 
 // CreateSessionDialog: the connection filter is the same shape the Inspector
@@ -40,6 +44,7 @@ export const CreateSessionDialog = ({
   onClose,
   onSubmit,
   profiles = [],
+  defaultProfileId,
 }: CreateSessionDialogProps) => {
   const [identity, setIdentity] = useState<Identity>('any')
   const [user, setUser] = useState('')
@@ -48,7 +53,9 @@ export const CreateSessionDialog = ({
   const [profileName, setProfileName] = useState('')
   const [trainingMode, setTrainingMode] = useState<TrainingMode>('values')
   const [durationMinutes, setDurationMinutes] = useState(60)
-  const [trainForProfileId, setTrainForProfileId] = useState('')
+  const [trainForProfileId, setTrainForProfileId] = useState(
+    defaultProfileId ?? ''
+  )
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {

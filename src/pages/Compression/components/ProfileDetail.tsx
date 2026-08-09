@@ -15,6 +15,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import UndoIcon from '@mui/icons-material/Undo'
+import PlayCircleIcon from '@mui/icons-material/PlayCircle'
+
+import { useSearchParams } from 'react-router-dom'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
@@ -59,6 +62,20 @@ export const ProfileDetail = ({
 }: ProfileDetailProps) => {
   const { showAlert } = useContext(ShellContext)
   const [profile, setProfile] = useState<ProfileDetailData | null>(null)
+  const [, setSearchParams] = useSearchParams()
+
+  // Leaves this profile for the Sessions tab with the create dialog already
+  // bound to it. The operator's next step from an empty profile is a training
+  // session, and it is two tabs away otherwise.
+  const startTraining = () => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', 'sessions')
+      next.delete('profile')
+      next.set('train_for', profileId)
+      return next
+    })
+  }
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [activateTarget, setActivateTarget] = useState<Version | null>(null)
@@ -334,8 +351,30 @@ export const ProfileDetail = ({
       >
         {profile.versions.length === 0 ? (
           <EmptyState
-            title="No versions yet"
-            hint="Versions are created by assigning a schema candidate or approving a reviewed one from a training session."
+            title="Nothing trained for this profile yet"
+            hint={
+              <>
+                Two things have to happen first. Connections need to be
+                classified into this profile — either clients pass{' '}
+                <code>profile: &quot;{profile.name}&quot;</code> (which needs
+                Client declarable above), or your server sets it from a token
+                claim. <b>Serving now</b> tells you when that is working. Then
+                run a training session over those connections: it collects for
+                as long as you choose, and approving what it found creates the
+                first version.
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    variant="tonal"
+                    color="primary"
+                    size="small"
+                    startIcon={<PlayCircleIcon />}
+                    onClick={startTraining}
+                  >
+                    Start a training session for this profile
+                  </Button>
+                </Box>
+              </>
+            }
           />
         ) : (
           <TableContainer>
