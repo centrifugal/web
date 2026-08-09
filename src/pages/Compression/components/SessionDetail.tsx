@@ -470,17 +470,22 @@ export const SessionDetail = ({
           ) : (
             <Box
               sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
+                display: 'grid',
+                // Each card carries a four-column size curve, which a fixed
+                // 340px column wrapped onto several lines per row. A grid that
+                // gives each card an equal share of the panel - and drops to
+                // one column when that share would fall below ~440px - lets the
+                // table render as a table.
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  md: 'repeat(auto-fit, minmax(440px, 1fr))',
+                },
                 gap: 2,
+                alignItems: 'start',
               }}
             >
               {candidates.map(c => (
-                <Card
-                  key={c.id}
-                  variant="outlined"
-                  sx={{ borderRadius: 2, width: 340 }}
-                >
+                <Card key={c.id} variant="outlined" sx={{ borderRadius: 2 }}>
                   <CardContent>
                     <Box
                       sx={{
@@ -491,13 +496,30 @@ export const SessionDetail = ({
                       }}
                     >
                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {c.fidelity}
+                        {c.fidelity === 'schema'
+                          ? 'Shapes only'
+                          : 'Shapes and values'}
                       </Typography>
                       <Box sx={{ flexGrow: 1 }} />
                       <Typography variant="caption" color="text.secondary">
                         expires {fmtRelative(c.expires_at)}
                       </Typography>
                     </Box>
+
+                    {/* Two candidates from one session differ in one thing -
+                        whether values are in them - and that decides both what
+                        they compress and what you have to do to ship them.
+                        The fidelity name alone ("schema", "reviewed") does not
+                        say either. */}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1 }}
+                    >
+                      {c.fidelity === 'schema'
+                        ? 'Field names, nesting and key order. No values from your traffic, so there is nothing to read and you can activate it straight away.'
+                        : 'The same shapes plus the values you approve, one at a time. Compresses harder, and every value you tick is a value served to everyone this profile reaches.'}
+                    </Typography>
 
                     <Typography variant="body2" color="text.secondary">
                       {fmtInt(c.values_total)} value
