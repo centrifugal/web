@@ -310,6 +310,26 @@ export interface Candidate {
   projected_ratio?: boolean
 }
 
+export interface PreviewCandidateRequest {
+  approved: string[]
+  size_bytes: number
+}
+
+export interface CandidatePreview {
+  size_bytes: number
+  // The dictionary itself, and what a cold connect actually pays for it.
+  artifact_bytes: number
+  delivery_bytes: number
+  ratio_by_protocol: Record<string, number>
+  measured: boolean
+  shapes_held: number
+  shapes_total: number
+  // Values the artifact had room for, against those approved. Approving a
+  // value that does not fit discloses it and buys nothing.
+  values_held: number
+  values_offered: number
+}
+
 export interface BuildCandidatesResponse {
   candidates: Candidate[]
   reason?: string
@@ -424,6 +444,12 @@ export interface CompressionApiHook {
     candidateId: string,
     approved: string[]
   ) => Promise<Candidate>
+  // What a specific selection produces at a specific size, measured the way
+  // the candidate was. Approves nothing.
+  previewCandidate: (
+    candidateId: string,
+    req: PreviewCandidateRequest
+  ) => Promise<CandidatePreview>
   approveCandidate: (
     candidateId: string,
     req: ApproveCandidateRequest
@@ -594,6 +620,11 @@ export function useCompressionApi({
         ),
       draftCandidate: (candidateId, approved) =>
         postJson<Candidate>(`/candidates/${candidateId}/draft`, { approved }),
+      previewCandidate: (candidateId, reqBody) =>
+        postJson<CandidatePreview>(
+          `/candidates/${candidateId}/preview`,
+          reqBody
+        ),
       approveCandidate: (candidateId, reqBody) =>
         postJson<Version>(`/candidates/${candidateId}/approve`, reqBody),
       assignSession: (sessionId, reqBody) =>
