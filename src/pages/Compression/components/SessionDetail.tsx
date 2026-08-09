@@ -1,7 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Tooltip from '@mui/material/Tooltip'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
@@ -424,41 +423,6 @@ export const SessionDetail = ({
                   .map(([k, v]) => `${k}: ${fmtInt(v)}`)
                   .join(' · ') || '—'}
               </Typography>
-            </FieldRow>
-            <FieldRow label="Warmup">
-              {(() => {
-                const running = session.status === 'running'
-                const seen = p.by_frame_type['publication'] ?? 0
-                // "In progress" on a finished session tells the operator to
-                // wait for something that can no longer happen: warm-up needs
-                // publication frames, and this session has stopped collecting
-                // them.
-                const label = p.warmup_complete
-                  ? 'Complete'
-                  : running
-                    ? 'In progress'
-                    : 'Not reached'
-                return (
-                  <Tooltip
-                    title={
-                      p.warmup_complete
-                        ? 'Every node that collected saw enough traffic for its sample to be representative.'
-                        : running
-                          ? `Needs 500 publication frames on each collecting node. ${fmtInt(seen)} so far.`
-                          : `This session stopped after ${fmtInt(seen)} publication frames, below the 500 per node that warm-up looks for. You can still build from it - the vocabulary is just drawn from a thinner sample, so expect it to miss shapes and values that appear less often.`
-                    }
-                  >
-                    <span>
-                      <CapabilityChip
-                        label={label}
-                        tone={
-                          p.warmup_complete ? 'on' : running ? 'info' : 'warn'
-                        }
-                      />
-                    </span>
-                  </Tooltip>
-                )
-              })()}
             </FieldRow>
           </Box>
         </Panel>
