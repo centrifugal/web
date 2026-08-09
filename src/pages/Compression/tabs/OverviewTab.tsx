@@ -395,7 +395,28 @@ export const OverviewTab = ({
                     const negative = p.net_saved_bytes < 0
                     return (
                       <TableRow key={`${p.profile}:${p.protocol}`}>
-                        <TableCell>{p.profile}</TableCell>
+                        <TableCell>
+                          {p.profile !== '' ? (
+                            p.profile
+                          ) : (
+                            // Rows are grouped by the profile a connection was
+                            // classified into, not by the tier it was served -
+                            // so an empty name is "no profile", which is not
+                            // the same as "structure tier". With a default
+                            // profile nominated these connections receive that
+                            // profile's dictionary and still appear here.
+                            <Tooltip title="Connections with no profile. They receive the structure dictionary, or the default profile's if one is nominated.">
+                              <Typography
+                                variant="body2"
+                                component="span"
+                                color="text.secondary"
+                                sx={{ fontStyle: 'italic' }}
+                              >
+                                unclassified
+                              </Typography>
+                            </Tooltip>
+                          )}
+                        </TableCell>
                         <TableCell>{p.protocol}</TableCell>
                         <TableCell align="right">
                           {fmtRatio(p.realized_ratio)}
