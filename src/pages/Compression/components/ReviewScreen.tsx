@@ -1,6 +1,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import LinearProgress from '@mui/material/LinearProgress'
 import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
@@ -102,6 +103,10 @@ export const ReviewScreen = ({
   const [loading, setLoading] = useState(true)
   const [total, setTotal] = useState(0)
   const [deniedSummary, setDeniedSummary] = useState<DeniedSummary | null>(null)
+  const [totalContribution, setTotalContribution] = useState(0)
+  // Contribution per value hash, accumulated as pages load, so coverage can be
+  // reported for a selection spanning pages the operator has scrolled past.
+  const contributionRef = useRef<Map<string, number>>(new Map())
 
   const [searchDraft, setSearchDraft] = useState('')
   const [searchApplied, setSearchApplied] = useState('')
@@ -141,7 +146,11 @@ export const ReviewScreen = ({
         const rows = data.values || []
         setValues(rows)
         setTotal(data.total)
+        setTotalContribution(data.total_contribution ?? 0)
         setDeniedSummary(data.denied_summary)
+        rows.forEach(v =>
+          contributionRef.current.set(v.value_hash, v.contribution)
+        )
         setNextCursor(data.next_cursor || '')
         if (opts.direction === 'next') {
           setPrevCursors(prev => [...prev, currentCursorRef.current])
@@ -266,6 +275,34 @@ export const ReviewScreen = ({
   // reported almost nothing rejected at exactly the moment thousands were -
   // the operator has looked at a slice and is about to reject the rest, which
   // is precisely what this number exists to tell them.
+  // What share of the achievable saving the current selection covers. Values
+  // are listed best-first, so this climbs steeply and then flattens - which is
+  // the signal to stop reading.
+  const selectedContribution = Array.from(selected).reduce(
+    (sum, h) => sum + (contributionRef.current.get(h) ?? 0),
+    0
+  )
+  const coverage =
+    totalContribution > 0 ? selectedContribution / totalContribution : 0
+
+  // Selects down the visible page until the target share is covered. The
+  // alternative is reading every row to find the handful that matter: on a
+  // real candidate the top 30 of 945 carried two thirds of the benefit.
+  const selectTopUpTo = (target: number) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      let running = selectedContribution
+      for (const v of values) {
+        if (running / Math.max(totalContribution, 1) >= target) break
+        if (!next.has(v.value_hash)) {
+          next.add(v.value_hash)
+          running += v.contribution
+        }
+      }
+      return next
+    })
+  }
+
   const rejectedCount = Math.max(candidate.values_total - selected.size, 0)
   const shownApprovedCount = values.filter(v =>
     selected.has(v.value_hash)
@@ -566,6 +603,48 @@ export const ReviewScreen = ({
       </Panel>
 
       <Panel title="Decision">
+        {totalContribution > 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 1,
+                mb: 0.5,
+              }}
+            >
+              <Typography variant="body2">
+                Selected values cover{' '}
+                <strong>{Math.round(coverage * 100)}%</strong> of the saving
+                this vocabulary can give.
+              </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              <Button size="small" onClick={() => selectTopUpTo(0.8)}>
+                Take top 80%
+              </Button>
+              <Button size="small" onClick={() => selectTopUpTo(0.95)}>
+                95%
+              </Button>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={Math.min(coverage * 100, 100)}
+              sx={{ height: 6, borderRadius: 3 }}
+            />
+            {/* Values are listed best-first, so this climbs steeply and then
+                flattens. Where it flattens is where reading further stops
+                paying - which is the whole point of showing it. */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: 0.5 }}
+            >
+              Values are listed most valuable first, so this rises quickly and
+              then flattens. Once it has flattened, the rows below are worth
+              little and can be left unapproved.
+            </Typography>
+          </Box>
+        )}
         <Alert
           severity={rejectedCount > 0 ? 'warning' : 'success'}
           sx={{ mb: 2 }}

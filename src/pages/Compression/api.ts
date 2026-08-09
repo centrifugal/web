@@ -323,6 +323,10 @@ export interface CandidateValuesResponse {
   values: CandidateValue[]
   next_cursor?: string
   total: number
+  // Predicted saving of the candidate's whole vocabulary - the denominator for
+  // "how much of the benefit have I selected". Always the whole candidate,
+  // never the filtered page.
+  total_contribution: number
   denied_summary: DeniedSummary
 }
 
