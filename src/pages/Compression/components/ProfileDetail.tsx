@@ -54,6 +54,12 @@ const fmtApprovedRatio = (r: Version['approved_ratio']): string => {
 // ProfileDetail: a single profile's full record — its audience flags and its
 // version history. Kept as an in-tab panel switch (not a route) so it shares
 // the Profiles tab's URL and doesn't need its own navigation entry.
+// Activate and Deactivate occupy the same cell in different rows, and sizing
+// each to its own label steps the column in and out by the width of two
+// characters. One width for both keeps the edge straight however the rows are
+// mixed.
+const versionActionSx = { minWidth: 104 }
+
 export const ProfileDetail = ({
   api,
   profileId,
@@ -481,6 +487,7 @@ export const ProfileDetail = ({
                               size="small"
                               onClick={open}
                               disabled={busyVersionId === v.id}
+                              sx={versionActionSx}
                             >
                               Deactivate
                             </Button>
@@ -492,6 +499,7 @@ export const ProfileDetail = ({
                           color="primary"
                           size="small"
                           onClick={() => setActivateTarget(v)}
+                          sx={versionActionSx}
                         >
                           Activate
                         </Button>
