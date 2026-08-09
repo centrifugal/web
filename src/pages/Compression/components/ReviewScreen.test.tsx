@@ -41,6 +41,7 @@ const candidate: Candidate = {
   size_curve: [],
   values_total: 120,
   expires_at: new Date(Date.now() + 3600_000).toISOString(),
+  created_at: new Date().toISOString(),
   draft_count: 0,
   recommended_count: 0,
   recommended_ratio: 0,

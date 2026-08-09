@@ -305,6 +305,10 @@ export interface Candidate {
   size_curve: SizeCurvePoint[]
   values_total: number
   expires_at: string
+  // Building mints a new set rather than replacing the last, so a session
+  // accumulates near-identical candidates. They arrive newest first; this is
+  // what lets the list say which one is current.
+  created_at: string
   // true means the ratio assumes full approval and will drop as values are
   // rejected — label it, never present it as measured.
   projected_ratio?: boolean

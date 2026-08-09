@@ -480,190 +480,235 @@ export const SessionDetail = ({
                 alignItems: 'start',
               }}
             >
-              {candidates.map(c => (
-                <Card key={c.id} variant="outlined" sx={{ borderRadius: 2 }}>
-                  <CardContent>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        mb: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                        {c.fidelity === 'schema'
-                          ? 'Shapes only'
-                          : 'Shapes and values'}
-                      </Typography>
-                      <Box sx={{ flexGrow: 1 }} />
-                      <Typography variant="caption" color="text.secondary">
-                        expires {fmtRelative(c.expires_at)}
-                      </Typography>
-                    </Box>
+              {/* Building never replaces: it mints a new candidate every time,
+                  so an operator halfway through a review can rebuild without
+                  losing their decisions. The cost is a growing list of cards
+                  that look alike, where the stale one may well be the more
+                  flattering - an older candidate can carry a recommendation
+                  made before the size ladder was measured. They arrive newest
+                  first, so the first of each fidelity is the current one and
+                  the rest are marked and dimmed. */}
+              {candidates.map((c, i) => {
+                const superseded = candidates
+                  .slice(0, i)
+                  .some(o => o.fidelity === c.fidelity)
+                return (
+                  <Card
+                    key={c.id}
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 2,
+                      opacity: superseded ? 0.6 : 1,
+                      borderStyle: superseded ? 'dashed' : 'solid',
+                    }}
+                  >
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          mb: 1,
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: 600 }}
+                        >
+                          {c.fidelity === 'schema'
+                            ? 'Shapes only'
+                            : 'Shapes and values'}
+                        </Typography>
+                        {superseded ? (
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            label="superseded"
+                            title="A later build of this session produced a newer candidate of the same kind. This one is still reviewable and still carries any draft made on it, but its numbers are older."
+                          />
+                        ) : (
+                          <Chip
+                            size="small"
+                            color="primary"
+                            variant="outlined"
+                            label="current"
+                            title="The most recent build of this session for this kind of candidate."
+                          />
+                        )}
+                        <Box sx={{ flexGrow: 1 }} />
+                        <Typography variant="caption" color="text.secondary">
+                          built {fmtRelative(c.created_at)} · expires{' '}
+                          {fmtRelative(c.expires_at)}
+                        </Typography>
+                      </Box>
 
-                    {/* Two candidates from one session differ in one thing -
+                      {/* Two candidates from one session differ in one thing -
                         whether values are in them - and that decides both what
                         they compress and what you have to do to ship them.
                         The fidelity name alone ("schema", "reviewed") does not
                         say either. */}
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mb: 1 }}
-                    >
-                      {c.fidelity === 'schema'
-                        ? 'Field names, nesting and key order. No values from your traffic, so there is nothing to read and you can activate it straight away.'
-                        : 'The same shapes plus the values you approve, one at a time. Compresses harder, and every value you tick is a value served to everyone this profile reaches.'}
-                    </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mb: 1 }}
+                      >
+                        {c.fidelity === 'schema'
+                          ? 'Field names, nesting and key order. No values from your traffic, so there is nothing to read and you can activate it straight away.'
+                          : 'The same shapes plus the values you approve, one at a time. Compresses harder, and every value you tick is a value served to everyone this profile reaches.'}
+                      </Typography>
 
-                    <Typography variant="body2" color="text.secondary">
-                      {fmtInt(c.values_total)} value
-                      {c.values_total === 1 ? '' : 's'}
-                    </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>
-                      {Object.entries(c.ratio_by_protocol)
-                        .map(([proto, ratio]) => `${proto} ${fmtRatio(ratio)}`)
-                        .join(' · ') || '—'}
-                      {c.projected_ratio && (
-                        <Typography
-                          component="span"
-                          variant="caption"
-                          color="warning.main"
-                          sx={{ display: 'block' }}
-                        >
-                          Projected — assumes full approval, will drop as values
-                          are rejected.
-                        </Typography>
-                      )}
-                    </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {fmtInt(c.values_total)} value
+                        {c.values_total === 1 ? '' : 's'}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        {Object.entries(c.ratio_by_protocol)
+                          .map(
+                            ([proto, ratio]) => `${proto} ${fmtRatio(ratio)}`
+                          )
+                          .join(' · ') || '—'}
+                        {c.projected_ratio && (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            color="warning.main"
+                            sx={{ display: 'block' }}
+                          >
+                            Projected — assumes full approval, will drop as
+                            values are rejected.
+                          </Typography>
+                        )}
+                      </Typography>
 
-                    {c.size_curve.length > 0 && (
-                      <TableContainer sx={{ mt: 1.5 }}>
-                        {/* Which size to build at was the least-supported
+                      {c.size_curve.length > 0 && (
+                        <TableContainer sx={{ mt: 1.5 }}>
+                          {/* Which size to build at was the least-supported
                             decision in the whole flow: a free-form byte count
                             with no way to see what it bought. Every rung here
                             was built and scored, so the answer is on screen
                             rather than left to intuition. */}
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: 'block', mb: 0.5 }}
-                        >
-                          {c.size_curve.some(sp => sp.measured)
-                            ? 'Each size built and measured on traffic held back from training.'
-                            : 'Projected — this session had no control window, so ratios are optimistic.'}
-                        </Typography>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              <TableCell>Size</TableCell>
-                              <TableCell align="right">Ratio</TableCell>
-                              <TableCell align="right">Wire</TableCell>
-                              <TableCell align="right">Holds</TableCell>
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {c.size_curve.map(sp => (
-                              <TableRow
-                                key={sp.size_bytes}
-                                selected={sp.size_bytes === c.recommended_size}
-                              >
-                                <TableCell>
-                                  {HumanSize(sp.size_bytes)}
-                                  {sp.size_bytes === c.recommended_size && (
-                                    <Chip
-                                      size="small"
-                                      color="primary"
-                                      variant="outlined"
-                                      label="Recommended"
-                                      sx={{ ml: 1 }}
-                                      title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
-                                    />
-                                  )}
-                                </TableCell>
-                                <TableCell align="right">
-                                  {fmtRatio(sp.ratio)}
-                                  {sp.recommended_values > 0 && (
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                      sx={{ display: 'block' }}
-                                      title="How many of the ranked values were worth approving at this size. It differs down the ladder: a smaller dictionary fills up sooner, so extra values only push useful fragments out."
-                                    >
-                                      {sp.recommended_values} values
-                                    </Typography>
-                                  )}
-                                </TableCell>
-                                <TableCell align="right">
-                                  {HumanSize(sp.delivery_bytes)}
-                                </TableCell>
-                                {/* A size that holds part of the vocabulary
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: 'block', mb: 0.5 }}
+                          >
+                            {c.size_curve.some(sp => sp.measured)
+                              ? 'Each size built and measured on traffic held back from training.'
+                              : 'Projected — this session had no control window, so ratios are optimistic.'}
+                          </Typography>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Size</TableCell>
+                                <TableCell align="right">Ratio</TableCell>
+                                <TableCell align="right">Wire</TableCell>
+                                <TableCell align="right">Holds</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {c.size_curve.map(sp => (
+                                <TableRow
+                                  key={sp.size_bytes}
+                                  selected={
+                                    sp.size_bytes === c.recommended_size
+                                  }
+                                >
+                                  <TableCell>
+                                    {HumanSize(sp.size_bytes)}
+                                    {sp.size_bytes === c.recommended_size && (
+                                      <Chip
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                        label="Recommended"
+                                        sx={{ ml: 1 }}
+                                        title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
+                                      />
+                                    )}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {fmtRatio(sp.ratio)}
+                                    {sp.recommended_values > 0 && (
+                                      <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ display: 'block' }}
+                                        title="How many of the ranked values were worth approving at this size. It differs down the ladder: a smaller dictionary fills up sooner, so extra values only push useful fragments out."
+                                      >
+                                        {sp.recommended_values} values
+                                      </Typography>
+                                    )}
+                                  </TableCell>
+                                  <TableCell align="right">
+                                    {HumanSize(sp.delivery_bytes)}
+                                  </TableCell>
+                                  {/* A size that holds part of the vocabulary
                                     reports the same ratio shape as one that
                                     holds all of it. Without this an operator
                                     picking a small size cannot see that the
                                     dictionary covers little of their traffic. */}
-                                <TableCell align="right">
-                                  {/* The values denominator is the selection
+                                  <TableCell align="right">
+                                    {/* The values denominator is the selection
                                       measured at this size, not the session's
                                       whole vocabulary - "60/60 values" read as
                                       a riddle when the candidate held 250. It
                                       now says what it means. */}
-                                  <Typography
-                                    variant="body2"
-                                    component="span"
-                                    color={
-                                      sp.shapes_held < sp.shapes_total ||
-                                      sp.values_held < sp.values_total
-                                        ? 'warning.main'
-                                        : 'text.secondary'
-                                    }
-                                    title={
-                                      sp.shapes_held < sp.shapes_total
-                                        ? `This size holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes. The ratio is real, but measured on the part that fit.`
-                                        : 'This size holds every message shape the session learned.'
-                                    }
-                                  >
-                                    {sp.shapes_held === sp.shapes_total
-                                      ? `all ${sp.shapes_total} shapes`
-                                      : `${sp.shapes_held} of ${sp.shapes_total} shapes`}
-                                    {sp.values_total > 0 &&
-                                      (sp.values_held === sp.values_total
-                                        ? `, all ${sp.values_total} selected values fit`
-                                        : `, only ${sp.values_held} of ${sp.values_total} selected values fit`)}
-                                  </Typography>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    )}
-
-                    <Box sx={{ mt: 1.5 }}>
-                      {c.fidelity === 'schema' ? (
-                        <Button
-                          variant="solid"
-                          color="primary"
-                          size="small"
-                          onClick={() => setAssignTarget(c)}
-                        >
-                          Assign
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="solid"
-                          color="primary"
-                          size="small"
-                          onClick={() => setReviewId(c.id)}
-                        >
-                          Review
-                        </Button>
+                                    <Typography
+                                      variant="body2"
+                                      component="span"
+                                      color={
+                                        sp.shapes_held < sp.shapes_total ||
+                                        sp.values_held < sp.values_total
+                                          ? 'warning.main'
+                                          : 'text.secondary'
+                                      }
+                                      title={
+                                        sp.shapes_held < sp.shapes_total
+                                          ? `This size holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes. The ratio is real, but measured on the part that fit.`
+                                          : 'This size holds every message shape the session learned.'
+                                      }
+                                    >
+                                      {sp.shapes_held === sp.shapes_total
+                                        ? `all ${sp.shapes_total} shapes`
+                                        : `${sp.shapes_held} of ${sp.shapes_total} shapes`}
+                                      {sp.values_total > 0 &&
+                                        (sp.values_held === sp.values_total
+                                          ? `, all ${sp.values_total} selected values fit`
+                                          : `, only ${sp.values_held} of ${sp.values_total} selected values fit`)}
+                                    </Typography>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
                       )}
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      <Box sx={{ mt: 1.5 }}>
+                        {c.fidelity === 'schema' ? (
+                          <Button
+                            variant="solid"
+                            color="primary"
+                            size="small"
+                            onClick={() => setAssignTarget(c)}
+                          >
+                            Assign
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="solid"
+                            color="primary"
+                            size="small"
+                            onClick={() => setReviewId(c.id)}
+                          >
+                            Review
+                          </Button>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </Box>
           )}
         </Panel>
