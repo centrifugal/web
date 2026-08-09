@@ -202,6 +202,12 @@ export const OverviewTab = ({
       : 'warn'
 
   const serving = overview.serving
+  // A node that does not answer contributes nothing, which looks exactly like
+  // a node with no connections. Only the node count can tell them apart.
+  const partialSurvey =
+    !!serving &&
+    serving.nodes_expected > 0 &&
+    serving.nodes_reporting < serving.nodes_expected
   const tierTotal = serving
     ? TIERS.reduce(
         (sum, t) => sum + (serving.connections_by_tier[t.key] || 0),
@@ -361,11 +367,15 @@ export const OverviewTab = ({
 
             <Typography
               variant="caption"
-              color="text.secondary"
+              color={partialSurvey ? 'warning.main' : 'text.secondary'}
               sx={{ display: 'block', mt: 1.5 }}
             >
-              {serving.nodes_reporting} node
-              {serving.nodes_reporting === 1 ? '' : 's'} reporting.
+              {serving.nodes_expected > 0
+                ? `${serving.nodes_reporting} of ${serving.nodes_expected} nodes reporting.`
+                : `${serving.nodes_reporting} node${serving.nodes_reporting === 1 ? '' : 's'} reporting.`}
+              {partialSurvey &&
+                ' These counts are summed over the nodes that answered, so' +
+                  ' they are an undercount until every node does.'}
             </Typography>
           </Box>
         )}

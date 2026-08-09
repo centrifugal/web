@@ -60,6 +60,10 @@ export interface ProfileServing {
 
 export interface ServingSurvey {
   nodes_reporting: number
+  // The cluster as it stands. Every figure in this survey is summed over
+  // whichever nodes replied, so a shortfall here means an undercount, not a
+  // quiet zero.
+  nodes_expected: number
   connections_by_tier: ConnectionsByTier
   by_profile: ProfileServing[]
 }
