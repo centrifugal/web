@@ -74,6 +74,9 @@ export interface CompressionOverview {
 
 export interface StructureInfo {
   active: boolean
+  // The deployment-wide switch. This tier's own flag does not decide whether
+  // anything is served: with serving off nothing is, whatever this says.
+  serving_enabled: boolean
   artifact_id: string
   size_bytes: number
   wire_size: number

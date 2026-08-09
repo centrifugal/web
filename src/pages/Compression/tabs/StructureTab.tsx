@@ -97,8 +97,26 @@ export const StructureTab = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <FieldRow label="Status">
             <CapabilityChip
-              label={structure.active ? 'Active' : 'Inactive'}
-              tone={structure.active ? 'on' : 'off'}
+              label={
+                !structure.active
+                  ? 'Inactive'
+                  : structure.serving_enabled
+                    ? 'Active'
+                    : 'On, not serving'
+              }
+              tone={
+                !structure.active
+                  ? 'off'
+                  : structure.serving_enabled
+                    ? 'on'
+                    : 'warn'
+              }
+              title={
+                structure.active && !structure.serving_enabled
+                  ? 'Switched on here, but Serve dictionaries is off on the ' +
+                    'Overview tab, so no connection is receiving it.'
+                  : undefined
+              }
             />
           </FieldRow>
           <FieldRow label="Protocol">

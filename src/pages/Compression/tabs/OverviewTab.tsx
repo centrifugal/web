@@ -18,7 +18,7 @@ import { useTheme } from '@mui/material/styles'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
-import { Panel, CapabilityChip } from 'pages/Inspector/ui'
+import { Panel, CapabilityChip, ChipTone } from 'pages/Inspector/ui'
 import { HumanSize } from 'utils/Functions'
 
 import {
@@ -186,6 +186,21 @@ export const OverviewTab = ({
     )
   }
 
+  // The two switches are independent settings but not independent effects:
+  // with serving off, Select returns nothing before it reaches the structure
+  // fallback. Reporting this tier as "Active" then describes a stored flag,
+  // not what any connection is getting.
+  const structureLabel = !overview.structure_active
+    ? 'Inactive'
+    : overview.enabled
+      ? 'Active'
+      : 'On, not serving'
+  const structureTone: ChipTone = !overview.structure_active
+    ? 'off'
+    : overview.enabled
+      ? 'on'
+      : 'warn'
+
   const serving = overview.serving
   const tierTotal = serving
     ? TIERS.reduce(
@@ -241,11 +256,19 @@ export const OverviewTab = ({
             rowGap: 1,
           }}
         >
-          <InlineStat label="Structure dictionary">
+          {!overview.enabled && (
             <CapabilityChip
-              label={overview.structure_active ? 'Active' : 'Inactive'}
-              tone={overview.structure_active ? 'on' : 'off'}
+              label="Nothing is being served"
+              tone="warn"
+              title={
+                'Serve dictionaries is off, so no connection receives any ' +
+                'dictionary - including the structure tier - whatever the ' +
+                'settings beside this say.'
+              }
             />
+          )}
+          <InlineStat label="Structure dictionary">
+            <CapabilityChip label={structureLabel} tone={structureTone} />
           </InlineStat>
           <InlineStat label="Profiles">
             <Typography variant="body2">{fmtInt(overview.profiles)}</Typography>
