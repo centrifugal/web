@@ -112,6 +112,9 @@ const pages = [
     iconColor: '#2FA6D6',
     to: routes.COMPRESSION,
     oss: false,
+    // Reachable at /compression, just not advertised in the nav while the
+    // feature settles. Drop this line to put it back.
+    hidden: true,
   },
 ]
 
@@ -222,6 +225,7 @@ export const ShellAppBar = ({
               }}
             >
               {pages
+                .filter(page => !page.hidden)
                 .filter(page => page.oss || edition === 'pro')
                 .map(page => (
                   <MenuItem
@@ -262,6 +266,7 @@ export const ShellAppBar = ({
             }}
           >
             {pages
+              .filter(page => !page.hidden)
               .filter(page => page.oss || edition === 'pro')
               .map(page => {
                 return (
