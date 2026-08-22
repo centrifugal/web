@@ -381,7 +381,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
           helperText={
             <span>
               Optionally filter tracing messages on the client side using{' '}
-              <Link href="https://cel.dev/" target={'_blank'}>
+              <Link
+                href="https://cel.dev/"
+                target={'_blank'}
+                rel="noopener noreferrer"
+              >
                 CEL expressions
               </Link>
               . Trace fields are available under <code>event</code>. Example:{' '}

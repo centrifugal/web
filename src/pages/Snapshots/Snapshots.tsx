@@ -108,7 +108,9 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
   const fetchSnapshotDetails = useCallback(
     async (snapshotId: string) => {
       try {
-        const response = await rawRequest(`admin/api/snapshots/${snapshotId}`)
+        const response = await rawRequest(
+          `admin/api/snapshots/${encodeURIComponent(snapshotId)}`
+        )
 
         if (response.status === 404) {
           showAlert('Snapshot not found', { severity: 'error' })

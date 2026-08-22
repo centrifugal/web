@@ -685,8 +685,15 @@ export const FlightRecorder = ({
         'disconnectName',
         'durationMs',
       ]
+      // Field values (user IDs, channel names, error text) originate from
+      // untrusted clients, so a leading =/+/-/@/tab/CR would be executed as a
+      // formula when the CSV is opened in a spreadsheet. Prefix those with a
+      // single quote (the standard neutralizer) before the usual CSV quoting.
       const esc = (v: unknown) => {
-        const s = String(v ?? '')
+        let s = String(v ?? '')
+        // Numbers are ours, so leave them intact (a negative duration must not
+        // become text); only text fields need neutralizing.
+        if (typeof v !== 'number' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`
         return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
       }
       const lines = [cols.join(',')]
