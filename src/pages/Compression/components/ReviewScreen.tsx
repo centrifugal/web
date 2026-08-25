@@ -296,9 +296,9 @@ export const ReviewScreen = ({
     if (targetSize <= 0) return
     setPreviewStale(true)
     const hashes = Array.from(selected)
+    let cancelled = false
     // Debounced: ticking a dozen boxes should measure once, not a dozen times.
     const timer = setTimeout(() => {
-      let cancelled = false
       api
         .previewCandidate(candidate.id, {
           approved: hashes,
@@ -313,11 +313,11 @@ export const ReviewScreen = ({
         .catch(() => {
           if (!cancelled) setPreviewStale(false)
         })
-      return () => {
-        cancelled = true
-      }
     }, 400)
-    return () => clearTimeout(timer)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, targetSize, candidate.id])
 
