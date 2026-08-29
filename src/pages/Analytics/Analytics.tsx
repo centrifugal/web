@@ -668,19 +668,13 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     [signinSilent, showAlert, request, rawRequest]
   )
 
-  const [didFetch, setDidFetch] = useState(false)
-
   useEffect(() => {
-    if (didFetch) {
-      return
-    }
-    setDidFetch(true)
     const interval = setInterval(function () {
       askFullAnalyticsData()
     }, 60000)
     askFullAnalyticsData()
     return () => clearInterval(interval)
-  }, [askFullAnalyticsData, signinSilent, authorization, showAlert, didFetch])
+  }, [askFullAnalyticsData, signinSilent, authorization, showAlert])
 
   const widgetCellSx = { p: 1.5 }
   // Distribution chips (SDKs / transports / push platforms) flow in a wrapping row.
