@@ -377,6 +377,7 @@ export function PushNotification({
           return
         }
         if (data.error) {
+          showAlert('Error: ' + data.error.message, { severity: 'error' })
           return
         }
         setEnabled(true)
@@ -399,6 +400,7 @@ export function PushNotification({
     command,
     handleError,
     getDeviceFilter,
+    showAlert,
   ])
 
   // Constrain long identifier columns: truncate with an ellipsis (full value in
