@@ -122,6 +122,13 @@ export const SnapshotDetail = ({
   const navigate = useNavigate()
   const { rawRequest } = useAdminApi({ authorization, signinSilent })
 
+  // Resync when navigated straight from one snapshot's detail page to
+  // another's (e.g. creating a connections snapshot from a channel row),
+  // which changes the `snapshot` prop without unmounting this component.
+  useEffect(() => {
+    setSnapshot(initialSnapshot)
+  }, [initialSnapshot])
+
   const fetchSnapshotUpdate = useCallback(async () => {
     try {
       const response = await rawRequest(
