@@ -150,6 +150,7 @@ export const UserExplorer = ({
       setData(null)
       return
     }
+    let cancelled = false
     setLoading(true)
     const now = Math.floor(Date.now() / 1000)
     rawRequest('admin/analytics/user', {
@@ -162,17 +163,20 @@ export const UserExplorer = ({
           if (handleHttpError(r.status)) return null
           throw Error(r.status.toString())
         }
-        setEnabled(true)
+        if (!cancelled) setEnabled(true)
         return r.json()
       })
       .then(p => {
-        if (!p) return
+        if (!p || cancelled) return
         setData(p.result)
         setLoading(false)
       })
       .catch(() => {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       })
+    return () => {
+      cancelled = true
+    }
   }, [user, rangeSeconds, rawRequest, handleHttpError])
 
   // Persist user + range to URL (shareable) and localStorage (last user).
