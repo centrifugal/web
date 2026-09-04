@@ -538,7 +538,11 @@ function FetchEventTarget(url: string, options: any) {
                   controller.close()
                   return
                 }
-                streamBuf += utf8decoder.decode(value)
+                // `stream: true` is required: a chunk boundary can land in the
+                // middle of a multi-byte UTF-8 character, and a non-streaming
+                // decode would turn that half-character into U+FFFD, corrupting
+                // the line and breaking JSON.parse for the whole trace stream.
+                streamBuf += utf8decoder.decode(value, { stream: true })
                 while (streamPos < streamBuf.length) {
                   if (streamBuf[streamPos] === '\n') {
                     const line = streamBuf.substring(0, streamPos)
