@@ -23,38 +23,17 @@ const TYPE_COLORS: Record<string, string> = {
   shared_poll: '#26a69a',
 }
 
-// Test the channel-name part (after the namespace prefix) against channel_regex.
-// Returns null when there's no regex, or the regex is invalid.
-const regexMatch = (
-  resolved: ResolvedChannel,
-  boundary: string
-): boolean | null => {
-  const re = resolved.options.channel_regex
-  if (!re) return null
-  const rest = resolved.namespace
-    ? resolved.channel.slice(resolved.namespace.length + boundary.length)
-    : resolved.channel
-  try {
-    return new RegExp(re).test(rest)
-  } catch {
-    return null
-  }
-}
-
 // The "what is this channel" header: resolved namespace, a prominent
 // subscription-type badge, and the enabled capabilities as chips.
 export const CapabilityHeader = ({
   resolved,
-  boundary,
 }: {
   resolved: ResolvedChannel
-  boundary: string
 }) => {
   const theme = useTheme()
   const o: ChannelOptions = resolved.options
   const type = subscriptionType(o)
   const typeColor = TYPE_COLORS[type] || theme.palette.text.secondary
-  const reMatch = regexMatch(resolved, boundary)
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -92,12 +71,31 @@ export const CapabilityHeader = ({
             {resolved.namespace ?? '(default)'}
           </Box>
         </Typography>
+        {resolved.pattern && (
+          <CapabilityChip
+            label="pattern"
+            tone="info"
+            title="Matched by a channel pattern rather than a namespace prefix — channel_regex is tested against the whole channel name"
+          />
+        )}
       </Box>
 
-      {!resolved.known && (
+      {/* Only the server's own resolver may claim a channel would be rejected.
+          The client-side fallback cannot see PRO channel patterns or the private
+          prefix, so its "unknown namespace" is a guess, and saying otherwise hid
+          working panels behind a false warning. */}
+      {!resolved.known && resolved.verified && (
         <Alert severity="warning" sx={{ mb: 1.5 }}>
           No namespace <code>{resolved.namespace}</code> is configured —
           Centrifugo would reject subscriptions to this channel.
+        </Alert>
+      )}
+
+      {!resolved.verified && (
+        <Alert severity="info" sx={{ mb: 1.5 }}>
+          This server does not expose channel resolution, so these options were
+          resolved from its configuration in the browser and may differ from
+          what Centrifugo applies.
         </Alert>
       )}
 
@@ -148,10 +146,10 @@ export const CapabilityHeader = ({
           <Typography variant="caption" color="text.secondary">
             channel_regex: <code>{o.channel_regex}</code>
           </Typography>
-          {reMatch === true && (
+          {resolved.nameValid === true && (
             <CapabilityChip label="name matches" tone="on" />
           )}
-          {reMatch === false && (
+          {resolved.nameValid === false && (
             <CapabilityChip
               label="name does NOT match — would be rejected"
               tone="warn"

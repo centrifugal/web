@@ -11,9 +11,14 @@ interface Resolution {
 }
 
 // Resolves a channel's effective options via the admin `channel_options` endpoint,
-// which uses Centrifugo's own resolution — including PRO channel patterns. Falls
-// back to client-side namespace resolution if the endpoint is unavailable (e.g. an
-// older server), so the tab still works everywhere.
+// which uses Centrifugo's own resolution — including PRO channel patterns and the
+// server's verdict on the channel name. Falls back to client-side namespace
+// resolution if the endpoint is unavailable (e.g. an older server), so the tab
+// still works everywhere; what comes back from that path is marked unverified.
+//
+// `name_valid` and `pattern` are newer than the endpoint itself, so a server that
+// predates them simply omits them and `nameValid` stays undefined — the header then
+// renders no verdict instead of computing one here.
 export const useChannelResolution = (
   channel: string,
   api: InspectorApi,
@@ -39,9 +44,13 @@ export const useChannelResolution = (
     setState({ loading: true, resolved: null, error: null })
 
     api
-      .adminGet<{ namespace: string; found: boolean; options: ChannelOptions }>(
-        `admin/api/channel_options?channel=${encodeURIComponent(channel)}`
-      )
+      .adminGet<{
+        namespace: string
+        found: boolean
+        options: ChannelOptions
+        name_valid?: boolean
+        pattern?: boolean
+      }>(`admin/api/channel_options?channel=${encodeURIComponent(channel)}`)
       .then(resp => {
         if (cancelled) return
         setState({
@@ -52,6 +61,9 @@ export const useChannelResolution = (
             namespace: resp.namespace || null,
             known: resp.found,
             options: resp.options || {},
+            verified: true,
+            nameValid: resp.name_valid,
+            pattern: resp.pattern,
           },
         })
       })
@@ -64,6 +76,7 @@ export const useChannelResolution = (
           namespace: null,
           known: true,
           options: {},
+          verified: false,
         }
         setState({ loading: false, resolved: fallback, error: null })
       })

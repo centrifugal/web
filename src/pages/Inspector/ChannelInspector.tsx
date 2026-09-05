@@ -68,7 +68,10 @@ export const ChannelInspector = ({
   )
 
   const o = resolved?.options ?? {}
-  const showPanels = !!resolved && resolved.known
+  // An unknown namespace hides the live panels, but only when the server itself
+  // said so: the client-side fallback mis-resolves private-prefixed and pattern
+  // channels, and hiding presence/history on its guess is worse than showing them.
+  const showPanels = !!resolved && (resolved.known || !resolved.verified)
 
   return (
     <Box>
@@ -94,10 +97,7 @@ export const ChannelInspector = ({
         <CircularProgress />
       ) : resolved ? (
         <>
-          <CapabilityHeader
-            resolved={resolved}
-            boundary={server.namespaceBoundary}
-          />
+          <CapabilityHeader resolved={resolved} />
 
           {showPanels && <ChannelProxies options={o} />}
 
