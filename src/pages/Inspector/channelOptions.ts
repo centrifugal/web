@@ -2,9 +2,10 @@
 //
 // The admin config endpoint returns an *annotated node tree*; `reconstructConfig`
 // turns it back into a plain object, and `resolveChannel` mirrors Centrifugo's own
-// resolution (see internal/config/container.go `ChannelOptions`): split the channel
-// on the namespace boundary, match the prefix against a configured namespace, and
-// fall back to `channel.without_namespace` when there is no prefix.
+// resolution (see internal/config/container.go `ChannelOptions`): strip the private
+// prefix, split the channel on the namespace boundary, match the prefix against a
+// configured namespace, and fall back to `channel.without_namespace` when the
+// channel carries no namespace prefix.
 //
 // Keeping this pure and typed makes the Channel inspector's rendering a simple
 // function of the resolved options — easy to extend as Centrifugo grows new options.
@@ -133,23 +134,48 @@ export function reconstructConfig(
 
 // ---- resolution ------------------------------------------------------------
 
+// Read a string config field, falling back to the server's own default when the
+// field is absent (older server, or a config endpoint that doesn't expose it). An
+// explicitly empty value is kept: an empty boundary disables namespaces, and an
+// empty private prefix disables the private-channel marker.
+const strOption = (v: unknown, fallback: string): string =>
+  typeof v === 'string' ? v : fallback
+
+// The part of the channel a namespace's `channel_regex` is matched against —
+// everything after the first namespace boundary, or the whole channel when there
+// is none. Mirrors the `rest` the server derives in Container.ChannelOptions; the
+// private prefix sits before the boundary, so it never leaks into the rest.
+export const channelRest = (channel: string, boundary: string): string => {
+  const at = boundary ? channel.indexOf(boundary) : -1
+  return at === -1 ? channel : channel.slice(at + boundary.length)
+}
+
 export function resolveChannel(
   channel: string,
   cfg: Record<string, any>
 ): ResolvedChannel {
   const chCfg = (cfg?.channel ?? {}) as Record<string, any>
-  const boundary: string = chCfg.namespace_boundary || ':'
+  const boundary = strOption(chCfg.namespace_boundary, ':')
+  const privatePrefix = strOption(chCfg.private_prefix, '$')
   const namespaces: Array<Record<string, any>> = Array.isArray(chCfg.namespaces)
     ? chCfg.namespaces
     : []
   const withoutNs: ChannelOptions = (chCfg.without_namespace ??
     {}) as ChannelOptions
 
-  const idx = channel.indexOf(boundary)
-  if (idx === -1) {
+  // The server strips the private prefix before looking for the boundary, so
+  // `$news:index` lives in the `news` namespace like `news:index` does.
+  const trimmed =
+    privatePrefix && channel.startsWith(privatePrefix)
+      ? channel.slice(privatePrefix.length)
+      : channel
+  const idx = boundary ? trimmed.indexOf(boundary) : -1
+  // No boundary, or an empty namespace part (`:index`), means without_namespace —
+  // the server looks options up by namespace name, and "" is the default one.
+  const nsName = idx === -1 ? '' : trimmed.slice(0, idx)
+  if (!nsName) {
     return { channel, namespace: null, known: true, options: withoutNs }
   }
-  const nsName = channel.slice(0, idx)
   const ns = namespaces.find(n => n?.name === nsName)
   if (!ns) {
     return { channel, namespace: nsName, known: false, options: {} }

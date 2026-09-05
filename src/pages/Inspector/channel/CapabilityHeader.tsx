@@ -7,6 +7,7 @@ import { alpha, useTheme } from '@mui/material/styles'
 import {
   ChannelOptions,
   ResolvedChannel,
+  channelRest,
   subscriptionType,
   hasPresence,
   hasHistory,
@@ -31,9 +32,10 @@ const regexMatch = (
 ): boolean | null => {
   const re = resolved.options.channel_regex
   if (!re) return null
-  const rest = resolved.namespace
-    ? resolved.channel.slice(resolved.namespace.length + boundary.length)
-    : resolved.channel
+  // The namespace name isn't necessarily the literal channel prefix (a private
+  // channel is `$news:index` but resolves to `news`), so cut at the boundary
+  // rather than by the namespace name's length.
+  const rest = channelRest(resolved.channel, boundary)
   try {
     return new RegExp(re).test(rest)
   } catch {
