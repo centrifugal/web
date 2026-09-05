@@ -64,6 +64,34 @@ describe('CapabilityHeader', () => {
     ).toBeTruthy()
   })
 
+  // The regression: the verdict used to render only inside the channel_regex
+  // block, so a name the server rejected under the ASCII-only or max_length rule
+  // showed nothing at all and every panel rendered as if the channel were fine.
+  test('a rejected name is surfaced when no channel_regex is configured', () => {
+    render(
+      <CapabilityHeader
+        resolved={resolved({ options: {}, nameValid: false })}
+      />
+    )
+    expect(screen.getByText(/would reject this channel name/)).toBeTruthy()
+  })
+
+  test('an accepted name with no channel_regex stays quiet', () => {
+    render(
+      <CapabilityHeader resolved={resolved({ options: {}, nameValid: true })} />
+    )
+    expect(screen.queryByText(/would reject this channel name/)).toBeNull()
+  })
+
+  test('a server with no verdict says nothing about the name', () => {
+    render(
+      <CapabilityHeader
+        resolved={resolved({ options: {}, nameValid: undefined })}
+      />
+    )
+    expect(screen.queryByText(/would reject this channel name/)).toBeNull()
+  })
+
   test('marks a pattern-matched channel', () => {
     render(<CapabilityHeader resolved={resolved({ pattern: true })} />)
     expect(screen.getByText('pattern')).toBeTruthy()

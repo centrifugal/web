@@ -157,6 +157,19 @@ export const CapabilityHeader = ({
           )}
         </Box>
       )}
+
+      {/* A rejected name is not always a regex miss: with no channel_regex
+          configured the server applies its own rules (ASCII-only, and the
+          channel.max_length limit), and those verdicts have no regex line to
+          hang off. Rendering them only inside the block above meant a channel
+          Centrifugo would reject looked perfectly healthy. */}
+      {!o.channel_regex && resolved.nameValid === false && (
+        <Alert severity="warning" sx={{ mt: 1 }}>
+          Centrifugo would reject this channel name. With no{' '}
+          <code>channel_regex</code> configured for this namespace, names must
+          be ASCII-only and within <code>channel.max_length</code>.
+        </Alert>
+      )}
     </Box>
   )
 }
