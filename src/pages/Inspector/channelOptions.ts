@@ -8,6 +8,11 @@
 //
 // Keeping this pure and typed makes the Channel inspector's rendering a simple
 // function of the resolved options — easy to extend as Centrifugo grows new options.
+//
+// `resolveChannel` is only a fallback for servers without the admin
+// `channel_options` endpoint. It is necessarily approximate — it cannot see PRO
+// channel patterns, and the private-prefix/boundary rules it mirrors live on the
+// server — so everything it returns carries `verified: false`.
 
 import { ConfigNode } from 'pages/Config/types'
 
@@ -99,6 +104,21 @@ export interface ResolvedChannel {
   namespace: string | null
   known: boolean
   options: ChannelOptions
+  // True when this came from the server's own resolver (`admin/api/channel_options`),
+  // false when it came from the client-side fallback below. The fallback cannot see
+  // PRO channel patterns and re-implements rules the server owns, so anything it
+  // produces is a best-effort guess — the UI must not turn it into a claim that
+  // Centrifugo would reject the channel.
+  verified: boolean
+  // The server's verdict on the channel name: `channel_regex` where the namespace
+  // configures one, otherwise the ASCII-only rule. Undefined when the server did
+  // not answer it (an older server, or the client-side fallback) — in that case the
+  // UI shows no verdict rather than guessing one.
+  nameValid?: boolean
+  // True when the server matched this channel by a PRO channel pattern rather than
+  // by a namespace prefix. Such a channel has no namespace boundary, so the server
+  // tests `channel_regex` against the whole name.
+  pattern?: boolean
 }
 
 // ---- config reconstruction from the annotated node tree --------------------
@@ -147,18 +167,31 @@ export function resolveChannel(
 
   const idx = channel.indexOf(boundary)
   if (idx === -1) {
-    return { channel, namespace: null, known: true, options: withoutNs }
+    return {
+      channel,
+      namespace: null,
+      known: true,
+      options: withoutNs,
+      verified: false,
+    }
   }
   const nsName = channel.slice(0, idx)
   const ns = namespaces.find(n => n?.name === nsName)
   if (!ns) {
-    return { channel, namespace: nsName, known: false, options: {} }
+    return {
+      channel,
+      namespace: nsName,
+      known: false,
+      options: {},
+      verified: false,
+    }
   }
   return {
     channel,
     namespace: nsName,
     known: true,
     options: ns as ChannelOptions,
+    verified: false,
   }
 }
 
