@@ -538,7 +538,10 @@ function FetchEventTarget(url: string, options: any) {
                   controller.close()
                   return
                 }
-                streamBuf += utf8decoder.decode(value)
+                // stream: true keeps decoder state across reads so a multi-byte
+                // UTF-8 character split across two chunks is not corrupted into
+                // replacement characters.
+                streamBuf += utf8decoder.decode(value, { stream: true })
                 while (streamPos < streamBuf.length) {
                   if (streamBuf[streamPos] === '\n') {
                     const line = streamBuf.substring(0, streamPos)
