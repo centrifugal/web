@@ -538,9 +538,10 @@ function FetchEventTarget(url: string, options: any) {
                   controller.close()
                   return
                 }
-                // stream: true keeps decoder state across reads so a multi-byte
-                // UTF-8 character split across two chunks is not corrupted into
-                // replacement characters.
+                // `stream: true` is required: a chunk boundary can land in the
+                // middle of a multi-byte UTF-8 character, and a non-streaming
+                // decode would turn that half-character into U+FFFD, corrupting
+                // the line and breaking JSON.parse for the whole trace stream.
                 streamBuf += utf8decoder.decode(value, { stream: true })
                 while (streamPos < streamBuf.length) {
                   if (streamBuf[streamPos] === '\n') {
