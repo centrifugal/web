@@ -47,6 +47,10 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }))
 
+// Centrifugo API error code returned when a method is not available in the
+// running edition or is disabled by configuration.
+const errorCodeNotAvailable = 108
+
 interface PushNotificationProps {
   signinSilent: () => void
   authorization: string
@@ -377,7 +381,12 @@ export function PushNotification({
           return
         }
         if (data.error) {
-          showAlert('Error: ' + data.error.message, { severity: 'error' })
+          // Push notifications are not part of the running Centrifugo edition or
+          // are turned off - the page already explains this, so don't also
+          // surface a toast about it.
+          if (data.error.code !== errorCodeNotAvailable) {
+            showAlert('Error: ' + data.error.message, { severity: 'error' })
+          }
           return
         }
         setEnabled(true)
