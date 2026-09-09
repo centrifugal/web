@@ -116,7 +116,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       // only when running) has already disappeared, leaving no way to abort it.
       stopStream()
     }
+    // Clearing the filter text must clear its validity flag too, otherwise an
+    // invalid expression typed on one tab keeps blocking submit (and styling the
+    // input red) on the next one, even though the field is visibly empty.
     setFilter('')
+    setIsValidFilter(true)
 
     // Clear input fields when switching types
     if (newTraceType !== traceType) {
