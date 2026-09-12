@@ -81,8 +81,8 @@ export const CapabilityHeader = ({
       </Box>
 
       {/* Only the server's own resolver may claim a channel would be rejected.
-          The client-side fallback cannot see PRO channel patterns or the private
-          prefix, so its "unknown namespace" is a guess, and saying otherwise hid
+          The client-side fallback cannot see PRO channel patterns, so its
+          "unknown namespace" is a guess, and saying otherwise hid
           working panels behind a false warning. */}
       {!resolved.known && resolved.verified && (
         <Alert severity="warning" sx={{ mb: 1.5 }}>
