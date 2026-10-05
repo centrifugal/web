@@ -16,6 +16,7 @@ import { useAdminApi } from 'api/adminApi'
 import { HumanSeconds, HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
+import { LicenseLine } from './LicenseLine'
 import { Card, CardContent } from '@mui/material'
 import {
   InfoOutlined,
@@ -373,6 +374,8 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
               value={fmtInt(numSubs)}
             />
           </Box>
+
+          {edition === 'pro' && <LicenseLine authorization={authorization} />}
 
           {nodes.length === 0 ? (
             <Paper>
