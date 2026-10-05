@@ -15,7 +15,8 @@ export interface LicenseDate {
 export interface LicenseStatus {
   sandbox: boolean
   text: string
-  limits: string
+  // Tooltip for the main text.
+  hint: string
   dates?: LicenseDate[]
 }
 

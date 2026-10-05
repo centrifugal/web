@@ -19,7 +19,7 @@ describe('LicenseLine', () => {
     const fetchMock = respond(200, {
       sandbox: false,
       text: 'j***@acme.com',
-      limits: '3 nodes',
+      hint: 'Limits: 3 nodes.',
       dates: [
         {
           label: 'Expired',
@@ -39,11 +39,11 @@ describe('LicenseLine', () => {
   test('renders sandbox mode', async () => {
     respond(200, {
       sandbox: true,
-      text: 'Sandbox mode (20 connections, 2 nodes, 5 API rps)',
-      limits: '20 connections, 2 nodes, 5 API rps',
+      text: 'Sandbox mode – not for production use',
+      hint: 'No license key configured.',
     })
     render(<LicenseLine authorization="token x" />)
-    await screen.findByText('Sandbox mode (20 connections, 2 nodes, 5 API rps)')
+    await screen.findByText('Sandbox mode – not for production use')
   })
 
   test('renders nothing when the server has no license endpoint', async () => {

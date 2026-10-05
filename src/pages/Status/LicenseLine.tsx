@@ -49,13 +49,7 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
       <Typography variant="body2" color="text.secondary">
         License:
       </Typography>
-      <Tooltip
-        title={
-          status.sandbox
-            ? 'No license key configured. Centrifugo PRO runs with sandbox limits.'
-            : `Limits: ${status.limits}`
-        }
-      >
+      <Tooltip title={status.hint}>
         <Typography
           variant="body2"
           sx={{ fontWeight: status.sandbox ? 400 : 600 }}
