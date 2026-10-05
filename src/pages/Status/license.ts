@@ -27,11 +27,25 @@ export const formatLicenseDate = (at: number): string =>
     day: 'numeric',
   })
 
+// formatLicenseDateTime is the full date and time for a tooltip, in the
+// viewer's time zone with the zone named.
+export const formatLicenseDateTime = (at: number): string =>
+  new Date(at * 1000).toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  })
+
 // licenseDateText renders a date as "<label> <date>[ · <note>]".
 export const licenseDateText = (d: LicenseDate): string =>
   `${d.label} ${formatLicenseDate(d.at)}${d.note ? ` · ${d.note}` : ''}`
 
-export const licenseChipColor = (
-  s: LicenseSeverity
-): 'default' | 'warning' | 'error' =>
-  s === 'error' ? 'error' : s === 'warning' ? 'warning' : 'default'
+export const licenseTextColor = (s: LicenseSeverity): string =>
+  s === 'error'
+    ? 'error.main'
+    : s === 'warning'
+      ? 'warning.main'
+      : 'text.secondary'

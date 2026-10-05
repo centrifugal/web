@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 
 import { useAdminApi } from 'api/adminApi'
 
-import { licenseChipColor, licenseDateText, LicenseStatus } from './license'
+import {
+  formatLicenseDateTime,
+  licenseTextColor,
+  licenseDateText,
+  LicenseStatus,
+} from './license'
 
 // LicenseLine is one compact line with the license of the node serving the
 // admin UI (PRO). It renders nothing when the server has no license endpoint
@@ -38,6 +42,8 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
+        // Right-aligned and in caption size so it stays secondary to the cards.
+        justifyContent: 'flex-end',
         columnGap: 1,
         rowGap: 0.5,
         // Sits in the gap below the summary cards, so the page layout is the
@@ -46,29 +52,35 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
         mb: 2,
       }}
     >
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="caption" color="text.secondary">
         License:
       </Typography>
       <Tooltip title={status.hint ?? ''}>
         <Typography
-          variant="body2"
+          variant="caption"
+          color="text.secondary"
           sx={{ fontWeight: status.sandbox ? 400 : 600 }}
         >
           {status.text}
         </Typography>
       </Tooltip>
       {status.dates?.map(d => (
-        <Tooltip
-          key={`${d.label}-${d.at}`}
-          title={`${d.hint} ${new Date(d.at * 1000).toISOString()}`}
-        >
-          <Chip
-            size="small"
-            variant={d.severity === 'ok' ? 'outlined' : 'filled'}
-            color={licenseChipColor(d.severity)}
-            label={licenseDateText(d)}
-          />
-        </Tooltip>
+        <React.Fragment key={`${d.label}-${d.at}`}>
+          <Typography variant="caption" color="text.secondary">
+            ·
+          </Typography>
+          <Tooltip title={`${d.hint} ${formatLicenseDateTime(d.at)}`}>
+            <Typography
+              variant="caption"
+              sx={{
+                color: licenseTextColor(d.severity),
+                fontWeight: d.severity === 'ok' ? 400 : 600,
+              }}
+            >
+              {licenseDateText(d)}
+            </Typography>
+          </Tooltip>
+        </React.Fragment>
       ))}
     </Box>
   )

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest'
 
-import { licenseChipColor, licenseDateText, formatLicenseDate } from './license'
+import { licenseTextColor, licenseDateText, formatLicenseDate } from './license'
 
 describe('licenseDateText', () => {
   const at = Date.UTC(2027, 2, 1, 12) / 1000
@@ -24,8 +24,8 @@ describe('licenseDateText', () => {
   })
 })
 
-test('licenseChipColor', () => {
-  expect(licenseChipColor('ok')).toBe('default')
-  expect(licenseChipColor('warning')).toBe('warning')
-  expect(licenseChipColor('error')).toBe('error')
+test('licenseTextColor', () => {
+  expect(licenseTextColor('ok')).toBe('text.secondary')
+  expect(licenseTextColor('warning')).toBe('warning.main')
+  expect(licenseTextColor('error')).toBe('error.main')
 })
