@@ -350,8 +350,16 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       .catch(() => {})
   }, [activeEntry, rangeSeconds, rawRequest])
 
+  // fetchData runs from the selection effect, the auto-refresh interval, Enter and the reload
+  // button, so a cleanup flag can't cover every caller. Number each request instead and let only
+  // the latest one write state — otherwise a slow query for a previous selection could land after
+  // the current one and overwrite the chart with data for the wrong metric/range/filters.
+  const fetchSeqRef = useRef(0)
+
   const fetchData = useCallback(() => {
     if (!metricId) return
+    const seq = ++fetchSeqRef.current
+    const isStale = () => seq !== fetchSeqRef.current
     setLoading(true)
     setError('')
     const now = Math.floor(Date.now() / 1000)
@@ -385,6 +393,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       body: JSON.stringify(body),
     })
       .then(response => {
+        if (isStale()) return null
         if (!response.ok) {
           if (handleHttpError(response.status)) return null
           throw Error(response.status.toString())
@@ -393,11 +402,12 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
         return response.json()
       })
       .then(payload => {
-        if (!payload) return
+        if (!payload || isStale()) return
         setData(payload.result)
         setLoading(false)
       })
       .catch(e => {
+        if (isStale()) return
         setError('Error loading trend')
         setLoading(false)
         console.error(e)

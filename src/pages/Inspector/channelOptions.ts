@@ -159,13 +159,21 @@ export function resolveChannel(
 ): ResolvedChannel {
   const chCfg = (cfg?.channel ?? {}) as Record<string, any>
   const boundary: string = chCfg.namespace_boundary || ':'
+  // An explicitly empty private_prefix disables private channels, so only fall
+  // back to the server default when the config does not carry the key at all.
+  const privatePrefix: string = chCfg.private_prefix ?? '$'
   const namespaces: Array<Record<string, any>> = Array.isArray(chCfg.namespaces)
     ? chCfg.namespaces
     : []
   const withoutNs: ChannelOptions = (chCfg.without_namespace ??
     {}) as ChannelOptions
 
-  const idx = channel.indexOf(boundary)
+  // Like the server, trim the private prefix before looking for the namespace.
+  const name =
+    privatePrefix && channel.startsWith(privatePrefix)
+      ? channel.slice(privatePrefix.length)
+      : channel
+  const idx = name.indexOf(boundary)
   if (idx === -1) {
     return {
       channel,
@@ -175,7 +183,7 @@ export function resolveChannel(
       verified: false,
     }
   }
-  const nsName = channel.slice(0, idx)
+  const nsName = name.slice(0, idx)
   const ns = namespaces.find(n => n?.name === nsName)
   if (!ns) {
     return {
