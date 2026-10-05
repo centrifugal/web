@@ -6,17 +6,7 @@ import Typography from '@mui/material/Typography'
 
 import { useAdminApi } from 'api/adminApi'
 
-import {
-  formatLicenseDate,
-  licenseDateHint,
-  licenseDates,
-  licenseLimits,
-  LicenseSeverity,
-  LicenseStatus,
-} from './license'
-
-const chipColor = (s: LicenseSeverity) =>
-  s === 'error' ? 'error' : s === 'warning' ? 'warning' : 'default'
+import { licenseChipColor, licenseDateText, LicenseStatus } from './license'
 
 // LicenseLine is one compact line with the license of the node serving the
 // admin UI (PRO). It renders nothing when the server has no license endpoint
@@ -41,7 +31,6 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
 
   if (!status) return null
 
-  const limits = licenseLimits(status)
   return (
     <Box
       data-testid="license-line"
@@ -60,38 +49,33 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
       <Typography variant="body2" color="text.secondary">
         License:
       </Typography>
-      {status.sandbox ? (
-        <Tooltip title="No license key configured. Centrifugo PRO runs with sandbox limits.">
-          <Typography variant="body2">Sandbox mode ({limits})</Typography>
+      <Tooltip
+        title={
+          status.sandbox
+            ? 'No license key configured. Centrifugo PRO runs with sandbox limits.'
+            : `Limits: ${status.limits}`
+        }
+      >
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: status.sandbox ? 400 : 600 }}
+        >
+          {status.text}
+        </Typography>
+      </Tooltip>
+      {status.dates?.map(d => (
+        <Tooltip
+          key={`${d.label}-${d.at}`}
+          title={`${d.hint} ${new Date(d.at * 1000).toISOString()}`}
+        >
+          <Chip
+            size="small"
+            variant={d.severity === 'ok' ? 'outlined' : 'filled'}
+            color={licenseChipColor(d.severity)}
+            label={licenseDateText(d)}
+          />
         </Tooltip>
-      ) : (
-        <>
-          <Tooltip title={`Limits: ${limits}`}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {status.owner}
-              {status.trial ? ' (trial)' : ''}
-            </Typography>
-          </Tooltip>
-          {licenseDates(status).map(d => (
-            <Tooltip
-              key={d.kind}
-              title={`${licenseDateHint(d)} ${new Date(d.at * 1000).toISOString()}`}
-            >
-              <Chip
-                size="small"
-                variant={d.severity === 'ok' ? 'outlined' : 'filled'}
-                color={chipColor(d.severity)}
-                label={`${d.label} ${formatLicenseDate(d.at)}`}
-              />
-            </Tooltip>
-          ))}
-          {licenseDates(status).length === 0 && (
-            <Typography variant="body2" color="text.secondary">
-              no expiration
-            </Typography>
-          )}
-        </>
-      )}
+      ))}
     </Box>
   )
 }
