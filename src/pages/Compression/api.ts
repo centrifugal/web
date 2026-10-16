@@ -12,6 +12,7 @@ import { useCallback, useContext, useMemo } from 'react'
 
 import { useAdminApi, UseAdminApiOptions } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { useSession } from 'contexts/SessionContext'
 
 const BASE = 'admin/api/dictionary'
 
@@ -510,6 +511,7 @@ export function useCompressionApi({
     signinSilent,
   })
   const { showAlert } = useContext(ShellContext)
+  const session = useSession()
 
   // Every call goes through here so the {error, message} body (not just the
   // HTTP status) is available to callers that need to branch on `code`
@@ -529,6 +531,12 @@ export function useCompressionApi({
         } catch {
           // Non-JSON error body — keep the generic message.
         }
+        if (response.status === 403) {
+          code = 'forbidden'
+          message = session
+            ? `Permission denied for role ${session.user.role}`
+            : 'Permission denied'
+        }
         throw new CompressionApiError(response.status, code, message)
       }
       // DELETE / undo endpoints may respond with no body (204, or 200 with an
@@ -542,7 +550,7 @@ export function useCompressionApi({
         return undefined as T
       }
     },
-    [rawRequest]
+    [rawRequest, session]
   )
 
   const getJson = useCallback(

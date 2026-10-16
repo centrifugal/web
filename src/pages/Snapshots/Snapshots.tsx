@@ -10,6 +10,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { Can } from 'contexts/SessionContext'
 
 import {
   SnapshotsList,
@@ -309,16 +310,18 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
         </>
       ) : (
         <>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            <Button
-              variant="solid"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={() => setCreateDialogOpen(true)}
-            >
-              Create Snapshot
-            </Button>
-          </Box>
+          <Can permission="ops:write">
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+              <Button
+                variant="solid"
+                color="primary"
+                startIcon={<AddIcon />}
+                onClick={() => setCreateDialogOpen(true)}
+              >
+                Create Snapshot
+              </Button>
+            </Box>
+          </Can>
           <SnapshotsList
             snapshots={snapshots}
             loading={loading}

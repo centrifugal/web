@@ -5,8 +5,10 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import CircularProgress from '@mui/material/CircularProgress'
 import CompressIcon from '@mui/icons-material/Compress'
+import Alert from '@mui/material/Alert'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { useCan } from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 
 import { useCompressionApi, CompressionApiError } from './api'
@@ -33,6 +35,7 @@ export const Compression = ({
   authorization,
 }: CompressionProps) => {
   const { setTitle } = useContext(ShellContext)
+  const canChange = useCan('ops:write')
   const [searchParams, setSearchParams] = useSearchParams()
   const api = useCompressionApi({ authorization, signinSilent })
 
@@ -126,6 +129,11 @@ export const Compression = ({
       </Box>
 
       <Box className="max-w-8xl mx-auto p-8">
+        {!canChange && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            Your role can review compression state, but not change it.
+          </Alert>
+        )}
         {tab === 'overview' && (
           <OverviewTab
             authorization={authorization}

@@ -26,6 +26,7 @@ import { useTheme, Theme } from '@mui/material/styles'
 
 import { Widget } from '../ui'
 import { ConfirmButton } from 'components/ConfirmButton'
+import { Can } from 'contexts/SessionContext'
 import { InspectorApi, GoToChannel } from '../types'
 import {
   renderData,
@@ -422,45 +423,64 @@ const ConnectionDetails = ({
           </Button>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        {connToken?.uid && (
-          <ConfirmButton
-            title="Revoke this token?"
-            body={`Revokes token ${connToken.uid}. Any connection using it is invalidated on next check. The revocation is kept for 30 days.`}
-            confirmText="Revoke token"
-            onConfirm={revoke}
-          >
-            {open => (
-              <Button variant="tonal" size="small" color="error" onClick={open}>
-                Revoke token
-              </Button>
+        <Can permission="clients:write">
+          <>
+            {connToken?.uid && (
+              <ConfirmButton
+                title="Revoke this token?"
+                body={`Revokes token ${connToken.uid}. Any connection using it is invalidated on next check. The revocation is kept for 30 days.`}
+                confirmText="Revoke token"
+                onConfirm={revoke}
+              >
+                {open => (
+                  <Button
+                    variant="tonal"
+                    size="small"
+                    color="error"
+                    onClick={open}
+                  >
+                    Revoke token
+                  </Button>
+                )}
+              </ConfirmButton>
             )}
-          </ConfirmButton>
-        )}
-        <ConfirmButton
-          title="Force reconnect?"
-          body="Disconnects this client with a reconnect advice — well-behaved SDKs reconnect automatically."
-          confirmText="Reconnect"
-          confirmColor="warning"
-          onConfirm={() => disconnect(3011, 'force reconnect')}
-        >
-          {open => (
-            <Button variant="tonal" size="small" color="warning" onClick={open}>
-              Reconnect
-            </Button>
-          )}
-        </ConfirmButton>
-        <ConfirmButton
-          title="Disconnect this client?"
-          body="Disconnects this client without reconnect advice."
-          confirmText="Disconnect"
-          onConfirm={() => disconnect(3503, 'force disconnect')}
-        >
-          {open => (
-            <Button variant="tonal" size="small" color="error" onClick={open}>
-              Disconnect
-            </Button>
-          )}
-        </ConfirmButton>
+            <ConfirmButton
+              title="Force reconnect?"
+              body="Disconnects this client with a reconnect advice — well-behaved SDKs reconnect automatically."
+              confirmText="Reconnect"
+              confirmColor="warning"
+              onConfirm={() => disconnect(3011, 'force reconnect')}
+            >
+              {open => (
+                <Button
+                  variant="tonal"
+                  size="small"
+                  color="warning"
+                  onClick={open}
+                >
+                  Reconnect
+                </Button>
+              )}
+            </ConfirmButton>
+            <ConfirmButton
+              title="Disconnect this client?"
+              body="Disconnects this client without reconnect advice."
+              confirmText="Disconnect"
+              onConfirm={() => disconnect(3503, 'force disconnect')}
+            >
+              {open => (
+                <Button
+                  variant="tonal"
+                  size="small"
+                  color="error"
+                  onClick={open}
+                >
+                  Disconnect
+                </Button>
+              )}
+            </ConfirmButton>
+          </>
+        </Can>
       </DialogActions>
     </Dialog>
   )

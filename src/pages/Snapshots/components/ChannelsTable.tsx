@@ -24,6 +24,7 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 
 import { useAdminApi } from 'api/adminApi'
+import { Can } from 'contexts/SessionContext'
 
 const CHANNELS_PAGE_SIZE = 500
 
@@ -341,17 +342,19 @@ export const ChannelsTable = ({
                       sx={{ width: '1%', whiteSpace: 'nowrap', padding: '6px' }}
                     >
                       <Box display="flex" gap={1}>
-                        <Button
-                          variant="solid"
-                          color="primary"
-                          size="small"
-                          startIcon={<CameraAltIcon />}
-                          onClick={() =>
-                            onCreateConnectionsSnapshot(channel.channel)
-                          }
-                        >
-                          Snapshot subscribers
-                        </Button>
+                        <Can permission="ops:write">
+                          <Button
+                            variant="solid"
+                            color="primary"
+                            size="small"
+                            startIcon={<CameraAltIcon />}
+                            onClick={() =>
+                              onCreateConnectionsSnapshot(channel.channel)
+                            }
+                          >
+                            Snapshot subscribers
+                          </Button>
+                        </Can>
                         <Button
                           variant="tonal"
                           color="info"

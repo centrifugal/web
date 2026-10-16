@@ -24,8 +24,10 @@ import Box from '@mui/material/Box'
 import Menu from '@mui/material/Menu'
 import * as React from 'react'
 import Avatar from '@mui/material/Avatar'
+import Chip from '@mui/material/Chip'
 
 import { routes } from 'config/routes'
+import { hasPermission, Permission, useSession } from 'contexts/SessionContext'
 import { Logo } from './Logo'
 
 interface AppBarProps extends MuiAppBarProps {
@@ -49,13 +51,25 @@ interface ShellAppBarProps {
   username: string
 }
 
-const pages = [
+// permissions are what a page needs to be shown - any one of them; pages
+// without are usable by anyone (Actions shows only the methods the user may
+// call).
+const pages: {
+  name: string
+  icon: typeof SignalCellularAltIcon
+  iconColor: string
+  to: string
+  oss: boolean
+  permissions?: Permission[]
+  hidden?: boolean
+}[] = [
   {
     name: 'Status',
     icon: SignalCellularAltIcon,
     iconColor: '#2FB37D',
     to: routes.ROOT,
     oss: true,
+    permissions: ['ops:read'],
   },
   {
     name: 'Actions',
@@ -70,6 +84,7 @@ const pages = [
     iconColor: '#17A2A0',
     to: routes.INSPECTOR,
     oss: false,
+    permissions: ['channels:read', 'clients:read'],
   },
   {
     name: 'Tracing',
@@ -77,6 +92,7 @@ const pages = [
     iconColor: '#3D6FD6',
     to: routes.TRACING,
     oss: false,
+    permissions: ['channels:read', 'clients:read'],
   },
   {
     name: 'Snapshots',
@@ -84,6 +100,7 @@ const pages = [
     iconColor: '#D6468F',
     to: routes.SNAPSHOTS,
     oss: false,
+    permissions: ['ops:read'],
   },
   {
     name: 'Analytics',
@@ -91,6 +108,7 @@ const pages = [
     iconColor: '#6E5AE0',
     to: routes.ANALYTICS,
     oss: false,
+    permissions: ['ops:read'],
   },
   {
     name: 'Push Notifications',
@@ -98,6 +116,7 @@ const pages = [
     iconColor: '#E84C3B',
     to: routes.PUSH_NOTIFICATION,
     oss: false,
+    permissions: ['push:read'],
   },
   {
     name: 'Config',
@@ -105,6 +124,7 @@ const pages = [
     iconColor: '#7A7A84',
     to: routes.CONFIG,
     oss: false,
+    permissions: ['ops:read'],
   },
   {
     name: 'Compression',
@@ -112,6 +132,7 @@ const pages = [
     iconColor: '#2FA6D6',
     to: routes.COMPRESSION,
     oss: false,
+    permissions: ['ops:read'],
     // Reachable at /compression, just not advertised in the nav while the
     // feature settles. Drop this line to put it back.
     hidden: true,
@@ -126,6 +147,10 @@ export const ShellAppBar = ({
   username,
 }: ShellAppBarProps) => {
   const location = useLocation()
+  const session = useSession()
+  // Role is shown when it limits what the user can do.
+  const role = session?.user.role
+  const limitedRole = role && role !== 'admin' ? role : undefined
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
@@ -227,6 +252,11 @@ export const ShellAppBar = ({
               {pages
                 .filter(page => !page.hidden)
                 .filter(page => page.oss || edition === 'pro')
+                .filter(
+                  page =>
+                    !page.permissions ||
+                    page.permissions.some(p => hasPermission(session, p))
+                )
                 .map(page => (
                   <MenuItem
                     key={page.name}
@@ -268,6 +298,11 @@ export const ShellAppBar = ({
             {pages
               .filter(page => !page.hidden)
               .filter(page => page.oss || edition === 'pro')
+              .filter(
+                page =>
+                  !page.permissions ||
+                  page.permissions.some(p => hasPermission(session, p))
+              )
               .map(page => {
                 return (
                   <MenuItem
@@ -290,7 +325,20 @@ export const ShellAppBar = ({
                   </MenuItem>
                 )
               })}
-            <Typography sx={{ marginLeft: 'auto', marginRight: '10px' }}>
+            {limitedRole && (
+              <Chip
+                label={limitedRole}
+                size="small"
+                variant="outlined"
+                sx={{ marginLeft: 'auto', marginRight: '10px' }}
+              />
+            )}
+            <Typography
+              sx={{
+                marginLeft: limitedRole ? 0 : 'auto',
+                marginRight: '10px',
+              }}
+            >
               {username}
             </Typography>
           </Box>

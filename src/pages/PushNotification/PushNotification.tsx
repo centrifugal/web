@@ -36,6 +36,7 @@ import Autocomplete from '@mui/material/Autocomplete'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { Can } from 'contexts/SessionContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { CopyButton } from '../../components/CopyButton'
@@ -476,14 +477,16 @@ export function PushNotification({
                           setPushBody(event.target.value)
                         }}
                       />
-                      <Button
-                        variant="solid"
-                        color="primary"
-                        disabled={!isPushFilled()}
-                        onClick={handlePushToFilteredSubmit}
-                      >
-                        Push to filtered
-                      </Button>
+                      <Can permission="push:write">
+                        <Button
+                          variant="solid"
+                          color="primary"
+                          disabled={!isPushFilled()}
+                          onClick={handlePushToFilteredSubmit}
+                        >
+                          Push to filtered
+                        </Button>
+                      </Can>
                       <ConfirmDialog
                         isOpen={isPushToFilteredConfirmDialogOpen}
                         onCancel={handlePushToFilteredCancel}
@@ -676,14 +679,16 @@ export function PushNotification({
                             setPushBody(event.target.value)
                           }}
                         />
-                        <Button
-                          variant="solid"
-                          color="primary"
-                          disabled={!isPushFilled()}
-                          onClick={handlePushToDeviceSubmit}
-                        >
-                          Push to device
-                        </Button>
+                        <Can permission="push:write">
+                          <Button
+                            variant="solid"
+                            color="primary"
+                            disabled={!isPushFilled()}
+                            onClick={handlePushToDeviceSubmit}
+                          >
+                            Push to device
+                          </Button>
+                        </Can>
                         <ConfirmDialog
                           isOpen={isPushToDeviceConfirmDialogOpen}
                           onCancel={handlePushToDeviceCancel}
@@ -786,16 +791,18 @@ export function PushNotification({
                     />
                   )}
                 />
-                <Button
-                  variant="solid"
-                  size="small"
-                  color="primary"
-                  disabled={isFilterEmpty() || nodes.length === 0}
-                  onClick={handlePushToFilteredClick}
-                  style={{ float: 'right', marginBottom: '20px' }}
-                >
-                  Push to filtered ({totalCount})
-                </Button>
+                <Can permission="push:write">
+                  <Button
+                    variant="solid"
+                    size="small"
+                    color="primary"
+                    disabled={isFilterEmpty() || nodes.length === 0}
+                    onClick={handlePushToFilteredClick}
+                    style={{ float: 'right', marginBottom: '20px' }}
+                  >
+                    Push to filtered ({totalCount})
+                  </Button>
+                </Can>
               </Box>
               <TableContainer sx={{ mt: 4 }} component={Paper}>
                 <Table aria-label="simple table">

@@ -29,6 +29,8 @@ import { PersistedStorageKeys } from 'models/storage'
 import { Shell } from 'components/Shell'
 import { Typography } from '@mui/material'
 import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
+import { Session, SessionContext } from 'contexts/SessionContext'
+import { adminRawFetch } from 'api/adminApi'
 
 import { useAuth } from 'react-oidc-context'
 
@@ -317,6 +319,33 @@ function ShellWrapper({
 
   const [hasTriedSignin, setHasTriedSignin] = useState(false)
 
+  // Session of the logged-in admin (PRO): permissions which decide what
+  // pages show. Loaded again when the credentials change, and pages wait for
+  // it so controls don't flash. OSS has no sessions; on an older PRO server
+  // or any failure there are no restrictions - the server enforces anyway.
+  const [session, setSession] = useState<Session | null>(null)
+  const [sessionLoaded, setSessionLoaded] = useState(edition !== 'pro')
+  useEffect(() => {
+    if (edition !== 'pro') {
+      setSession(null)
+      setSessionLoaded(true)
+      return
+    }
+    let cancelled = false
+    setSessionLoaded(false)
+    adminRawFetch('admin/session', { authorization })
+      .then(async res => (res.ok ? ((await res.json()) as Session) : null))
+      .catch(() => null)
+      .then(s => {
+        if (cancelled) return
+        setSession(s)
+        setSessionLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [edition, authorization, passwordAuthenticated])
+
   // automatically sign-in
   useEffect(() => {
     if (
@@ -332,145 +361,150 @@ function ShellWrapper({
   }, [auth, hasTriedSignin])
 
   return (
-    <Shell
-      handleLogin={handleLogin}
-      handleLogout={handleLogout}
-      passwordAuthenticated={passwordAuthenticated}
-      edition={edition}
-    >
-      <Routes>
-        {[routes.ROOT, routes.INDEX_HTML].map(path => (
-          <Route
-            key={path}
-            path={path}
-            element={
-              <Status
-                signinSilent={signinSilent}
-                authorization={authorization}
-                edition={edition}
+    <SessionContext.Provider value={session}>
+      <Shell
+        handleLogin={handleLogin}
+        handleLogout={handleLogout}
+        passwordAuthenticated={passwordAuthenticated}
+        edition={edition}
+      >
+        {/* Pages wait for the session, so they render with permissions known. */}
+        {sessionLoaded && (
+          <Routes>
+            {[routes.ROOT, routes.INDEX_HTML].map(path => (
+              <Route
+                key={path}
+                path={path}
+                element={
+                  <Status
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                    edition={edition}
+                  />
+                }
               />
-            }
-          />
-        ))}
-        <Route path={routes.SETTINGS} element={<Settings />} />
-        <Route
-          path={routes.ACTIONS}
-          element={
-            <Actions
-              signinSilent={signinSilent}
-              authorization={authorization}
-              edition={edition}
+            ))}
+            <Route path={routes.SETTINGS} element={<Settings />} />
+            <Route
+              path={routes.ACTIONS}
+              element={
+                <Actions
+                  signinSilent={signinSilent}
+                  authorization={authorization}
+                  edition={edition}
+                />
+              }
             />
-          }
-        />
-        {edition === 'pro' ? (
-          <Route
-            path={routes.INSPECTOR}
-            element={
-              <Inspector
-                signinSilent={signinSilent}
-                authorization={authorization}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.INSPECTOR}
+                element={
+                  <Inspector
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.TRACING}
-            element={
-              <Tracing
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.TRACING}
+                element={
+                  <Tracing
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.ANALYTICS}
-            element={
-              <Analytics
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.ANALYTICS}
+                element={
+                  <Analytics
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.PUSH_NOTIFICATION}
-            element={
-              <PushNotification
-                signinSilent={signinSilent}
-                authorization={authorization}
-                edition={edition}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.PUSH_NOTIFICATION}
+                element={
+                  <PushNotification
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                    edition={edition}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.SNAPSHOTS}
-            element={
-              <Snapshots
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.SNAPSHOTS}
+                element={
+                  <Snapshots
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={`${routes.SNAPSHOTS}/:id`}
-            element={
-              <Snapshots
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={`${routes.SNAPSHOTS}/:id`}
+                element={
+                  <Snapshots
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.CONFIG}
-            element={
-              <Config
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.CONFIG}
+                element={
+                  <Config
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
-        )}
-        {edition === 'pro' ? (
-          <Route
-            path={routes.COMPRESSION}
-            element={
-              <Compression
-                signinSilent={signinSilent}
-                authorization={authorization}
+            ) : (
+              <></>
+            )}
+            {edition === 'pro' ? (
+              <Route
+                path={routes.COMPRESSION}
+                element={
+                  <Compression
+                    signinSilent={signinSilent}
+                    authorization={authorization}
+                  />
+                }
               />
-            }
-          />
-        ) : (
-          <></>
+            ) : (
+              <></>
+            )}
+            <Route path="*" element={<PageNotFound />} />
+          </Routes>
         )}
-        <Route path="*" element={<PageNotFound />} />
-      </Routes>
-    </Shell>
+      </Shell>
+    </SessionContext.Provider>
   )
 }
 

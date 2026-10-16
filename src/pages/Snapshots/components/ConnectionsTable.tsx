@@ -48,6 +48,7 @@ import SellIcon from '@mui/icons-material/Sell'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { Can } from 'contexts/SessionContext'
 
 const CONNECTIONS_PAGE_SIZE = 500
 
@@ -1175,24 +1176,26 @@ export const ConnectionsTable = ({
               sx={{ justifyContent: 'space-between', px: 3, py: 2 }}
             >
               <Box display="flex" gap={1}>
-                <Button
-                  variant="tonal"
-                  startIcon={<LinkIcon />}
-                  onClick={() => handleReconnect(selectedConnection)}
-                  color="warning"
-                  disabled={actionInFlight}
-                >
-                  Reconnect
-                </Button>
-                <Button
-                  variant="tonal"
-                  startIcon={<LinkOffIcon />}
-                  onClick={() => handleDisconnect(selectedConnection)}
-                  color="error"
-                  disabled={actionInFlight}
-                >
-                  Disconnect
-                </Button>
+                <Can permission="clients:write">
+                  <Button
+                    variant="tonal"
+                    startIcon={<LinkIcon />}
+                    onClick={() => handleReconnect(selectedConnection)}
+                    color="warning"
+                    disabled={actionInFlight}
+                  >
+                    Reconnect
+                  </Button>
+                  <Button
+                    variant="tonal"
+                    startIcon={<LinkOffIcon />}
+                    onClick={() => handleDisconnect(selectedConnection)}
+                    color="error"
+                    disabled={actionInFlight}
+                  >
+                    Disconnect
+                  </Button>
+                </Can>
               </Box>
               <Button
                 variant="text"

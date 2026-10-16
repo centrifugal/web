@@ -37,6 +37,12 @@ import {
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
+import {
+  hasPermission,
+  Permission,
+  useCan,
+  useSession,
+} from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 
 interface ActionsProps {
@@ -49,67 +55,233 @@ interface MethodOption {
   value: string
   name: string
   category: string
+  // What the server requires to call the method - mirrors methodPermissions
+  // in Centrifugo PRO. The list shows only methods the user may call.
+  permission: Permission
 }
 
 // Define method lists outside component to avoid recreation
 const coreMethods: MethodOption[] = [
-  { value: 'publish', name: 'Publish', category: 'OSS' },
-  { value: 'broadcast', name: 'Broadcast', category: 'OSS' },
-  { value: 'presence', name: 'Presence', category: 'OSS' },
-  { value: 'presence_stats', name: 'Presence Stats', category: 'OSS' },
-  { value: 'history', name: 'History', category: 'OSS' },
-  { value: 'history_remove', name: 'History Remove', category: 'OSS' },
-  { value: 'subscribe', name: 'Subscribe', category: 'OSS' },
-  { value: 'unsubscribe', name: 'Unsubscribe', category: 'OSS' },
-  { value: 'disconnect', name: 'Disconnect', category: 'OSS' },
-  { value: 'info', name: 'Info', category: 'OSS' },
-  { value: 'rpc', name: 'RPC', category: 'OSS' },
-  { value: 'channels', name: 'Channels', category: 'OSS' },
-  { value: 'map_publish', name: 'Map publish', category: 'OSS' },
-  { value: 'map_remove', name: 'Map remove', category: 'OSS' },
-  { value: 'map_read_state', name: 'Map read state', category: 'OSS' },
-  { value: 'map_read_stream', name: 'Map read stream', category: 'OSS' },
-  { value: 'map_stats', name: 'Map stats', category: 'OSS' },
-  { value: 'map_clear', name: 'Map clear', category: 'OSS' },
+  {
+    value: 'publish',
+    name: 'Publish',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
+  {
+    value: 'broadcast',
+    name: 'Broadcast',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
+  {
+    value: 'presence',
+    name: 'Presence',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'presence_stats',
+    name: 'Presence Stats',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'history',
+    name: 'History',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'history_remove',
+    name: 'History Remove',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
+  {
+    value: 'subscribe',
+    name: 'Subscribe',
+    category: 'OSS',
+    permission: 'clients:write',
+  },
+  {
+    value: 'unsubscribe',
+    name: 'Unsubscribe',
+    category: 'OSS',
+    permission: 'clients:write',
+  },
+  {
+    value: 'disconnect',
+    name: 'Disconnect',
+    category: 'OSS',
+    permission: 'clients:write',
+  },
+  { value: 'info', name: 'Info', category: 'OSS', permission: 'ops:read' },
+  {
+    value: 'channels',
+    name: 'Channels',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'map_publish',
+    name: 'Map publish',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
+  {
+    value: 'map_remove',
+    name: 'Map remove',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
+  {
+    value: 'map_read_state',
+    name: 'Map read state',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'map_read_stream',
+    name: 'Map read stream',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'map_stats',
+    name: 'Map stats',
+    category: 'OSS',
+    permission: 'channels:read',
+  },
+  {
+    value: 'map_clear',
+    name: 'Map clear',
+    category: 'OSS',
+    permission: 'channels:write',
+  },
   {
     value: 'shared_poll_publish',
     name: 'Shared poll publish',
     category: 'OSS',
+    permission: 'channels:write',
   },
 ]
 
 const proMethods: MethodOption[] = [
-  { value: 'connections', name: 'Connections', category: 'PRO' },
-  { value: 'update_user_status', name: 'Update user status', category: 'PRO' },
-  { value: 'get_user_status', name: 'Get user status', category: 'PRO' },
-  { value: 'delete_user_status', name: 'Delete user status', category: 'PRO' },
-  { value: 'block_user', name: 'Block user', category: 'PRO' },
-  { value: 'unblock_user', name: 'Unblock user', category: 'PRO' },
-  { value: 'revoke_token', name: 'Revoke token', category: 'PRO' },
+  {
+    value: 'connections',
+    name: 'Connections',
+    category: 'PRO',
+    permission: 'clients:read',
+  },
+  {
+    value: 'update_user_status',
+    name: 'Update user status',
+    category: 'PRO',
+    permission: 'clients:write',
+  },
+  {
+    value: 'get_user_status',
+    name: 'Get user status',
+    category: 'PRO',
+    permission: 'clients:read',
+  },
+  {
+    value: 'delete_user_status',
+    name: 'Delete user status',
+    category: 'PRO',
+    permission: 'clients:write',
+  },
+  {
+    value: 'block_user',
+    name: 'Block user',
+    category: 'PRO',
+    permission: 'clients:write',
+  },
+  {
+    value: 'unblock_user',
+    name: 'Unblock user',
+    category: 'PRO',
+    permission: 'clients:write',
+  },
+  {
+    value: 'revoke_token',
+    name: 'Revoke token',
+    category: 'PRO',
+    permission: 'clients:write',
+  },
   {
     value: 'invalidate_user_tokens',
     name: 'Invalidate user tokens',
     category: 'PRO',
+    permission: 'clients:write',
   },
-  { value: 'device_register', name: 'Device register', category: 'PRO' },
-  { value: 'device_update', name: 'Device update', category: 'PRO' },
-  { value: 'device_remove', name: 'Device remove', category: 'PRO' },
-  { value: 'device_list', name: 'Device list', category: 'PRO' },
-  { value: 'device_topic_list', name: 'Device topic list', category: 'PRO' },
+  {
+    value: 'device_register',
+    name: 'Device register',
+    category: 'PRO',
+    permission: 'push:write',
+  },
+  {
+    value: 'device_update',
+    name: 'Device update',
+    category: 'PRO',
+    permission: 'push:write',
+  },
+  {
+    value: 'device_remove',
+    name: 'Device remove',
+    category: 'PRO',
+    permission: 'push:write',
+  },
+  {
+    value: 'device_list',
+    name: 'Device list',
+    category: 'PRO',
+    permission: 'push:read',
+  },
+  {
+    value: 'device_topic_list',
+    name: 'Device topic list',
+    category: 'PRO',
+    permission: 'push:read',
+  },
   {
     value: 'device_topic_update',
     name: 'Device topic update',
     category: 'PRO',
+    permission: 'push:write',
   },
-  { value: 'user_topic_list', name: 'User topic list', category: 'PRO' },
-  { value: 'user_topic_update', name: 'User topic update', category: 'PRO' },
+  {
+    value: 'user_topic_list',
+    name: 'User topic list',
+    category: 'PRO',
+    permission: 'push:read',
+  },
+  {
+    value: 'user_topic_update',
+    name: 'User topic update',
+    category: 'PRO',
+    permission: 'push:write',
+  },
   {
     value: 'send_push_notification',
     name: 'Send push notification',
     category: 'PRO',
+    permission: 'push:write',
   },
-  { value: 'update_push_status', name: 'Update push status', category: 'PRO' },
-  { value: 'cancel_push', name: 'Cancel push', category: 'PRO' },
+  {
+    value: 'update_push_status',
+    name: 'Update push status',
+    category: 'PRO',
+    permission: 'push:write',
+  },
+  {
+    value: 'cancel_push',
+    name: 'Cancel push',
+    category: 'PRO',
+    permission: 'push:write',
+  },
 ]
 
 export const Actions = ({
@@ -122,7 +294,20 @@ export const Actions = ({
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
 
-  const [method, setMethod] = useState<string>('publish')
+  const session = useSession()
+
+  // Combine method options, memoized on edition, keeping only methods the
+  // user may call.
+  const methodOptions = useMemo<MethodOption[]>(
+    () =>
+      (edition === 'pro'
+        ? [...coreMethods, ...proMethods]
+        : coreMethods
+      ).filter(m => hasPermission(session, m.permission)),
+    [edition, session]
+  )
+  const defaultMethod = useCan('channels:write') ? 'publish' : 'info'
+  const [method, setMethod] = useState<string>(defaultMethod)
   const [loading, setLoading] = useState<boolean>(false)
   const [request, setRequest] = useState<any | null>(null)
   const [response, setResponse] = useState<any | null>(null)
@@ -133,12 +318,6 @@ export const Actions = ({
   const codeStyle = useMemo(
     () => (colorMode === 'dark' ? a11yDark : solarizedLight),
     [colorMode]
-  )
-
-  // Combine method options, memoized on edition
-  const methodOptions = useMemo<MethodOption[]>(
-    () => (edition === 'pro' ? [...coreMethods, ...proMethods] : coreMethods),
-    [edition]
   )
 
   // Send API request
@@ -168,7 +347,7 @@ export const Actions = ({
 
   // Handle method selection change
   const handleMethodChange = (_: any, option: MethodOption | null) => {
-    setMethod(option?.value || 'publish')
+    setMethod(option?.value || defaultMethod)
     setRequest(null)
     setResponse(null)
     setExecutedAt(null)
@@ -192,7 +371,6 @@ export const Actions = ({
     unsubscribe: <UnsubscribeForm {...formProps} />,
     disconnect: <DisconnectForm {...formProps} />,
     info: <InfoForm {...formProps} />,
-    rpc: <RpcForm {...formProps} />,
     channels: <ChannelsForm {...formProps} />,
     connections: <ConnectionsForm {...formProps} />,
     update_user_status: <UpdateUserStatusForm {...formProps} />,
@@ -1553,51 +1731,6 @@ export const ChannelsForm = ({
         value={pattern}
       />
       <SubmitButton loading={loading} text="Channels" />
-    </Box>
-  )
-}
-
-export const RpcForm = ({ colorMode, loading, sendRequest }: FormProps) => {
-  const { showAlert } = useContext(ShellContext)
-  const [method, setMethod] = useState('')
-  const [data, setData] = useState<any | null>(null)
-
-  const handleFormSubmit = (event: React.SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    let jsonData
-    if (!data) {
-      showAlert('Data required', { severity: 'error' })
-      return
-    }
-    try {
-      jsonData = JSON.parse(data)
-    } catch {
-      showAlert('Invalid JSON data', { severity: 'error' })
-      return
-    }
-    sendRequest({ method: method, data: jsonData })
-  }
-
-  const onDataChange = (newValue: any) => {
-    setData(newValue)
-  }
-
-  return (
-    <Box component="form" onSubmit={handleFormSubmit} sx={{ mt: 0 }}>
-      <TextField
-        margin="normal"
-        required
-        fullWidth
-        name="method"
-        label="Method"
-        type="text"
-        id="text"
-        autoComplete="off"
-        onChange={event => setMethod(event.target.value)}
-        value={method}
-      />
-      <JsonField colorMode={colorMode} onChange={onDataChange} />
-      <SubmitButton loading={loading} text="RPC" />
     </Box>
   )
 }

@@ -13,6 +13,7 @@ import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 
 import { Widget } from '../ui'
 import { ConfirmButton } from 'components/ConfirmButton'
+import { Can } from 'contexts/SessionContext'
 import { InspectorApi } from '../types'
 import { renderData } from '../format'
 
@@ -161,20 +162,22 @@ export const HistoryPanel = ({
           </IconButton>
         </span>
       </Tooltip>
-      <ConfirmButton
-        title="Purge history?"
-        body={`This permanently removes all history for "${channel}".`}
-        confirmText="Purge"
-        onConfirm={purge}
-      >
-        {open => (
-          <Tooltip title="Purge history" arrow>
-            <IconButton size="small" color="error" onClick={open}>
-              <DeleteSweepIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        )}
-      </ConfirmButton>
+      <Can permission="channels:write">
+        <ConfirmButton
+          title="Purge history?"
+          body={`This permanently removes all history for "${channel}".`}
+          confirmText="Purge"
+          onConfirm={purge}
+        >
+          {open => (
+            <Tooltip title="Purge history" arrow>
+              <IconButton size="small" color="error" onClick={open}>
+                <DeleteSweepIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </ConfirmButton>
+      </Can>
     </>
   )
 

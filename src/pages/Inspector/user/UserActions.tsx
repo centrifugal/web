@@ -15,6 +15,7 @@ import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew'
 import TimelineIcon from '@mui/icons-material/Timeline'
 
 import { ConfirmButton } from 'components/ConfirmButton'
+import { Can } from 'contexts/SessionContext'
 import { DurabilityBadge } from '../components/DurabilityBadge'
 import { InspectorApi } from '../types'
 import { ServerConfig } from '../useServerConfig'
@@ -59,83 +60,90 @@ export const UserActions = ({
     <Box
       sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}
     >
-      <Button
-        variant="tonal"
-        size="small"
-        color="error"
-        startIcon={<BlockIcon />}
-        onClick={() => setBlockOpen(true)}
-      >
-        {blockKnown && blocked ? 'Change block' : 'Block'}
-        <DurabilityBadge durability={server.blockDurability} inline />
-      </Button>
-
-      {showUnblock && (
-        <ConfirmButton
-          title="Unblock user?"
-          body={`Removes any active block for "${user}".`}
-          confirmText="Unblock"
-          confirmColor="primary"
-          onConfirm={() => act('unblock_user', { user }, 'User unblocked')}
-        >
-          {open => (
-            <Button
-              variant="solid"
-              color="primary"
-              size="small"
-              startIcon={<LockOpenIcon />}
-              onClick={open}
-            >
-              Unblock
-            </Button>
-          )}
-        </ConfirmButton>
-      )}
-
-      <ConfirmButton
-        title="Invalidate all tokens?"
-        body={`Invalidates every connection token for "${user}" issued before now. Existing connections drop on their next token check; the user must obtain a fresh token.`}
-        confirmText="Invalidate"
-        onConfirm={() =>
-          act(
-            'invalidate_user_tokens',
-            { user, issued_before: Math.floor(Date.now() / 1000) },
-            'Tokens invalidated'
-          )
-        }
-      >
-        {open => (
-          <Button
-            variant="tonal"
-            size="small"
-            color="warning"
-            startIcon={<KeyOffIcon />}
-            onClick={open}
-          >
-            Invalidate tokens
-            <DurabilityBadge durability={server.invalidateDurability} inline />
-          </Button>
-        )}
-      </ConfirmButton>
-
-      <ConfirmButton
-        title="Disconnect all connections?"
-        body={`Disconnects every active connection of "${user}".`}
-        confirmText="Disconnect all"
-        onConfirm={() => act('disconnect', { user }, 'User disconnected')}
-      >
-        {open => (
+      <Can permission="clients:write">
+        <>
           <Button
             variant="tonal"
             size="small"
             color="error"
-            startIcon={<PowerSettingsNewIcon />}
-            onClick={open}
+            startIcon={<BlockIcon />}
+            onClick={() => setBlockOpen(true)}
           >
-            Disconnect all
+            {blockKnown && blocked ? 'Change block' : 'Block'}
+            <DurabilityBadge durability={server.blockDurability} inline />
           </Button>
-        )}
-      </ConfirmButton>
+
+          {showUnblock && (
+            <ConfirmButton
+              title="Unblock user?"
+              body={`Removes any active block for "${user}".`}
+              confirmText="Unblock"
+              confirmColor="primary"
+              onConfirm={() => act('unblock_user', { user }, 'User unblocked')}
+            >
+              {open => (
+                <Button
+                  variant="solid"
+                  color="primary"
+                  size="small"
+                  startIcon={<LockOpenIcon />}
+                  onClick={open}
+                >
+                  Unblock
+                </Button>
+              )}
+            </ConfirmButton>
+          )}
+
+          <ConfirmButton
+            title="Invalidate all tokens?"
+            body={`Invalidates every connection token for "${user}" issued before now. Existing connections drop on their next token check; the user must obtain a fresh token.`}
+            confirmText="Invalidate"
+            onConfirm={() =>
+              act(
+                'invalidate_user_tokens',
+                { user, issued_before: Math.floor(Date.now() / 1000) },
+                'Tokens invalidated'
+              )
+            }
+          >
+            {open => (
+              <Button
+                variant="tonal"
+                size="small"
+                color="warning"
+                startIcon={<KeyOffIcon />}
+                onClick={open}
+              >
+                Invalidate tokens
+                <DurabilityBadge
+                  durability={server.invalidateDurability}
+                  inline
+                />
+              </Button>
+            )}
+          </ConfirmButton>
+
+          <ConfirmButton
+            title="Disconnect all connections?"
+            body={`Disconnects every active connection of "${user}".`}
+            confirmText="Disconnect all"
+            onConfirm={() => act('disconnect', { user }, 'User disconnected')}
+          >
+            {open => (
+              <Button
+                variant="tonal"
+                size="small"
+                color="error"
+                startIcon={<PowerSettingsNewIcon />}
+                onClick={open}
+              >
+                Disconnect all
+              </Button>
+            )}
+          </ConfirmButton>
+        </>
+      </Can>
 
       <Box sx={{ flexGrow: 1 }} />
       <Button

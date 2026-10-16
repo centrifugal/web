@@ -2,6 +2,7 @@ import { useCallback, useContext } from 'react'
 
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
+import { useSession } from 'contexts/SessionContext'
 
 // Build a URL for an admin endpoint path under the current handler prefix.
 // `globalUrlPrefix` is window.location.pathname, which is stable under the
@@ -101,6 +102,7 @@ export function useAdminApi({
   signinSilent,
 }: UseAdminApiOptions): AdminApiHook {
   const { showAlert } = useContext(ShellContext)
+  const session = useSession()
 
   const handleError = useCallback(
     (error: unknown) => {
@@ -111,13 +113,18 @@ export function useAdminApi({
           return
         }
         if (error.status === 403) {
-          showAlert('Permission denied', { severity: 'error' })
+          showAlert(
+            session
+              ? `Permission denied for role ${session.user.role}`
+              : 'Permission denied',
+            { severity: 'error' }
+          )
           return
         }
       }
       showAlert('Error connecting to server', { severity: 'error' })
     },
-    [showAlert, signinSilent]
+    [showAlert, signinSilent, session]
   )
 
   const rawRequest = useCallback(
