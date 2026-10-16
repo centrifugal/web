@@ -357,6 +357,8 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
         </Box>
       ) : (
         <Box>
+          {edition === 'pro' && <LicenseLine authorization={authorization} />}
+
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
             <SummaryCard
               icon={<Storage sx={{ fontSize: 28 }} />}
@@ -374,8 +376,6 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
               value={fmtInt(numSubs)}
             />
           </Box>
-
-          {edition === 'pro' && <LicenseLine authorization={authorization} />}
 
           {nodes.length === 0 ? (
             <Paper>

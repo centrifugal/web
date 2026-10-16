@@ -46,10 +46,9 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
         justifyContent: 'flex-end',
         columnGap: 1,
         rowGap: 0.5,
-        // Sits in the gap below the summary cards, so the page layout is the
-        // same whether the line is shown or not.
+        // Sits above the summary cards, pulled up into the page padding.
         mt: -2,
-        mb: 2,
+        mb: 1.5,
       }}
     >
       <Typography variant="caption" color="text.secondary">
