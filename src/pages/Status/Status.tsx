@@ -188,6 +188,32 @@ function createData(
   }
 }
 
+// commandCount adds up the counts of a duration metric over its series -
+// only of method, when set - from its summary or, when node info has none
+// (native histograms), its histogram. Labels in keys are sorted by name, so
+// channel_namespace or client labels may come before method.
+export const commandCount = (
+  items: Record<string, unknown>,
+  metric: string,
+  method?: string
+): number => {
+  const methodLabel = method
+    ? new RegExp(`(^|\\.)method\\.${method}(\\.|$)`)
+    : undefined
+  const sum = (prefix: string) => {
+    let total = 0
+    let found = false
+    for (const [key, value] of Object.entries(items)) {
+      if (!key.startsWith(prefix)) continue
+      if (methodLabel && !methodLabel.test(key.slice(prefix.length))) continue
+      total += Number(value)
+      found = true
+    }
+    return found ? total : undefined
+  }
+  return sum(`${metric}.count.`) ?? sum(`${metric}_histogram.count.`) ?? 0
+}
+
 export function Status({ signinSilent, authorization, edition }: StatusProps) {
   const { command, handleError } = useAdminApi({ authorization, signinSilent })
   const [nodes, setNodes] = useState<ReturnType<typeof createData>[]>([])
@@ -278,29 +304,22 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
           items['centrifugo.node.messages_sent_count.type.publication'] || 0
         )
 
-        // client command counts
-        const cntConnect = Number(
-          items[
-            'centrifugo.client.command_duration_seconds.count.method.connect'
-          ] || 0
+        // Command counts come from the duration summaries - or, with native
+        // histograms (summaries off), from the duration histograms.
+        const cntConnect = commandCount(
+          items,
+          'centrifugo.client.command_duration_seconds',
+          'connect'
         )
-        const cntSubscribe = Number(
-          items[
-            'centrifugo.client.command_duration_seconds.count.method.subscribe'
-          ] || 0
+        const cntSubscribe = commandCount(
+          items,
+          'centrifugo.client.command_duration_seconds',
+          'subscribe'
         )
-
-        // api command counts sum
-        let cntApi = 0
-        Object.entries(items).forEach(([key, value]) => {
-          if (
-            key.startsWith(
-              'centrifugo.api.command_duration_seconds.count.method.'
-            )
-          ) {
-            cntApi += Number(value)
-          }
-        })
+        const cntApi = commandCount(
+          items,
+          'centrifugo.api.command_duration_seconds'
+        )
 
         // rates
         const connectRate = (cntConnect / interval).toFixed(1)
