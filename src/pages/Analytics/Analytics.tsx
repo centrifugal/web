@@ -38,6 +38,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 
 import { Trends } from './Trends'
 import { UserExplorer } from './UserExplorer'
@@ -352,7 +353,7 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 }
 
 const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
-  const { setTitle, showAlert } = useContext(ShellContext)
+  const { showAlert } = useContext(ShellContext)
   const { rawRequest } = useAdminApi({ authorization, signinSilent })
   const [loading, setLoading] = useState(true)
   const [enabled, setEnabled] = useState(false)
@@ -617,10 +618,6 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
     setUserDisconnectsRowsPerPage(parseInt(event.target.value, 10))
     setUserDisconnectsPage(0)
   }
-
-  useEffect(() => {
-    setTitle('Centrifugo | Analytics')
-  }, [setTitle])
 
   const askFullAnalyticsData = useCallback(
     function () {
@@ -2210,6 +2207,14 @@ const DashboardTab = ({ signinSilent, authorization }: AnalyticsProps) => {
   )
 }
 
+const TAB_TITLES: Record<string, string> = {
+  dashboard: 'Dashboard',
+  trends: 'Trends',
+  user: 'User explorer',
+  channel: 'Channel explorer',
+  recorder: 'Flight recorder',
+}
+
 // Analytics is the page wrapper: a "Dashboard" tab (the existing point-in-time view) and a
 // "Trends" tab (historical time-series). The active tab is synced to the ?tab= search param so
 // it is linkable, and only the active tab is mounted — so exactly one tab queries at a time
@@ -2224,6 +2229,11 @@ export const Analytics = ({ signinSilent, authorization }: AnalyticsProps) => {
     tabParam === 'recorder'
       ? tabParam
       : 'dashboard'
+
+  const { setTitle } = useContext(ShellContext)
+  useEffect(() => {
+    setTitle(pageTitle(TAB_TITLES[tab], 'Analytics'))
+  }, [setTitle, tab])
 
   const handleChange = (_: React.SyntheticEvent, value: string) => {
     const next = new URLSearchParams(searchParams)

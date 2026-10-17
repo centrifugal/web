@@ -29,6 +29,7 @@ import { json, jsonParseLinter } from '@codemirror/lang-json'
 import { linter } from '@codemirror/lint'
 
 import SyntaxHighlighter from 'react-syntax-highlighter'
+import { useSearchParams } from 'react-router-dom'
 import {
   a11yDark,
   solarizedLight,
@@ -36,6 +37,7 @@ import {
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 import { SettingsContext } from 'contexts/SettingsContext'
 import { EmptyState } from 'components/EmptyState'
 
@@ -122,7 +124,6 @@ export const Actions = ({
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
 
-  const [method, setMethod] = useState<string>('publish')
   const [loading, setLoading] = useState<boolean>(false)
   const [request, setRequest] = useState<any | null>(null)
   const [response, setResponse] = useState<any | null>(null)
@@ -140,6 +141,16 @@ export const Actions = ({
     () => (edition === 'pro' ? [...coreMethods, ...proMethods] : coreMethods),
     [edition]
   )
+
+  // The selected method lives in ?method= so a refresh or a shared link keeps
+  // it; publish is the default and leaves the URL clean.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const methodParam = searchParams.get('method')
+  const method =
+    methodParam && methodOptions.some(m => m.value === methodParam)
+      ? methodParam
+      : 'publish'
+  const methodName = methodOptions.find(m => m.value === method)?.name ?? method
 
   // Send API request
   const sendRequest = async (params: any) => {
@@ -168,7 +179,11 @@ export const Actions = ({
 
   // Handle method selection change
   const handleMethodChange = (_: any, option: MethodOption | null) => {
-    setMethod(option?.value || 'publish')
+    const next = new URLSearchParams(searchParams)
+    const value = option?.value || 'publish'
+    if (value === 'publish') next.delete('method')
+    else next.set('method', value)
+    setSearchParams(next, { replace: true })
     setRequest(null)
     setResponse(null)
     setExecutedAt(null)
@@ -176,8 +191,8 @@ export const Actions = ({
   }
 
   useEffect(() => {
-    setTitle('Centrifugo | Actions')
-  }, [setTitle])
+    setTitle(pageTitle(methodName, 'Actions'))
+  }, [setTitle, methodName])
 
   // Map of form components
   const formProps = { colorMode, loading, sendRequest, edition }
@@ -272,14 +287,32 @@ export const Actions = ({
                   <Typography variant="h6">Request</Typography>
                   <IconButton
                     size="small"
-                    onClick={copyToClipboard(JSON.stringify(request, null, 2))}
+                    title="Copy request body"
+                    onClick={copyToClipboard(
+                      JSON.stringify(request.params, null, 2)
+                    )}
                   >
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
                 </Box>
                 <Divider sx={{ my: 1 }} />
+                {/* Method apart from the body, as in the HTTP API (/api/<method>). */}
+                <Typography
+                  component="div"
+                  sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
+                >
+                  {/* A real space, not a margin: otherwise double-click
+                      selects "methodpublish" as one word. */}
+                  <Box
+                    component="span"
+                    sx={{ color: 'text.secondary', userSelect: 'none' }}
+                  >
+                    method
+                  </Box>{' '}
+                  {request.method}
+                </Typography>
                 <SyntaxHighlighter language="json" style={codeStyle}>
-                  {JSON.stringify(request, null, 2)}
+                  {JSON.stringify(request.params, null, 2)}
                 </SyntaxHighlighter>
               </CardContent>
             </Card>

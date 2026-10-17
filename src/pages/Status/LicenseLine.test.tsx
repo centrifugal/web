@@ -1,7 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { vi, describe, test, expect, afterEach } from 'vitest'
 
-import { LicenseLine } from './LicenseLine'
+import { LicenseLine, useLicense } from './LicenseLine'
+
+const Wired = ({ authorization }: { authorization: string }) => {
+  const { status } = useLicense(authorization, true)
+  return <LicenseLine status={status} />
+}
 
 const respond = (status: number, body?: unknown) =>
   vi
@@ -30,7 +35,7 @@ describe('LicenseLine', () => {
         },
       ],
     })
-    render(<LicenseLine authorization="token x" />)
+    render(<Wired authorization="token x" />)
     await screen.findByText('j***@acme.com')
     expect(screen.getByText(/^Expired .* · no updates$/)).toBeTruthy()
     expect(fetchMock.mock.calls[0][0]).toContain('admin/api/license')
@@ -42,13 +47,13 @@ describe('LicenseLine', () => {
       text: 'Sandbox mode – not for production use',
       hint: 'No license key configured.',
     })
-    render(<LicenseLine authorization="token x" />)
+    render(<Wired authorization="token x" />)
     await screen.findByText('Sandbox mode – not for production use')
   })
 
   test('renders nothing when the server has no license endpoint', async () => {
     const fetchMock = respond(404)
-    const { container } = render(<LicenseLine authorization="token x" />)
+    const { container } = render(<Wired authorization="token x" />)
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
     expect(container.innerHTML).toBe('')
   })

@@ -10,6 +10,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 
 import {
   SnapshotsList,
@@ -140,12 +141,12 @@ export const Snapshots = ({ signinSilent, authorization }: SnapshotsProps) => {
 
   useEffect(() => {
     if (id) {
-      setTitle('Centrifugo | Snapshot Details')
+      setTitle(pageTitle(id, 'Snapshots'))
       setCurrentSnapshot(null) // Clear previous snapshot data
       setLoading(true) // Show loading state
       fetchSnapshotDetails(id)
     } else {
-      setTitle('Centrifugo | Snapshots')
+      setTitle(pageTitle('Snapshots'))
       setCurrentSnapshot(null) // Clear snapshot data when going back to list
       fetchSnapshots()
 

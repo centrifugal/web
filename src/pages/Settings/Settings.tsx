@@ -9,6 +9,7 @@ import FormControlLabel from '@mui/material/FormControlLabel'
 import Tooltip from '@mui/material/Tooltip'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 import { StorageContext } from 'contexts/StorageContext'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -159,7 +160,7 @@ export const Settings = () => {
   const persistedStorage = getPersistedStorage()
 
   useEffect(() => {
-    setTitle('Centrifugo | Settings')
+    setTitle(pageTitle('Settings'))
   }, [setTitle])
 
   const handleDeleteSettingsClick = () => {

@@ -12,15 +12,23 @@ import {
   LicenseStatus,
 } from './license'
 
-// LicenseLine is one compact line with the license of the node serving the
-// admin UI (PRO). It renders nothing when the server has no license endpoint
-// (older servers) or the request fails - the status page must not depend on it.
-export const LicenseLine = ({ authorization }: { authorization: string }) => {
+// useLicense loads the license of the node serving the admin UI (PRO). The
+// status page starts it alongside its first info request and renders once
+// both are done, so the line doesn't pop in and push the cards down.
+// status stays null when the server has no license endpoint (older servers)
+// or the request fails - the status page must not depend on it.
+export const useLicense = (authorization: string, enabled: boolean) => {
   const { rawRequest } = useAdminApi({ authorization })
   const [status, setStatus] = useState<LicenseStatus | null>(null)
+  const [settled, setSettled] = useState(!enabled)
 
   useEffect(() => {
+    if (!enabled) {
+      setSettled(true)
+      return
+    }
     let cancelled = false
+    setSettled(false)
     rawRequest('admin/api/license')
       .then(async res => {
         if (!res.ok) return
@@ -28,11 +36,19 @@ export const LicenseLine = ({ authorization }: { authorization: string }) => {
         if (!cancelled) setStatus(st)
       })
       .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSettled(true)
+      })
     return () => {
       cancelled = true
     }
-  }, [rawRequest])
+  }, [rawRequest, enabled])
 
+  return { status, settled }
+}
+
+// LicenseLine is one compact line with the license (see useLicense).
+export const LicenseLine = ({ status }: { status: LicenseStatus | null }) => {
   if (!status) return null
 
   return (

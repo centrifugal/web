@@ -5,6 +5,7 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 
 import { useServerConfig } from './useServerConfig'
 import { ChannelInspector } from './ChannelInspector'
@@ -23,11 +24,11 @@ export const Inspector = ({ signinSilent, authorization }: InspectorProps) => {
   const { setTitle } = useContext(ShellContext)
   const [searchParams, setSearchParams] = useSearchParams()
 
-  useEffect(() => {
-    setTitle('Centrifugo | Inspector')
-  }, [setTitle])
-
   const tab: TabKey = searchParams.get('tab') === 'user' ? 'user' : 'channel'
+
+  useEffect(() => {
+    setTitle(pageTitle(tab === 'user' ? 'User' : 'Channel', 'Inspector'))
+  }, [setTitle, tab])
 
   const handleTab = (_: React.SyntheticEvent, value: TabKey) => {
     const next = new URLSearchParams(searchParams)
