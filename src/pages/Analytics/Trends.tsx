@@ -242,7 +242,10 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     })
       .then(response => {
         if (!response.ok) {
-          if (handleHttpError(response.status)) return null
+          if (handleHttpError(response.status)) {
+            setCatalog([])
+            return null
+          }
           throw Error(response.status.toString())
         }
         return response.json()
@@ -264,6 +267,7 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
       .catch(e => {
         showAlert('Error connecting to server', { severity: 'error' })
         console.error(e)
+        setCatalog([])
       })
   }, [rawRequest, handleHttpError, showAlert])
 
@@ -485,17 +489,6 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
     return () => clearInterval(interval)
   }, [rangeSeconds, fetchData])
 
-  if (catalog === null) {
-    return (
-      <Box
-        className="max-w-8xl mx-auto p-8"
-        sx={{ textAlign: 'center', mt: 8 }}
-      >
-        <CircularProgress />
-      </Box>
-    )
-  }
-
   if (!enabled) {
     return (
       <Box className="max-w-8xl mx-auto p-8">
@@ -503,6 +496,17 @@ export const Trends = ({ signinSilent, authorization }: TrendsProps) => {
           ClickHouse analytics is not enabled. Trends require{' '}
           <code>clickhouse_analytics</code> to be configured.
         </Alert>
+      </Box>
+    )
+  }
+
+  if (catalog === null) {
+    return (
+      <Box
+        className="max-w-8xl mx-auto p-8"
+        sx={{ textAlign: 'center', mt: 8 }}
+      >
+        <CircularProgress />
       </Box>
     )
   }

@@ -9,6 +9,7 @@ import Alert from '@mui/material/Alert'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { useCan } from 'contexts/SessionContext'
+import { pageTitle } from 'utils/pageTitle'
 import { EmptyState } from 'components/EmptyState'
 
 import { useCompressionApi, CompressionApiError } from './api'
@@ -25,6 +26,12 @@ interface CompressionProps {
 type TabKey = 'overview' | 'profiles' | 'sessions' | 'structure'
 
 const TAB_KEYS: TabKey[] = ['overview', 'profiles', 'sessions', 'structure']
+const TAB_TITLES: Record<TabKey, string> = {
+  overview: 'Overview',
+  profiles: 'Profiles',
+  sessions: 'Sessions',
+  structure: 'Structure',
+}
 
 // Compression: the dictionary compression admin section (tab host), mirroring
 // the Inspector page's shape. Tabs are URL-synced via `?tab=`, the default tab
@@ -39,14 +46,14 @@ export const Compression = ({
   const [searchParams, setSearchParams] = useSearchParams()
   const api = useCompressionApi({ authorization, signinSilent })
 
-  useEffect(() => {
-    setTitle('Centrifugo | Dictionary Compression')
-  }, [setTitle])
-
   const tabParam = searchParams.get('tab')
   const tab: TabKey = TAB_KEYS.includes(tabParam as TabKey)
     ? (tabParam as TabKey)
     : 'overview'
+
+  useEffect(() => {
+    setTitle(pageTitle(TAB_TITLES[tab], 'Compression'))
+  }, [setTitle, tab])
 
   const handleTab = (_: React.SyntheticEvent, value: TabKey) => {
     const next = new URLSearchParams(searchParams)

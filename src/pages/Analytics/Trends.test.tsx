@@ -95,4 +95,29 @@ describe('Trends', () => {
     expect(screen.getByText(/300s buckets/)).toBeInTheDocument()
     expect(screen.queryByText(/10s buckets/)).not.toBeInTheDocument()
   })
+
+  // The catalog returns 404 when ClickHouse analytics is off; the page used to
+  // check "catalog not loaded" first and spin forever.
+  test('shows a notice instead of a loader when trends are disabled', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve({ ok: false, status: 404 }))
+    )
+
+    render(
+      <MemoryRouter>
+        <Trends authorization="" signinSilent={() => {}} />
+      </MemoryRouter>
+    )
+
+    expect(
+      await screen.findByText(/ClickHouse analytics is not enabled/)
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  })
 })

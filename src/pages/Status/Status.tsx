@@ -13,10 +13,12 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Tooltip from '@mui/material/Tooltip'
 
 import { useAdminApi } from 'api/adminApi'
-import { HumanSeconds, HumanSize } from 'utils/Functions'
+import { HumanSize } from 'utils/Functions'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 import { EmptyState } from 'components/EmptyState'
-import { LicenseLine } from './LicenseLine'
+import { LicenseLine, useLicense } from './LicenseLine'
+import { formatUptime } from './uptime'
 import { Card, CardContent } from '@mui/material'
 import {
   InfoOutlined,
@@ -193,6 +195,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   const [numConns, setNumConns] = useState(0)
   const [numSubs, setNumSubs] = useState(0)
   const [loading, setLoading] = useState(true)
+  const license = useLicense(authorization, edition === 'pro')
   const { setTitle } = useContext(ShellContext)
 
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
@@ -205,7 +208,7 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
   }, [])
 
   useEffect(() => {
-    setTitle('Centrifugo | Status')
+    setTitle(pageTitle('Status'))
   }, [setTitle])
 
   useEffect(() => {
@@ -351,13 +354,13 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
 
   return (
     <Box className="max-w-8xl mx-auto p-8">
-      {loading ? (
+      {loading || !license.settled ? (
         <Box>
           <CircularProgress disableShrink />
         </Box>
       ) : (
         <Box>
-          {edition === 'pro' && <LicenseLine authorization={authorization} />}
+          <LicenseLine status={license.status} />
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
             <SummaryCard
@@ -387,7 +390,10 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
             </Paper>
           ) : (
             <TableContainer component={Paper}>
-              <Table aria-label="detailed status table">
+              <Table
+                aria-label="detailed status table"
+                sx={{ fontVariantNumeric: 'tabular-nums' }}
+              >
                 <TableHead>
                   <TableRow>
                     <TableCell>Node name</TableCell>
@@ -420,8 +426,11 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                             {node.name}
                           </TableCell>
                           <TableCell align="right">{node.version}</TableCell>
-                          <TableCell align="right">
-                            {HumanSeconds(node.uptime)}
+                          <TableCell
+                            align="right"
+                            sx={{ whiteSpace: 'nowrap' }}
+                          >
+                            {formatUptime(node.uptime)}
                           </TableCell>
                           <TableCell align="right">
                             {fmtInt(node.clients)}

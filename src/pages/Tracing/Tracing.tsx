@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import Link from '@mui/material/Link'
 import Box from '@mui/material/Box'
 import Tabs from '@mui/material/Tabs'
@@ -21,11 +21,26 @@ import { globalUrlPrefix } from 'config/url'
 import { EmptyState } from 'components/EmptyState'
 import { useAdminApi, AdminApiError } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 import { SettingsContext } from 'contexts/SettingsContext'
 
 // Max trace messages kept in memory. The stream is unbounded, so we keep only
 // the newest MAX_MESSAGES and surface a notice once the buffer is full.
 const MAX_MESSAGES = 100
+
+type TraceType = 'channel' | 'user' | 'client'
+
+// traceTypeFromParams reads the tab from the URL. ?tab= is written by the tab
+// switcher; links from other pages (Inspector, Snapshots) instead pass the
+// entity to trace - ?channel=, ?user= or ?client_id= - which picks its tab.
+export const traceTypeFromParams = (params: URLSearchParams): TraceType => {
+  const tab = params.get('tab')
+  if (tab === 'channel' || tab === 'user' || tab === 'client') return tab
+  if (params.get('client_id')) return 'client'
+  if (params.get('channel')) return 'channel'
+  if (params.get('user')) return 'user'
+  return 'channel'
+}
 
 interface TracingProps {
   signinSilent: () => void
@@ -43,7 +58,8 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   // Holds the compiled CEL filter (cel-js parse() returns a reusable function) so
   // each streamed message is evaluated without re-parsing; null when no filter is set.
   const filterExpressionRef = useRef<any>(null)
-  const [traceType, setTraceType] = useState('channel')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const traceType = traceTypeFromParams(searchParams)
   const [running, setRunning] = useState(false)
   // Whether the trace stream has actually opened (server flushed response
   // headers on connect), so we can distinguish "connecting" from "connected
@@ -55,7 +71,6 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
 
   const settingsContext = useContext(SettingsContext)
   const colorMode = settingsContext.getUserSettings().colorMode
-  const location = useLocation()
 
   // Load CEL-JS dynamically as it's an ESM module
   useEffect(() => {
@@ -81,34 +96,23 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
   }
 
   useEffect(() => {
-    setTitle('Centrifugo | Tracing')
+    setTitle(pageTitle('Tracing'))
   }, [setTitle])
 
-  // Parse URL parameters to pre-fill form
+  // Pre-fill the entity passed by a link from another page; the tab itself
+  // follows from the URL (see traceTypeFromParams).
+  const clientIdParam = searchParams.get('client_id')
+  const channelParam = searchParams.get('channel')
+  const userParam = searchParams.get('user')
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search)
-    const clientIdParam = searchParams.get('client_id')
-    const channelParam = searchParams.get('channel')
-    const userParam = searchParams.get('user')
-
-    if (clientIdParam) {
-      // Pre-select the Client tab and set client_id value
-      setTraceType('client')
-      setClientId(clientIdParam)
-    } else if (channelParam) {
-      // Pre-select the Channel tab and set channel value
-      setTraceType('channel')
-      setChannel(channelParam)
-    } else if (userParam) {
-      // Pre-select the User tab and set user value (e.g. from the Inspector).
-      setTraceType('user')
-      setUser(userParam)
-    }
-  }, [location.search])
+    if (clientIdParam) setClientId(clientIdParam)
+    if (channelParam) setChannel(channelParam)
+    if (userParam) setUser(userParam)
+  }, [clientIdParam, channelParam, userParam])
 
   const handleTabChange = (
     _event: React.SyntheticEvent,
-    newTraceType: string
+    newTraceType: TraceType
   ) => {
     if (running) {
       // Abort the in-flight stream, not just the UI flag — otherwise the fetch
@@ -129,13 +133,11 @@ export const Tracing = ({ signinSilent, authorization }: TracingProps) => {
       setClientId('')
     }
 
-    setTraceType(newTraceType)
-
-    // Clear URL parameters when user manually changes trace type
-    if (window.location.hash.includes('?')) {
-      const newHash = window.location.hash.split('?')[0]
-      window.history.replaceState({}, '', window.location.pathname + newHash)
-    }
+    // The URL keeps only the tab (channel is the default and leaves it clean),
+    // dropping any entity a link brought in, so it never describes another tab.
+    setSearchParams(newTraceType === 'channel' ? {} : { tab: newTraceType }, {
+      replace: true,
+    })
   }
 
   const filterSx = {

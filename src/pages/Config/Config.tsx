@@ -5,6 +5,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
+import { pageTitle } from 'utils/pageTitle'
 
 import { ConfigTree } from './ConfigTree'
 import { ConfigResponse } from './types'
@@ -22,7 +23,7 @@ export const Config = ({ authorization }: ConfigProps) => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setTitle('Centrifugo | Configuration')
+    setTitle(pageTitle('Configuration'))
   }, [setTitle])
 
   useEffect(() => {

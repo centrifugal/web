@@ -37,6 +37,7 @@ import Autocomplete from '@mui/material/Autocomplete'
 import { useAdminApi } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
 import { Can } from 'contexts/SessionContext'
+import { pageTitle } from 'utils/pageTitle'
 
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { CopyButton } from '../../components/CopyButton'
@@ -324,7 +325,7 @@ export function PushNotification({
   }, [topicNames, userIds])
 
   useEffect(() => {
-    setTitle('Centrifugo | Push notifications')
+    setTitle(pageTitle('Push notifications'))
 
     const handleDevices = function (page: number, result: any) {
       const rows: any[] = []
