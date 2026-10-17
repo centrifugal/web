@@ -24,10 +24,14 @@ import Box from '@mui/material/Box'
 import Menu from '@mui/material/Menu'
 import * as React from 'react'
 import Avatar from '@mui/material/Avatar'
-import Chip from '@mui/material/Chip'
 
 import { routes } from 'config/routes'
-import { hasPermission, Permission, useSession } from 'contexts/SessionContext'
+import {
+  hasPermission,
+  Permission,
+  roleLabel,
+  useSession,
+} from 'contexts/SessionContext'
 import { Logo } from './Logo'
 
 interface AppBarProps extends MuiAppBarProps {
@@ -49,6 +53,7 @@ interface ShellAppBarProps {
   insecure: boolean
   edition: 'oss' | 'pro'
   username: string
+  instanceName?: string
 }
 
 // permissions are what a page needs to be shown - any one of them; pages
@@ -145,12 +150,13 @@ export const ShellAppBar = ({
   insecure,
   edition,
   username,
+  instanceName,
 }: ShellAppBarProps) => {
   const location = useLocation()
   const session = useSession()
   // Role is shown when it limits what the user can do.
-  const role = session?.user.role
-  const limitedRole = role && role !== 'admin' ? role : undefined
+  const limitedRole =
+    session && session.user.role !== 'admin' ? roleLabel(session) : undefined
 
   const [anchorElNav, setAnchorElNav] = React.useState<null | HTMLElement>(null)
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
@@ -206,19 +212,35 @@ export const ShellAppBar = ({
           <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 1 }}>
             <Logo size={30} />
           </Box>
-          <Typography
-            noWrap
+          {/* The product name, with the instance name below it when set -
+              like the user name and role on the right. */}
+          <Box
             component="a"
             href="/"
             sx={{
               mr: 2,
               display: { xs: 'none', md: 'flex' },
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              flexShrink: 0,
               color: 'inherit',
               textDecoration: 'none',
             }}
           >
-            Centrifugo{edition === 'pro' ? ' PRO' : ''}
-          </Typography>
+            <Typography noWrap sx={{ lineHeight: 1.2 }}>
+              Centrifugo{edition === 'pro' ? ' PRO' : ''}
+            </Typography>
+            {instanceName && (
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                noWrap
+                sx={{ lineHeight: 1.2 }}
+              >
+                {instanceName}
+              </Typography>
+            )}
+          </Box>
 
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
@@ -293,6 +315,7 @@ export const ShellAppBar = ({
               flexGrow: 1,
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
+              minWidth: 0,
             }}
           >
             {pages
@@ -311,36 +334,64 @@ export const ShellAppBar = ({
                     component={Link}
                     to={page.to}
                     selected={page.to === location.pathname}
-                    sx={{ display: 'block' }}
+                    // On a narrow screen labels shrink to "Compres…" rather
+                    // than the bar growing wider than the screen.
+                    title={page.name}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      px: 1,
+                      minWidth: 0,
+                      flexShrink: 1,
+                      fontSize: '0.95rem',
+                      whiteSpace: 'nowrap',
+                    }}
                   >
                     <page.icon
                       sx={{
-                        lineHeight: '1em',
-                        fontSize: '1.2em',
-                        mb: '3px',
+                        fontSize: '1.15rem',
+                        flexShrink: 0,
                         color: page.iconColor,
                       }}
-                    />{' '}
-                    {page.name}
+                    />
+                    <Box
+                      component="span"
+                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    >
+                      {page.name}
+                    </Box>
                   </MenuItem>
                 )
               })}
-            {limitedRole && (
-              <Chip
-                label={limitedRole}
-                size="small"
-                variant="outlined"
-                sx={{ marginLeft: 'auto', marginRight: '10px' }}
-              />
-            )}
-            <Typography
+            {/* The user name, with the role below it when it limits them. */}
+            <Box
               sx={{
-                marginLeft: limitedRole ? 0 : 'auto',
+                marginLeft: 'auto',
                 marginRight: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                textAlign: 'right',
+                // One line each, never squeezed by the menu items.
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
-              {username}
-            </Typography>
+              <Typography noWrap sx={{ lineHeight: 1.2 }}>
+                {username}
+              </Typography>
+              {limitedRole && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  noWrap
+                  sx={{ lineHeight: 1.2 }}
+                >
+                  {limitedRole}
+                </Typography>
+              )}
+            </Box>
           </Box>
 
           <Box sx={{ flexGrow: 0 }}>

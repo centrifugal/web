@@ -1,5 +1,6 @@
 import {
   PropsWithChildren,
+  ReactNode,
   SyntheticEvent,
   useCallback,
   useContext,
@@ -30,6 +31,9 @@ export interface ShellProps extends PropsWithChildren {
   handleLogout: () => void
   passwordAuthenticated: boolean
   edition: 'oss' | 'pro'
+  // Shown instead of the app to a logged in user, in the app theme - e.g.
+  // the no access screen.
+  replacement?: ReactNode
 }
 
 export const Shell = ({
@@ -37,6 +41,7 @@ export const Shell = ({
   handleLogout,
   passwordAuthenticated,
   edition,
+  replacement,
   children,
 }: ShellProps) => {
   const settingsContext = useContext(SettingsContext)
@@ -51,6 +56,7 @@ export const Shell = ({
   const adminSettingsContext = useContext(AdminSettingsContext)
   const adminSettings = adminSettingsContext.getAdminSettings()
   const insecure = adminSettings.insecure
+  const instanceName = adminSettings.instance_name || undefined
   const useIDP = adminSettings.oidc !== undefined
   const usePKCE = adminSettings.oidc?.pkce === true
   const auth = useAuth()
@@ -126,8 +132,11 @@ export const Shell = ({
   }, [authenticated])
 
   useEffect(() => {
-    document.title = title
-  }, [title])
+    // With an instance name: "Status · production-eu · Centrifugo".
+    document.title = instanceName
+      ? title.replace(/Centrifugo$/, `${instanceName} · Centrifugo`)
+      : title
+  }, [title, instanceName])
 
   // Cross-tab logout for the OIDC (PKCE) flow: when the stored user is cleared
   // in another tab, log out here too. Registered in an effect (not in the render
@@ -170,7 +179,9 @@ export const Shell = ({
     <ShellContext.Provider value={shellContextValue}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {authenticated ? (
+        {authenticated && replacement ? (
+          replacement
+        ) : authenticated ? (
           <Box>
             <NotificationArea
               alertSeverity={alertSeverity}
@@ -184,6 +195,7 @@ export const Shell = ({
               insecure={insecure}
               edition={edition}
               username={username}
+              instanceName={instanceName}
             />
             <RouteContent>{children}</RouteContent>
           </Box>

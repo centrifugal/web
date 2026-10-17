@@ -12,7 +12,7 @@ import { useCallback, useContext, useMemo } from 'react'
 
 import { useAdminApi, UseAdminApiOptions } from 'api/adminApi'
 import { ShellContext } from 'contexts/ShellContext'
-import { useSession } from 'contexts/SessionContext'
+import { roleLabel, useSession } from 'contexts/SessionContext'
 
 const BASE = 'admin/api/dictionary'
 
@@ -534,7 +534,7 @@ export function useCompressionApi({
         if (response.status === 403) {
           code = 'forbidden'
           message = session
-            ? `Permission denied for role ${session.user.role}`
+            ? `Permission denied for role ${roleLabel(session)}`
             : 'Permission denied'
         }
         throw new CompressionApiError(response.status, code, message)

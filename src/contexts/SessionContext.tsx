@@ -16,16 +16,28 @@ export type Permission =
   | 'push:write'
 
 // Session is what the server says about the logged-in admin, loaded before
-// pages render. null means no restrictions: OSS, an older PRO server without
-// admin/session, or a failed request - the server enforces access anyway.
+// pages render. The UI is embedded into the server it talks to, so the
+// shape always matches. null means no restrictions: OSS, or a failed
+// request - the server enforces access anyway.
 export interface Session {
-  user: { name: string; auth: string; role: string }
+  user: {
+    name: string
+    auth: string
+    // role is the one to show: admin when among roles, else the first.
+    role: string
+    // roles has them all - a user gets the permissions of every role.
+    roles: string[]
+  }
   permissions: Permission[]
 }
 
 export const SessionContext = createContext<Session | null>(null)
 
 export const useSession = (): Session | null => useContext(SessionContext)
+
+// roleLabel names the user's roles for display: "viewer", "viewer, support".
+export const roleLabel = (session: Session): string =>
+  session.user.roles.join(', ')
 
 // hasPermission is useCan for code outside a component's top level, e.g.
 // filtering a list.

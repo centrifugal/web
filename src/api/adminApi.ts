@@ -2,7 +2,7 @@ import { useCallback, useContext } from 'react'
 
 import { globalUrlPrefix } from 'config/url'
 import { ShellContext } from 'contexts/ShellContext'
-import { useSession } from 'contexts/SessionContext'
+import { roleLabel, useSession } from 'contexts/SessionContext'
 
 // Build a URL for an admin endpoint path under the current handler prefix.
 // `globalUrlPrefix` is window.location.pathname, which is stable under the
@@ -115,7 +115,7 @@ export function useAdminApi({
         if (error.status === 403) {
           showAlert(
             session
-              ? `Permission denied for role ${session.user.role}`
+              ? `Permission denied for role ${roleLabel(session)}`
               : 'Permission denied',
             { severity: 'error' }
           )

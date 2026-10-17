@@ -30,6 +30,9 @@ import { Shell } from 'components/Shell'
 import { Typography } from '@mui/material'
 import { AdminSettingsContext } from 'contexts/AdminSettingsContext'
 import { Session, SessionContext } from 'contexts/SessionContext'
+import { NoAccess } from 'pages/Login/NoAccess'
+import { rememberSSOUser } from 'pages/Login/lastUser'
+import { reauthenticate, ssoLoginURL, takeReturnTo } from 'api/ssoReauth'
 import { adminRawFetch } from 'api/adminApi'
 
 import { useAuth } from 'react-oidc-context'
@@ -263,8 +266,10 @@ function ShellWrapper({
   const auth = useAuth()
   if (!insecure) {
     if (useIDP && usePKCE) {
-      // PKCE flow: use Bearer token from localStorage
-      authorization = `Bearer ${auth.user?.access_token}`
+      // PKCE flow: the access token, once there is one - before login (and
+      // while it loads) no header, rather than "Bearer undefined".
+      const accessToken = auth.user?.access_token
+      authorization = accessToken ? `Bearer ${accessToken}` : ''
     } else if (useIDP && !usePKCE) {
       // Server-side flow: cookie is sent automatically, no need for Authorization header
       authorization = ''
@@ -305,46 +310,103 @@ function ShellWrapper({
       handleLogout()
       return
     }
+    if (!usePKCE) {
+      // Server-side session expired: log in again at the identity provider
+      // and come back here, or show the login page if that can't work.
+      void reauthenticate().then(started => {
+        if (!started) handleLogout()
+      })
+      return
+    }
     if (!auth) {
       handleLogout()
       return
     }
     const now = Date.now()
-    if (now - lastSignIn >= 10000) {
-      // throttle to once in 10 seconds.
-      auth.signinSilent()
-      setLastSignIn(now)
+    if (now - lastSignIn < 10000) {
+      // A renewal was just started - wait for it.
+      return
     }
+    if (now - lastSignIn < 30000) {
+      // Rejected again right after a renewal: the identity provider gives
+      // tokens Centrifugo does not accept (e.g. its keys changed). Renewing
+      // again would loop with an alert every time - show the login page.
+      handleLogout()
+      return
+    }
+    setLastSignIn(now)
+    // A failed renewal (expired or revoked session) shows the login page
+    // too, rather than leaving every request to fail.
+    auth
+      .signinSilent()
+      .then(user => {
+        if (!user) handleLogout()
+      })
+      .catch(() => handleLogout())
   }
 
   const [hasTriedSignin, setHasTriedSignin] = useState(false)
 
+  // Back on the page the user was on when their server-side SSO session
+  // expired (see reauthenticate) - once logged in again, not on the login
+  // page.
+  const ssoAuthenticated =
+    useIDP && !usePKCE && adminSettings.authenticated === true
+  useEffect(() => {
+    if (!ssoAuthenticated) return
+    const returnTo = takeReturnTo()
+    if (returnTo && returnTo !== window.location.hash) {
+      window.location.hash = returnTo
+    }
+  }, [ssoAuthenticated])
+
   // Session of the logged-in admin (PRO): permissions which decide what
   // pages show. Loaded again when the credentials change, and pages wait for
-  // it so controls don't flash. OSS has no sessions; on an older PRO server
-  // or any failure there are no restrictions - the server enforces anyway.
+  // it so controls don't flash. OSS has no sessions; on a failed request
+  // there are no restrictions - the server enforces anyway.
   const [session, setSession] = useState<Session | null>(null)
   const [sessionLoaded, setSessionLoaded] = useState(edition !== 'pro')
+  // The identity provider logged the user in, but Centrifugo does not let
+  // them in (admin.oidc.access_cel) - with PKCE the first request says so.
+  const [accessDenied, setAccessDenied] = useState(false)
   useEffect(() => {
     if (edition !== 'pro') {
       setSession(null)
       setSessionLoaded(true)
       return
     }
+    if (usePKCE && !authorization) {
+      // Not logged in yet - nothing to ask about.
+      return
+    }
     let cancelled = false
     setSessionLoaded(false)
     adminRawFetch('admin/session', { authorization })
-      .then(async res => (res.ok ? ((await res.json()) as Session) : null))
+      .then(async res => {
+        if (!cancelled) setAccessDenied(res.status === 403)
+        return res.ok ? ((await res.json()) as Session) : null
+      })
       .catch(() => null)
       .then(s => {
         if (cancelled) return
         setSession(s)
+        if (s?.user.auth === 'oidc') rememberSSOUser(s.user.name)
         setSessionLoaded(true)
       })
     return () => {
       cancelled = true
     }
-  }, [edition, authorization, passwordAuthenticated])
+  }, [edition, authorization, passwordAuthenticated, usePKCE])
+
+  // A refused PKCE user has no session - remember the account from the
+  // token, it is the one a new login would bring back.
+  const refusedUser =
+    accessDenied && usePKCE
+      ? (auth?.user?.profile.email ?? auth?.user?.profile.preferred_username)
+      : undefined
+  useEffect(() => {
+    rememberSSOUser(refusedUser)
+  }, [refusedUser])
 
   // automatically sign-in
   useEffect(() => {
@@ -360,6 +422,18 @@ function ShellWrapper({
     }
   }, [auth, hasTriedSignin])
 
+  // Ask the identity provider for credentials even with its session alive,
+  // otherwise the same account comes back.
+  const switchAccount = () => {
+    if (usePKCE && auth) {
+      void auth
+        .removeUser()
+        .then(() => auth.signinRedirect({ prompt: 'login' }))
+    } else {
+      window.location.assign(`${ssoLoginURL}?prompt=login`)
+    }
+  }
+
   return (
     <SessionContext.Provider value={session}>
       <Shell
@@ -367,6 +441,11 @@ function ShellWrapper({
         handleLogout={handleLogout}
         passwordAuthenticated={passwordAuthenticated}
         edition={edition}
+        replacement={
+          accessDenied ? (
+            <NoAccess onSwitchAccount={switchAccount} onLogout={handleLogout} />
+          ) : undefined
+        }
       >
         {/* Pages wait for the session, so they render with permissions known. */}
         {sessionLoaded && (

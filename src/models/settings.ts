@@ -10,6 +10,8 @@ export interface UserSettings {
 export interface AdminSettings {
   insecure: boolean
   edition: 'oss' | 'pro'
+  // admin.instance_name (PRO): tells environments apart, empty when not set.
+  instance_name?: string
   authenticated?: boolean
   oidc?: OIDCSettings
   user?: UserInfo
@@ -22,7 +24,8 @@ export interface OIDCSettings {
   client_id?: string
   redirect_uri?: string
   scope?: string
-  auth_url?: string
+  // false while the server can't reach the identity provider.
+  available: boolean
 }
 
 export interface UserInfo {

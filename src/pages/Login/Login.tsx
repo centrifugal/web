@@ -1,12 +1,11 @@
-import React, { useEffect, useContext, useState, useRef } from 'react'
+import React, { useEffect, useContext, useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { red } from '@mui/material/colors'
+import Alert from '@mui/material/Alert'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { SettingsContext } from 'contexts/SettingsContext'
@@ -18,14 +17,10 @@ import { useAuth } from 'react-oidc-context'
 import { Ray } from 'components/Ray'
 
 import Canvas from './Canvas'
-
-const redTheme = createTheme({
-  palette: { primary: red },
-  typography: {
-    fontFamily:
-      'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
-  },
-})
+import { ssoLoginURL } from 'api/ssoReauth'
+import { loginErrorMessage, takeLoginError } from './loginError'
+import { SwitchAccountLink } from './SwitchAccountLink'
+import { lastSSOUser } from './lastUser'
 
 function polarToCartesian(
   centerX: number,
@@ -628,47 +623,37 @@ export function Login({ handleLogin }: LoginProps) {
   const useIDP = adminSettings.oidc !== undefined
   const usePKCE = adminSettings.oidc?.pkce === true
 
-  // Store refreshed auth_url in ref to avoid re-renders
-  const freshAuthUrlRef = useRef<string | undefined>(
-    adminSettings.oidc?.auth_url
+  // Why the last SSO login failed, sent back by the server.
+  const [ssoError] = useState(takeLoginError)
+  const [lastUser] = useState(lastSSOUser)
+  // Whether the server reaches the identity provider - refreshed below.
+  const [ssoAvailable, setSsoAvailable] = useState(
+    adminSettings.oidc?.available !== false
   )
 
   useEffect(() => {
     setTitle('Centrifugo' + nameSuffix)
   }, [setTitle, nameSuffix])
 
-  // Periodically refresh admin settings to get fresh auth_url with non-expired state
+  // While the identity provider is unavailable, check every 30 seconds
+  // whether the server reaches it again.
   useEffect(() => {
-    const refreshAuthUrl = async () => {
+    if (!useIDP || ssoAvailable) return
+    const intervalId = setInterval(async () => {
       try {
-        const token = localStorage.getItem('token')
-        const headers: HeadersInit = {}
-        if (token) {
-          headers['Authorization'] = `token ${token}`
-        }
-
         const response = await fetch(`${globalUrlPrefix}admin/init`, {
-          headers,
           credentials: 'include',
         })
         if (response.ok) {
           const data = await response.json()
-          // Store in ref to avoid re-renders that would restart canvas animation
-          if (data.oidc?.auth_url) {
-            freshAuthUrlRef.current = data.oidc.auth_url
-          }
+          setSsoAvailable(data.oidc?.available !== false)
         }
       } catch (error) {
-        console.error('Error refreshing auth URL:', error)
+        console.error('Error checking SSO availability:', error)
       }
-    }
-
-    // Set up interval to refresh every 30 sec.
-    const intervalId = setInterval(refreshAuthUrl, 30 * 1000)
-
-    // Clean up interval on unmount
+    }, 30 * 1000)
     return () => clearInterval(intervalId)
-  }, [])
+  }, [useIDP, ssoAvailable])
 
   const handleFormSubmit = async (
     event: React.SyntheticEvent<HTMLFormElement>
@@ -686,30 +671,36 @@ export function Login({ handleLogin }: LoginProps) {
     }
   }
 
+  // Server-side OIDC: the server starts the login, tied to this browser,
+  // and redirects to the identity provider.
   const handleServerSideOIDCLogin = () => {
-    // For server-side OIDC, redirect to the authorization URL
-    // Use freshAuthUrlRef to get the most recent auth_url with non-expired state
-    const authUrl = freshAuthUrlRef.current || adminSettings.oidc?.auth_url
-    if (authUrl) {
-      window.location.href = authUrl
-    }
+    window.location.assign(ssoLoginURL)
   }
 
   return (
+    // The title stays at the middle of the screen, over the logo drawn
+    // there: the avatar and the form take equal halves above and below it,
+    // whatever the form shows (alerts, links).
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         height: '100vh',
       }}
     >
-      <ThemeProvider theme={redTheme}>
+      <Box
+        sx={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+        }}
+      >
         <Avatar sx={{ m: 1, bgcolor: 'primary.main' }}>
           <LockOutlinedIcon />
         </Avatar>
-      </ThemeProvider>
+      </Box>
       <Typography component="h1" variant="h4">
         {`CENTRIFUGO` + nameSuffix}
       </Typography>
@@ -717,9 +708,27 @@ export function Login({ handleLogin }: LoginProps) {
         component="form"
         onSubmit={handleFormSubmit}
         noValidate
-        sx={{ mt: 1 }}
+        sx={{ pt: 1, flex: 1 }}
       >
         <input hidden type="text" autoComplete="username" />
+        {adminSettings.instance_name && (
+          <Typography color="text.secondary" align="center">
+            {adminSettings.instance_name}
+          </Typography>
+        )}
+        {useIDP && !ssoAvailable ? (
+          <Alert severity="warning" sx={{ mt: 2, maxWidth: 400 }}>
+            {adminSettings.oidc?.display_name} is not available right now.
+            Please try again in a minute.
+          </Alert>
+        ) : (
+          useIDP &&
+          ssoError && (
+            <Alert severity="error" sx={{ mt: 2, maxWidth: 400 }}>
+              {loginErrorMessage(ssoError)}
+            </Alert>
+          )
+        )}
         {useIDP ? (
           <></>
         ) : (
@@ -751,6 +760,7 @@ export function Login({ handleLogin }: LoginProps) {
             color="primary"
             sx={{ mt: 3, mb: 2 }}
             onClick={() => void auth.signinRedirect()}
+            disabled={!ssoAvailable}
           >
             Log in with {adminSettings.oidc?.display_name}
           </Button>
@@ -762,6 +772,7 @@ export function Login({ handleLogin }: LoginProps) {
             color="primary"
             sx={{ mt: 3, mb: 2 }}
             onClick={handleServerSideOIDCLogin}
+            disabled={!ssoAvailable}
           >
             Log in with {adminSettings.oidc?.display_name}
           </Button>
@@ -776,6 +787,19 @@ export function Login({ handleLogin }: LoginProps) {
           >
             Log in
           </Button>
+        )}
+        {useIDP && (lastUser || ssoError === 'denied') && (
+          // Only once there is an account to switch from: the last one
+          // logged in, or the one just refused.
+          <SwitchAccountLink
+            lastUser={lastUser}
+            onClick={() =>
+              usePKCE
+                ? void auth.signinRedirect({ prompt: 'login' })
+                : window.location.assign(`${ssoLoginURL}?prompt=login`)
+            }
+            disabled={!ssoAvailable}
+          />
         )}
       </Box>
       <MemoCanvas />
