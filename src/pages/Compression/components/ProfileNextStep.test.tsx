@@ -63,6 +63,16 @@ describe('nextStep', () => {
     })
   })
 
+  it('says when a finished session saw nothing', () => {
+    const s = nextStep(
+      profile([]),
+      [session({ progress: { frames_observed: 0 } as Session['progress'] })],
+      true
+    )
+    expect(s.title).toBe('Training saw no traffic')
+    expect(s.action).toEqual({ kind: 'start_training' })
+  })
+
   it('offers the newest inactive version to activate', () => {
     const s = nextStep(
       profile([

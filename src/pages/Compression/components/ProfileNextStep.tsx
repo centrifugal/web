@@ -57,6 +57,21 @@ export const nextStep = (
       paused,
     }
   }
+  if (
+    latest?.status === 'collected' &&
+    !fromLatest &&
+    latest.progress != null &&
+    latest.progress.frames_observed === 0
+  ) {
+    return {
+      severity: 'error',
+      title: 'Training saw no traffic',
+      body: 'No connection of this profile sent anything during the session, so there is nothing to build. Check that your backend assigns this profile - Serving now below counts its connections - then train again.',
+      action: { kind: 'start_training' },
+      actionLabel: 'Train again',
+      paused,
+    }
+  }
   if (latest?.status === 'collected' && !fromLatest) {
     const meanwhile = active
       ? 'Until then the profile keeps serving its current dictionary.'
