@@ -460,7 +460,7 @@ export const SessionDetail = ({
                   color: parseRateLow ? 'warning.main' : 'text.primary',
                 }}
               >
-                {fmtPct(p.payload_parse_rate)}
+                {p.frames_observed > 0 ? fmtPct(p.payload_parse_rate) : '—'}
               </Typography>
               {parseRateLow && (
                 <Typography variant="caption" color="warning.main">

@@ -80,7 +80,7 @@ export const CreateProfileDialog = ({
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="e.g. odds-board"
-          helperText="Matched against what a connection resolves to. This is also the name a client declares to request the profile directly, and the name rejections stay keyed to if this profile is later deleted and recreated."
+          helperText="The name your backend sets as the connection's profile, e.g. the profile claim of its token."
         />
         <TextField
           fullWidth
@@ -124,8 +124,7 @@ export const CreateProfileDialog = ({
             color="text.secondary"
             sx={{ display: 'block', ml: 4.5, mt: -0.5 }}
           >
-            Connections that match no more specific profile receive this one
-            automatically.
+            Connections that have no profile receive this one.
           </Typography>
         </Box>
       </DialogContent>

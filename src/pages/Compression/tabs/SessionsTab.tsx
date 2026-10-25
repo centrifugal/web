@@ -54,6 +54,13 @@ export const SessionsTab = ({
   const [loading, setLoading] = useState(true)
   const [nextCursor, setNextCursor] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  // Offered as the optional "train for" binding when creating a session. A
+  // failure here is not worth surfacing: the binding is optional, so an empty
+  // list simply hides the field.
+  const [profiles, setProfiles] = useState<
+    { id: string; name: string; serveAsDefault: boolean }[]
+  >([])
+  const [profilesLoaded, setProfilesLoaded] = useState(false)
   // Arriving from a profile that has nothing trained yet: open the dialog
   // already bound to it, so the step that journey exists for is not a field
   // the operator has to find.
@@ -64,7 +71,9 @@ export const SessionsTab = ({
   const [initial, setInitial] = useState<CreateSessionRequest | undefined>()
   useEffect(() => {
     if (!retrainFrom) {
-      if (trainFor) setCreateOpen(true)
+      // Opened once the profiles are known, so it opens filled in for the
+      // profile's own audience.
+      if (trainFor && profilesLoaded) setCreateOpen(true)
       return
     }
     let cancelled = false
@@ -92,13 +101,9 @@ export const SessionsTab = ({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainFor, retrainFrom])
+  }, [trainFor, retrainFrom, profilesLoaded])
   const [selectedId, setSelectedId] = useUrlSelection('session')
   const [, setSearchParams] = useSearchParams()
-  // Offered as the optional "train for" binding when creating a session. A
-  // failure here is not worth surfacing: the binding is optional, so an empty
-  // list simply hides the field.
-  const [profiles, setProfiles] = useState<{ id: string; name: string }[]>([])
 
   const load = useCallback(
     async (cursor?: string) => {
@@ -130,16 +135,38 @@ export const SessionsTab = ({
       .then(data => {
         if (!cancelled) {
           setProfiles(
-            (data.profiles || []).map(p => ({ id: p.id, name: p.name }))
+            (data.profiles || []).map(p => ({
+              id: p.id,
+              name: p.name,
+              serveAsDefault: p.serve_as_default,
+            }))
           )
         }
       })
       .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setProfilesLoaded(true)
+      })
     return () => {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const profileName = (id: string) => profiles.find(p => p.id === id)?.name
+
+  // Training for a profile samples that profile's own audience: its
+  // connections, or for the default profile those that have no profile.
+  const forProfile = (id: string): CreateSessionRequest | undefined => {
+    const p = profiles.find(x => x.id === id)
+    if (!p) return undefined
+    return {
+      filter: p.serveAsDefault ? { unclassified: true } : { profile: p.name },
+      training_mode: 'schema',
+      duration_seconds: 30 * 60,
+      profile_id: p.id,
+    }
+  }
 
   const handleCreate = async (req: CreateSessionRequest) => {
     try {
@@ -294,7 +321,14 @@ export const SessionsTab = ({
       <CreateSessionDialog
         key={`${trainFor ?? 'new'}:${retrainFrom ?? ''}`}
         defaultProfileId={trainFor ?? undefined}
-        initial={retrainFrom ? initial : undefined}
+        initial={
+          retrainFrom ? initial : trainFor ? forProfile(trainFor) : undefined
+        }
+        title={
+          trainFor && profileName(trainFor)
+            ? `${retrainFrom ? 'Retrain' : 'Train'} ${profileName(trainFor)}`
+            : undefined
+        }
         open={createOpen}
         onClose={() => {
           setCreateOpen(false)

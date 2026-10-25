@@ -33,10 +33,13 @@ const newest = (versions: Version[]): Version | undefined =>
 // none, ready but inactive, rolling out, serving.
 //
 // sessions is the newest first list of sessions trained for this profile.
+// structureActive says what connections get while the profile serves no
+// dictionary of its own: the structure dictionary, or nothing.
 export const nextStep = (
   profile: ProfileDetail,
   sessions: Session[],
-  servingEnabled: boolean
+  servingEnabled: boolean,
+  structureActive = false
 ): NextStep => {
   const paused = !servingEnabled
   const latest = sessions[0]
@@ -57,7 +60,9 @@ export const nextStep = (
   if (latest?.status === 'collected' && !fromLatest) {
     const meanwhile = active
       ? 'Until then the profile keeps serving its current dictionary.'
-      : 'Nothing is served until then.'
+      : structureActive
+        ? 'Until then its connections get the structure dictionary.'
+        : 'Until then its connections get no dictionary.'
     return latest.training_mode === 'values'
       ? {
           severity: 'warning',

@@ -99,6 +99,7 @@ export const ProfileDetail = ({
   // served at all: what the next step is depends on both.
   const [sessions, setSessions] = useState<Session[]>([])
   const [servingEnabled, setServingEnabled] = useState(true)
+  const [structureActive, setStructureActive] = useState(false)
   useEffect(() => {
     let cancelled = false
     api
@@ -113,7 +114,10 @@ export const ProfileDetail = ({
     api
       .getCompression()
       .then(o => {
-        if (!cancelled) setServingEnabled(o.enabled)
+        if (!cancelled) {
+          setServingEnabled(o.enabled)
+          setStructureActive(o.structure_active)
+        }
       })
       .catch(() => {})
     return () => {
@@ -328,7 +332,7 @@ export const ProfileDetail = ({
       </Box>
 
       <ProfileNextStep
-        step={nextStep(profile, sessions, servingEnabled)}
+        step={nextStep(profile, sessions, servingEnabled, structureActive)}
         canChange={canChange}
         onAction={handleNextAction}
       />

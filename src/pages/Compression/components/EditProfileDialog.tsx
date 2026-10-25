@@ -134,8 +134,7 @@ export const EditProfileDialog = ({
             color="text.secondary"
             sx={{ display: 'block', ml: 4.5, mt: -0.5 }}
           >
-            Connections that match no more specific profile receive this one
-            automatically.
+            Connections that have no profile receive this one.
           </Typography>
         </Box>
 

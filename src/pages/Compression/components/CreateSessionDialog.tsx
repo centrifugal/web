@@ -35,6 +35,8 @@ interface CreateSessionDialogProps {
   // A session to start from, when retraining: the same connections, mode and
   // duration, so a retrain is one confirmation rather than a form.
   initial?: CreateSessionRequest
+  // Set when the dialog is opened for something specific, e.g. "Retrain feed".
+  title?: string
 }
 
 // CreateSessionDialog: the connection filter is the same shape the Inspector
@@ -49,6 +51,7 @@ export const CreateSessionDialog = ({
   profiles = [],
   defaultProfileId,
   initial,
+  title,
 }: CreateSessionDialogProps) => {
   const [identity, setIdentity] = useState<Identity>('any')
   const [user, setUser] = useState('')
@@ -135,8 +138,6 @@ export const CreateSessionDialog = ({
     }
   }
 
-  const trainFor = profiles.find(p => p.id === trainForProfileId)
-
   return (
     <Dialog
       open={open}
@@ -144,11 +145,7 @@ export const CreateSessionDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>
-        {initial && trainFor
-          ? `Retrain ${trainFor.name}`
-          : 'Start a training session'}
-      </DialogTitle>
+      <DialogTitle>{title ?? 'Start a training session'}</DialogTitle>
       <DialogContent>
         <FormControl component="fieldset" sx={{ mt: 1, mb: 2 }}>
           <FormLabel sx={{ mb: 1 }}>What to learn</FormLabel>
