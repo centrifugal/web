@@ -55,11 +55,14 @@ export const nextStep = (
     }
   }
   if (latest?.status === 'collected' && !fromLatest) {
+    const meanwhile = active
+      ? 'Until then the profile keeps serving its current dictionary.'
+      : 'Nothing is served until then.'
     return latest.training_mode === 'values'
       ? {
           severity: 'warning',
           title: 'Training finished: values to review',
-          body: 'Approve the values that may be shown to every client this profile reaches. Nothing is served until you do.',
+          body: `Approve the values that may be shown to every client this profile reaches. ${meanwhile}`,
           action: { kind: 'open_session', sessionId: latest.id },
           actionLabel: 'Open session',
           paused,
@@ -67,7 +70,7 @@ export const nextStep = (
       : {
           severity: 'warning',
           title: 'Training finished',
-          body: 'The session learned field names and message shapes only, so there is nothing to review. Open it to create the dictionary.',
+          body: `The session learned field names and message shapes only, so there is nothing to review. Open it to create the dictionary. ${meanwhile}`,
           action: { kind: 'open_session', sessionId: latest.id },
           actionLabel: 'Open session',
           paused,

@@ -375,6 +375,8 @@ export const ProfileDetail = ({
             >
               <Typography variant="body2">
                 {profile.connections != null ? profile.connections : '—'}
+                {profile.serve_as_default &&
+                  ', plus connections with no profile (see Overview)'}
               </Typography>
             </Tooltip>
           </InlineStat>
@@ -425,7 +427,7 @@ export const ProfileDetail = ({
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Fidelity</TableCell>
+                  <TableCell>Contents</TableCell>
                   <TableCell>Artifacts</TableCell>
                   <TableCell align="right">Raw / wire size</TableCell>
                   <TableCell align="right">Approved ratio</TableCell>
@@ -438,7 +440,11 @@ export const ProfileDetail = ({
               <TableBody>
                 {profile.versions.map(v => (
                   <TableRow key={v.id}>
-                    <TableCell>{v.fidelity}</TableCell>
+                    <TableCell>
+                      {fmtTrainingMode(
+                        v.fidelity === 'reviewed' ? 'values' : 'schema'
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Box
                         sx={{

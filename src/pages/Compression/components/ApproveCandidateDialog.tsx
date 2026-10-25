@@ -154,7 +154,7 @@ export const ApproveCandidateDialog = ({
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle>Approve candidate</DialogTitle>
+      <DialogTitle>Approve values</DialogTitle>
       <DialogContent>
         <Alert severity={rejected > 0 ? 'warning' : 'success'} sx={{ mb: 1 }}>
           <strong>

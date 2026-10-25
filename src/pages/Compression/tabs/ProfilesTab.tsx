@@ -19,7 +19,7 @@ import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
 import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateProfileRequest, Profile } from '../api'
-import { fmtRatio } from '../format'
+import { fmtRatio, fmtTrainingMode } from '../format'
 import { CreateProfileDialog } from '../components/CreateProfileDialog'
 import { ProfileDetail } from '../components/ProfileDetail'
 import { UnclaimedPanel } from '../components/UnclaimedPanel'
@@ -128,7 +128,7 @@ export const ProfilesTab = ({
                 <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Notes</TableCell>
-                  <TableCell>Fidelity</TableCell>
+                  <TableCell>Contents</TableCell>
                   <TableCell align="right">Approved ratio</TableCell>
                   <TableCell align="right">Connections</TableCell>
                   <TableCell>Declarable</TableCell>
@@ -163,8 +163,14 @@ export const ProfilesTab = ({
                     </TableCell>
                     <TableCell>
                       {p.active_version ? (
-                        <Tooltip title="Fidelity of the currently active version">
-                          <span>{p.active_version.fidelity}</span>
+                        <Tooltip title="What the active dictionary holds">
+                          <span>
+                            {fmtTrainingMode(
+                              p.active_version.fidelity === 'reviewed'
+                                ? 'values'
+                                : 'schema'
+                            )}
+                          </span>
                         </Tooltip>
                       ) : (
                         <Typography variant="body2" color="text.disabled">
@@ -177,6 +183,15 @@ export const ProfilesTab = ({
                     </TableCell>
                     <TableCell align="right">
                       {p.connections != null ? p.connections : '—'}
+                      {p.serve_as_default && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: 'block' }}
+                        >
+                          plus connections with no profile
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       <CapabilityChip
