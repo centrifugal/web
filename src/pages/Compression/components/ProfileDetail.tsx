@@ -15,11 +15,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import UndoIcon from '@mui/icons-material/Undo'
-import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 
 import { useSearchParams } from 'react-router-dom'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { useCan } from 'contexts/SessionContext'
 import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
 import { EmptyState } from 'components/EmptyState'
 import { ConfirmButton } from 'components/ConfirmButton'
@@ -31,11 +31,14 @@ import {
   CompressionApiError,
   ProfileDetail as ProfileDetailData,
   ProfilePatch,
+  Session,
   Version,
 } from '../api'
 import { fmtDateTime, fmtRatio } from '../format'
 import { EditProfileDialog } from './EditProfileDialog'
 import { ActivateVersionDialog } from './ActivateVersionDialog'
+import { NextAction, nextStep, ProfileNextStep } from './ProfileNextStep'
+import { ProfileAssignment } from './ProfileAssignment'
 
 interface ProfileDetailProps {
   api: CompressionApiHook
@@ -78,15 +81,52 @@ export const ProfileDetail = ({
   // Leaves this profile for the Sessions tab with the create dialog already
   // bound to it. The operator's next step from an empty profile is a training
   // session, and it is two tabs away otherwise.
-  const startTraining = () => {
+  const startTraining = (retrainFrom?: string) => {
     setSearchParams(prev => {
       const next = new URLSearchParams(prev)
       next.set('tab', 'sessions')
       next.delete('profile')
       next.set('train_for', profileId)
+      if (retrainFrom) next.set('retrain_from', retrainFrom)
       return next
     })
   }
+  const openSession = (sessionId: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', 'sessions')
+      next.delete('profile')
+      next.set('session', sessionId)
+      return next
+    })
+  }
+  const canChange = useCan('ops:write')
+  // Sessions trained for this profile, newest first, and whether anything is
+  // served at all: what the next step is depends on both.
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [servingEnabled, setServingEnabled] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    api
+      .listSessions({ limit: 50 })
+      .then(data => {
+        if (!cancelled)
+          setSessions(
+            (data.sessions || []).filter(s => s.profile_id === profileId)
+          )
+      })
+      .catch(() => {})
+    api
+      .getCompression()
+      .then(o => {
+        if (!cancelled) setServingEnabled(o.enabled)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileId])
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [activateTarget, setActivateTarget] = useState<Version | null>(null)
@@ -197,6 +237,23 @@ export const ProfileDetail = ({
     }
   }
 
+  const handleNextAction = (action: NextAction) => {
+    switch (action.kind) {
+      case 'start_training':
+        startTraining()
+        break
+      case 'retrain':
+        startTraining(action.sessionId)
+        break
+      case 'open_session':
+        openSession(action.sessionId)
+        break
+      case 'activate':
+        setActivateTarget(action.version)
+        break
+    }
+  }
+
   if (loading && !profile) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -276,9 +333,20 @@ export const ProfileDetail = ({
         </ConfirmButton>
       </Box>
 
+      <ProfileNextStep
+        step={nextStep(profile, sessions, servingEnabled)}
+        canChange={canChange}
+        onAction={handleNextAction}
+      />
+
       <Panel title="Profile" subtitle={profile.notes || undefined}>
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+          Who gets this profile
+        </Typography>
+        <ProfileAssignment profile={profile} />
         <Box
           sx={{
+            mt: 2,
             display: 'flex',
             flexWrap: 'wrap',
             alignItems: 'center',
@@ -286,20 +354,6 @@ export const ProfileDetail = ({
             rowGap: 1,
           }}
         >
-          <InlineStat label="Client declarable">
-            <CapabilityChip
-              label={profile.client_declarable ? 'Yes' : 'No'}
-              tone={profile.client_declarable ? 'on' : 'off'}
-              title="Whether a client may request this profile by name when it connects."
-            />
-          </InlineStat>
-          <InlineStat label="Serve as default">
-            <CapabilityChip
-              label={profile.serve_as_default ? 'Yes' : 'No'}
-              tone={profile.serve_as_default ? 'on' : 'off'}
-              title="Whether unmatched connections receive this profile automatically."
-            />
-          </InlineStat>
           <InlineStat label="Training mode">
             <Typography variant="body2">{profile.training_mode}</Typography>
           </InlineStat>
@@ -362,30 +416,8 @@ export const ProfileDetail = ({
       >
         {profile.versions.length === 0 ? (
           <EmptyState
-            title="Nothing trained for this profile yet"
-            hint={
-              <>
-                Two things have to happen first. Connections need to be
-                classified into this profile — either clients pass{' '}
-                <code>profile: &quot;{profile.name}&quot;</code> (which needs
-                Client declarable above), or your server sets it from a token
-                claim. <b>Serving now</b> tells you when that is working. Then
-                run a training session over those connections: it collects for
-                as long as you choose, and approving what it found creates the
-                first version.
-                <Box sx={{ mt: 2 }}>
-                  <Button
-                    variant="tonal"
-                    color="primary"
-                    size="small"
-                    startIcon={<PlayCircleIcon />}
-                    onClick={startTraining}
-                  >
-                    Start a training session for this profile
-                  </Button>
-                </Box>
-              </>
-            }
+            title="No versions yet"
+            hint="Each dictionary created from a training session becomes a version here."
           />
         ) : (
           <TableContainer>

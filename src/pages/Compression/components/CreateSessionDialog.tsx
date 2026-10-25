@@ -32,6 +32,9 @@ interface CreateSessionDialogProps {
   // profile that has nothing trained yet, so the one field that matters for
   // that journey is already filled in.
   defaultProfileId?: string
+  // A session to start from, when retraining: the same connections, mode and
+  // duration, so a retrain is one confirmation rather than a form.
+  initial?: CreateSessionRequest
 }
 
 // CreateSessionDialog: the connection filter is the same shape the Inspector
@@ -45,13 +48,15 @@ export const CreateSessionDialog = ({
   onSubmit,
   profiles = [],
   defaultProfileId,
+  initial,
 }: CreateSessionDialogProps) => {
   const [identity, setIdentity] = useState<Identity>('any')
   const [user, setUser] = useState('')
   const [channel, setChannel] = useState('')
   const [classification, setClassification] = useState<Classification>('any')
   const [profileName, setProfileName] = useState('')
-  const [trainingMode, setTrainingMode] = useState<TrainingMode>('values')
+  // Shapes only by default: nothing to review, nothing of anyone's data.
+  const [trainingMode, setTrainingMode] = useState<TrainingMode>('schema')
   const [durationMinutes, setDurationMinutes] = useState(60)
   const [trainForProfileId, setTrainForProfileId] = useState(
     defaultProfileId ?? ''
@@ -66,10 +71,25 @@ export const CreateSessionDialog = ({
       setChannel('')
       setClassification('any')
       setProfileName('')
-      setTrainingMode('values')
+      setTrainingMode('schema')
       setDurationMinutes(60)
       setSubmitting(false)
+      return
     }
+    if (!initial) return
+    const f = initial.filter
+    setIdentity(f.user ? 'user' : f.anonymous ? 'anonymous' : 'any')
+    setUser(f.user ?? '')
+    setChannel(f.channel ?? '')
+    setClassification(
+      f.profile ? 'profile' : f.unclassified ? 'unclassified' : 'any'
+    )
+    setProfileName(f.profile ?? '')
+    setTrainingMode(initial.training_mode)
+    setDurationMinutes(Math.max(1, Math.round(initial.duration_seconds / 60)))
+    setTrainForProfileId(initial.profile_id ?? defaultProfileId ?? '')
+    // Applied once per opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   const buildFilter = (): TrainingFilter => {

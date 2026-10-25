@@ -57,9 +57,41 @@ export const SessionsTab = ({
   // already bound to it, so the step that journey exists for is not a field
   // the operator has to find.
   const [trainFor, setTrainFor] = useUrlSelection('train_for')
+  // Retraining: the dialog opens filled in from the session the profile's
+  // dictionary came from.
+  const [retrainFrom, setRetrainFrom] = useUrlSelection('retrain_from')
+  const [initial, setInitial] = useState<CreateSessionRequest | undefined>()
   useEffect(() => {
-    if (trainFor) setCreateOpen(true)
-  }, [trainFor])
+    if (!retrainFrom) {
+      if (trainFor) setCreateOpen(true)
+      return
+    }
+    let cancelled = false
+    api
+      .getSession(retrainFrom)
+      .then(prev => {
+        if (cancelled) return
+        setInitial({
+          filter: prev.filter,
+          training_mode: prev.training_mode,
+          duration_seconds: Math.max(
+            60,
+            (Date.parse(prev.deadline) - Date.parse(prev.started_at)) / 1000
+          ),
+          ...(prev.profile_id ? { profile_id: prev.profile_id } : {}),
+        })
+      })
+      // A session gone since is no reason not to retrain: the dialog opens
+      // with the profile bound and everything else at its defaults.
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCreateOpen(true)
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trainFor, retrainFrom])
   const [selectedId, setSelectedId] = useUrlSelection('session')
   // Offered as the optional "train for" binding when creating a session. A
   // failure here is not worth surfacing: the binding is optional, so an empty
@@ -112,6 +144,9 @@ export const SessionsTab = ({
       const created = await api.createSession(req)
       setCreateOpen(false)
       setSessions(prev => [created, ...prev])
+      // The dialog's reason to open is spent: a reload must not reopen it.
+      if (trainFor) setTrainFor(null)
+      if (retrainFrom) setRetrainFrom(null)
       setSelectedId(created.id)
     } catch (err) {
       api.handleError(err)
@@ -249,12 +284,17 @@ export const SessionsTab = ({
       </Panel>
 
       <CreateSessionDialog
-        key={trainFor ?? 'new'}
+        key={`${trainFor ?? 'new'}:${retrainFrom ?? ''}`}
         defaultProfileId={trainFor ?? undefined}
+        initial={retrainFrom ? initial : undefined}
         open={createOpen}
         onClose={() => {
           setCreateOpen(false)
           if (trainFor) setTrainFor(null)
+          if (retrainFrom) {
+            setRetrainFrom(null)
+            setInitial(undefined)
+          }
         }}
         onSubmit={handleCreate}
         profiles={profiles}
