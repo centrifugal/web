@@ -27,8 +27,6 @@ const progress = (over: Partial<SessionProgress> = {}): SessionProgress =>
     denied: null,
     ratio_by_protocol: null,
     size_curve: null,
-    holdout_leaks: 0,
-    holdout_scanned: false,
     warmup_complete: true,
     ...over,
   }) as SessionProgress

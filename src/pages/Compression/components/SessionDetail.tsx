@@ -20,7 +20,6 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import TextField from '@mui/material/TextField'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
-import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { useCan } from 'contexts/SessionContext'
@@ -223,7 +222,6 @@ export const SessionDetail = ({
     if (autoBuilt.current || !canChange || !listed || candidates || building)
       return
     if (session?.status !== 'collected') return
-    if ((session.progress?.holdout_leaks ?? 0) > 0) return
     autoBuilt.current = true
     void handleBuild()
     // handleBuild reads only what these already cover.
@@ -286,7 +284,6 @@ export const SessionDetail = ({
     p != null &&
     p.frames_observed > 0 &&
     p.payload_parse_rate < PARSE_RATE_WARN_BELOW
-  const hasHoldoutLeaks = (p?.holdout_leaks ?? 0) > 0
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -423,16 +420,6 @@ export const SessionDetail = ({
               : undefined
           }
         >
-          {hasHoldoutLeaks && (
-            <Alert severity="error" icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
-              <strong>
-                {fmtInt(p.holdout_leaks)} holdout leak(s) detected.
-              </strong>{' '}
-              A live payload fragment made it past the value stripper. Building
-              candidates from this session is blocked until this reads zero.
-            </Alert>
-          )}
-
           {parseRateLow && (
             <Alert severity="warning" sx={{ mb: 2 }}>
               Only {fmtPct(p.payload_parse_rate)} of the publications are JSON.
@@ -454,7 +441,7 @@ export const SessionDetail = ({
                 color={candidates ? 'inherit' : 'primary'}
                 size="small"
                 onClick={handleBuild}
-                disabled={building || hasHoldoutLeaks}
+                disabled={building}
                 startIcon={
                   building ? (
                     <CircularProgress size={16} color="inherit" />

@@ -272,11 +272,6 @@ export interface SessionProgress {
   denied: Record<string, number> | null
   ratio_by_protocol: Record<string, number> | null
   size_curve: SizeCurvePoint[] | null
-  holdout_leaks: number
-  // Distinguishes "scanned and clear" from "never scanned". A zero
-  // holdout_leaks means nothing on its own, and presenting it as a passed
-  // check would claim assurance nobody has.
-  holdout_scanned: boolean
   warmup_complete: boolean
 }
 
