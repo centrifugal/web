@@ -389,26 +389,29 @@ export const ProfileDetail = ({
         title="Versions"
         subtitle="Established connections keep the dictionary they were given until they reconnect — activating or deactivating a version here does not recall anything already delivered."
         action={
-          <ConfirmButton
-            title="Rollback to the previous version?"
-            body="Re-activates whichever version was active before the current one. Established connections keep whatever dictionary they currently have until they reconnect."
-            confirmText="Rollback"
-            confirmColor="warning"
-            onConfirm={handleRollback}
-          >
-            {open => (
-              <Button
-                variant="tonal"
-                color="inherit"
-                size="small"
-                startIcon={<UndoIcon />}
-                onClick={open}
-                disabled={rollbackBusy}
-              >
-                Rollback
-              </Button>
-            )}
-          </ConfirmButton>
+          // Rolling back needs a version to go back to.
+          profile.versions.length > 1 && (
+            <ConfirmButton
+              title="Rollback to the previous version?"
+              body="Re-activates whichever version was active before the current one. Established connections keep whatever dictionary they currently have until they reconnect."
+              confirmText="Rollback"
+              confirmColor="warning"
+              onConfirm={handleRollback}
+            >
+              {open => (
+                <Button
+                  variant="tonal"
+                  color="inherit"
+                  size="small"
+                  startIcon={<UndoIcon />}
+                  onClick={open}
+                  disabled={rollbackBusy}
+                >
+                  Rollback
+                </Button>
+              )}
+            </ConfirmButton>
+          )
         }
       >
         {profile.versions.length === 0 ? (

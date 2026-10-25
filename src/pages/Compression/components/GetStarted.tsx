@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import MenuItem from '@mui/material/MenuItem'
+import TextField from '@mui/material/TextField'
 import AlertTitle from '@mui/material/AlertTitle'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
@@ -13,7 +15,10 @@ import CircularProgress from '@mui/material/CircularProgress'
 import { CompressionApiHook, CompressionOverview } from '../api'
 
 const DEFAULT_PROFILE = 'default'
-const TRAINING_SECONDS = 30 * 60
+// How long the first session trains. The last quarter of it measures the
+// result, so shorter still works, it just sees less of the traffic.
+const TRAINING_MINUTES = [10, 30, 60]
+const DEFAULT_TRAINING_MINUTES = 30
 
 interface GetStartedProps {
   api: CompressionApiHook
@@ -35,6 +40,7 @@ export const GetStarted = ({
 }: GetStartedProps) => {
   const [open, setOpen] = useState(false)
   const [running, setRunning] = useState(false)
+  const [minutes, setMinutes] = useState(DEFAULT_TRAINING_MINUTES)
 
   const run = async () => {
     setRunning(true)
@@ -50,7 +56,7 @@ export const GetStarted = ({
       const session = await api.createSession({
         filter: {},
         training_mode: 'schema',
-        duration_seconds: TRAINING_SECONDS,
+        duration_seconds: minutes * 60,
         profile_id: profile.id,
       })
       setOpen(false)
@@ -118,11 +124,26 @@ export const GetStarted = ({
               connection that has no profile.
             </Typography>
             <Typography component="li" variant="body2">
-              Start a 30-minute training session over all connections that
-              learns field names and message shapes only. You can stop it early
-              or extend it.
+              Start a training session over all connections that learns field
+              names and message shapes only. You can extend it.
             </Typography>
           </Box>
+          <TextField
+            select
+            fullWidth
+            margin="dense"
+            label="Train for"
+            value={minutes}
+            onChange={e => setMinutes(Number(e.target.value))}
+            helperText="The last quarter measures the result. Longer sees more of your traffic."
+            sx={{ mb: 1 }}
+          >
+            {TRAINING_MINUTES.map(m => (
+              <MenuItem key={m} value={m}>
+                {m < 60 ? `${m} minutes` : '1 hour'}
+              </MenuItem>
+            ))}
+          </TextField>
           <Typography variant="body2">
             When training finishes, the profile shows the dictionary it made. It
             serves nothing until you activate it.
