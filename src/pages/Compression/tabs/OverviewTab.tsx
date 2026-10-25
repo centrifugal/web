@@ -493,7 +493,11 @@ export const OverviewTab = ({
                       totalConnects > 0
                         ? (p.warm_connects / totalConnects) * 100
                         : 0
-                    const negative = p.net_saved_bytes < 0
+                    // Servers report a connection's frames in batches, so a
+                    // dictionary just delivered shows its download before any
+                    // frame it compressed. That is not a loss yet.
+                    const measuring = p.bytes_in === 0
+                    const negative = !measuring && p.net_saved_bytes < 0
                     return (
                       <TableRow
                         key={`${p.profile}:${p.protocol}:${p.tier}:${p.dictionary_id}`}
@@ -544,7 +548,7 @@ export const OverviewTab = ({
                           )}
                         </TableCell>
                         <TableCell align="right">
-                          {fmtRatio(p.realized_ratio)}
+                          {measuring ? '—' : fmtRatio(p.realized_ratio)}
                         </TableCell>
                         <TableCell align="right">
                           <Tooltip
@@ -577,15 +581,31 @@ export const OverviewTab = ({
                                 />
                               </Tooltip>
                             )}
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 700,
-                                color: negative ? 'error.main' : 'success.main',
-                              }}
-                            >
-                              {fmtSigned(p.net_saved_bytes)}
-                            </Typography>
+                            {measuring ? (
+                              <Tooltip
+                                title="No compressed frames reported yet. Each server reports a connection's frames in batches, and when it closes."
+                                arrow
+                              >
+                                <Typography
+                                  variant="body2"
+                                  color="text.secondary"
+                                >
+                                  measuring
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  color: negative
+                                    ? 'error.main'
+                                    : 'success.main',
+                                }}
+                              >
+                                {fmtSigned(p.net_saved_bytes)}
+                              </Typography>
+                            )}
                           </Box>
                         </TableCell>
                       </TableRow>

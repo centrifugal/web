@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Alert from '@mui/material/Alert'
+import Box from '@mui/material/Box'
 import AlertTitle from '@mui/material/AlertTitle'
 import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
@@ -89,26 +90,40 @@ export const GetStarted = ({
       >
         <DialogTitle>Set up dictionary compression</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" component="div">
-            This will:
-            <ol style={{ marginTop: 8, paddingLeft: 20 }}>
-              {!overview.enabled && <li>Turn on serving dictionaries.</li>}
-              {!overview.structure_active && (
-                <li>
-                  Serve the structure dictionary, built from the Centrifugo
-                  protocol, to JSON connections from now on.
-                </li>
-              )}
-              <li>
-                Create the profile <code>{DEFAULT_PROFILE}</code>, given to
-                every connection that has no profile.
-              </li>
-              <li>
-                Start a 30-minute training session over all connections that
-                learns field names and message shapes only. You can stop it
-                early or extend it.
-              </li>
-            </ol>
+          <Typography variant="body2">This will:</Typography>
+          <Box
+            component="ol"
+            sx={{
+              listStyle: 'decimal',
+              pl: 2.5,
+              my: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0.5,
+            }}
+          >
+            {!overview.enabled && (
+              <Typography component="li" variant="body2">
+                Turn on serving dictionaries.
+              </Typography>
+            )}
+            {!overview.structure_active && (
+              <Typography component="li" variant="body2">
+                Serve the structure dictionary, built from the Centrifugo
+                protocol, to JSON connections from now on.
+              </Typography>
+            )}
+            <Typography component="li" variant="body2">
+              Create the profile <code>{DEFAULT_PROFILE}</code>, given to every
+              connection that has no profile.
+            </Typography>
+            <Typography component="li" variant="body2">
+              Start a 30-minute training session over all connections that
+              learns field names and message shapes only. You can stop it early
+              or extend it.
+            </Typography>
+          </Box>
+          <Typography variant="body2">
             When training finishes, the profile shows the dictionary it made. It
             serves nothing until you activate it.
           </Typography>

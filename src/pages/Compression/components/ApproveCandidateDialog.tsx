@@ -257,7 +257,11 @@ export const ApproveCandidateDialog = ({
             ) : undefined
           }
         >
-          {submitting ? 'Approving…' : 'Approve'}
+          {submitting
+            ? 'Approving…'
+            : activateNow
+              ? 'Approve and activate'
+              : 'Approve'}
         </Button>
       </DialogActions>
     </Dialog>

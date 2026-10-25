@@ -31,15 +31,25 @@ export const ProfileAssignment = ({ profile }: ProfileAssignmentProps) => {
       sx={{
         m: 0,
         pl: 2.5,
+        listStyle: 'disc',
         display: 'flex',
         flexDirection: 'column',
         gap: 0.75,
       }}
     >
+      {profile.serve_as_default && (
+        <Typography component="li" variant="body2">
+          Every connection that has no profile receives it: it is the default
+          profile.
+        </Typography>
+      )}
       <Typography component="li" variant="body2">
-        Your backend assigns it with <Snippet value={claim} /> in the connection
-        token claims, or <code>profile</code> in the connect proxy result. No
-        client release is needed.
+        {profile.serve_as_default
+          ? 'Your backend can also assign it'
+          : 'Your backend assigns it'}{' '}
+        with <Snippet value={claim} /> in the connection token claims, or{' '}
+        <code>profile</code> in the connect proxy result. No client release is
+        needed.
       </Typography>
       <Typography component="li" variant="body2">
         {profile.client_declarable ? (
@@ -51,12 +61,6 @@ export const ProfileAssignment = ({ profile }: ProfileAssignmentProps) => {
           'Clients cannot ask for it by name: Client declarable is off.'
         )}
       </Typography>
-      {profile.serve_as_default && (
-        <Typography component="li" variant="body2">
-          Every connection that has no profile receives it too: it is the
-          default profile.
-        </Typography>
-      )}
     </Box>
   )
 }

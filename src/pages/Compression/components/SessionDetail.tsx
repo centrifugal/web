@@ -268,9 +268,12 @@ export const SessionDetail = ({
   }
 
   const p = session.progress
-  const parseRateLow = p != null && p.payload_parse_rate < PARSE_RATE_WARN_BELOW
+  // A rate over nothing observed yet is not a low rate.
+  const parseRateLow =
+    p != null &&
+    p.frames_observed > 0 &&
+    p.payload_parse_rate < PARSE_RATE_WARN_BELOW
   const hasHoldoutLeaks = (p?.holdout_leaks ?? 0) > 0
-  const holdoutUnscanned = p != null && !p.holdout_scanned
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -365,7 +368,9 @@ export const SessionDetail = ({
           </FieldRow>
           <FieldRow label="Deadline">
             <Typography variant="body2">
-              {fmtDateTime(session.deadline)} ({fmtRelative(session.deadline)})
+              {fmtDateTime(session.deadline)}
+              {session.status === 'running' &&
+                ` (${fmtRelative(session.deadline)})`}
             </Typography>
           </FieldRow>
           {session.stopped_at && (
@@ -395,19 +400,10 @@ export const SessionDetail = ({
           title="Collection progress"
           subtitle={
             session.status === 'running'
-              ? 'Refreshing about once a second while the session runs.'
+              ? 'Collecting until the deadline. When it ends, this page builds the dictionary. You can stop early once the number of distinct shapes stops growing.'
               : undefined
           }
         >
-          {holdoutUnscanned && !hasHoldoutLeaks && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <strong>Holdout scan did not run for this session.</strong> No
-              leak was reported, but nothing checked either — treat this as
-              unverified rather than clear, and review the proposed values on
-              their own merits.
-            </Alert>
-          )}
-
           {hasHoldoutLeaks && (
             <Alert severity="error" icon={<WarningAmberIcon />} sx={{ mb: 2 }}>
               <strong>
@@ -501,8 +497,8 @@ export const SessionDetail = ({
           action={
             session.status === 'collected' ? (
               <Button
-                variant="solid"
-                color="primary"
+                variant={candidates ? 'tonal' : 'solid'}
+                color={candidates ? 'inherit' : 'primary'}
                 size="small"
                 onClick={handleBuild}
                 disabled={building || hasHoldoutLeaks}
@@ -628,10 +624,12 @@ export const SessionDetail = ({
                           : 'The same shapes plus the values you approve, one at a time. Compresses harder, and every value you tick is a value served to everyone this profile reaches.'}
                       </Typography>
 
-                      <Typography variant="body2" color="text.secondary">
-                        {fmtInt(c.values_total)} value
-                        {c.values_total === 1 ? '' : 's'}
-                      </Typography>
+                      {c.fidelity !== 'schema' && (
+                        <Typography variant="body2" color="text.secondary">
+                          {fmtInt(c.values_total)} value
+                          {c.values_total === 1 ? '' : 's'}
+                        </Typography>
+                      )}
                       <Typography variant="body2" sx={{ mt: 0.5 }}>
                         {Object.entries(c.ratio_by_protocol)
                           .map(
@@ -783,7 +781,7 @@ export const SessionDetail = ({
                             size="small"
                             onClick={() => setAssignTarget(c)}
                           >
-                            Assign
+                            Create version
                           </Button>
                         ) : (
                           <Button
@@ -821,8 +819,8 @@ export const SessionDetail = ({
           setCreated(c)
           showAlert(
             c.activatedPercent != null
-              ? `Schema candidate assigned — new version activated for ${c.activatedPercent}% of matching connections`
-              : 'Schema candidate assigned — new version created',
+              ? `Version created and activated for ${c.activatedPercent}% of matching connections`
+              : 'Version created',
             { severity: 'success' }
           )
         }}

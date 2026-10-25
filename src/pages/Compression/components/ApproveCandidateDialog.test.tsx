@@ -98,7 +98,9 @@ describe('ApproveCandidateDialog', () => {
       }
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Approve and activate' })
+    )
     await waitFor(() => expect(onApproved).toHaveBeenCalled())
     expect(api.activateVersion).toHaveBeenCalledWith('v1', 25)
     expect(onApproved).toHaveBeenCalledWith({
@@ -117,7 +119,9 @@ describe('ApproveCandidateDialog', () => {
     await waitFor(() => expect(profileSelect().textContent).toContain('feed'))
     fireEvent.click(screen.getByRole('checkbox', { name: /activate now/i }))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approve' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Approve and activate' })
+    )
     await waitFor(() => expect(api.handleError).toHaveBeenCalledWith(failure))
     expect(onApproved).toHaveBeenCalledWith({
       profileId: 'p1',
@@ -163,7 +167,7 @@ describe('AssignCandidateDialog', () => {
       screen.getByRole('checkbox', { name: /activate now/i })
     ).not.toBeChecked()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Assign' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }))
     await waitFor(() => expect(onAssigned).toHaveBeenCalled())
     expect(api.assignSession).toHaveBeenCalledWith('s1', {
       profile_id: 'p1',

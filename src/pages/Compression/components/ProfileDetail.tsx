@@ -354,9 +354,15 @@ export const ProfileDetail = ({
             rowGap: 1,
           }}
         >
-          <InlineStat label="Training mode">
-            <Typography variant="body2">{profile.training_mode}</Typography>
-          </InlineStat>
+          {profile.active_version && (
+            <InlineStat label="Contents">
+              <Typography variant="body2">
+                {profile.training_mode === 'values'
+                  ? 'Shapes and values'
+                  : 'Shapes only'}
+              </Typography>
+            </InlineStat>
+          )}
           <InlineStat label="Serving now">
             <Tooltip
               title={
@@ -373,9 +379,6 @@ export const ProfileDetail = ({
                 {profile.connections != null ? profile.connections : '—'}
               </Typography>
             </Tooltip>
-          </InlineStat>
-          <InlineStat label="Revision">
-            <Typography variant="body2">{profile.revision}</Typography>
           </InlineStat>
         </Box>
         <Typography

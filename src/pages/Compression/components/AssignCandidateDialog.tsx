@@ -105,11 +105,11 @@ export const AssignCandidateDialog = ({
       maxWidth="xs"
       fullWidth
     >
-      <DialogTitle>Assign schema candidate</DialogTitle>
+      <DialogTitle>Create a dictionary version</DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Creates a version from the schema candidate — field names and shapes
-          only, no application values.
+          From field names and message shapes only, with no values from your
+          traffic.
         </Typography>
         <ProfileSizeFields
           api={api}
@@ -144,7 +144,11 @@ export const AssignCandidateDialog = ({
             ) : undefined
           }
         >
-          {submitting ? 'Assigning…' : 'Assign'}
+          {submitting
+            ? 'Creating…'
+            : activateNow
+              ? 'Create and activate'
+              : 'Create'}
         </Button>
       </DialogActions>
     </Dialog>

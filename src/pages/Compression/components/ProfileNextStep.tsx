@@ -117,7 +117,7 @@ export const nextStep = (
   return {
     severity: 'success',
     title: 'Serving',
-    body: 'Every connection of this profile receives this dictionary. Retrain when your messages change.',
+    body: 'New connections of this profile receive this dictionary, and open ones get it when they reconnect. Retrain when your messages change.',
     action: active.source_session_id
       ? { kind: 'retrain', sessionId: active.source_session_id }
       : { kind: 'start_training' },
