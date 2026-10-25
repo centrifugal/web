@@ -16,21 +16,19 @@ import { useCompressionApi, CompressionApiError } from './api'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ProfilesTab } from './tabs/ProfilesTab'
 import { SessionsTab } from './tabs/SessionsTab'
-import { StructureTab } from './tabs/StructureTab'
 
 interface CompressionProps {
   signinSilent: () => void
   authorization: string
 }
 
-type TabKey = 'overview' | 'profiles' | 'sessions' | 'structure'
+type TabKey = 'overview' | 'profiles' | 'sessions'
 
-const TAB_KEYS: TabKey[] = ['overview', 'profiles', 'sessions', 'structure']
+const TAB_KEYS: TabKey[] = ['overview', 'profiles', 'sessions']
 const TAB_TITLES: Record<TabKey, string> = {
   overview: 'Overview',
   profiles: 'Profiles',
   sessions: 'Sessions',
-  structure: 'Structure',
 }
 
 // Compression: the dictionary compression admin section (tab host), mirroring
@@ -131,7 +129,6 @@ export const Compression = ({
           <Tab label="Overview" value="overview" />
           <Tab label="Profiles" value="profiles" />
           <Tab label="Sessions" value="sessions" />
-          <Tab label="Structure" value="structure" />
         </Tabs>
       </Box>
 
@@ -155,12 +152,6 @@ export const Compression = ({
         )}
         {tab === 'sessions' && (
           <SessionsTab
-            authorization={authorization}
-            signinSilent={signinSilent}
-          />
-        )}
-        {tab === 'structure' && (
-          <StructureTab
             authorization={authorization}
             signinSilent={signinSilent}
           />

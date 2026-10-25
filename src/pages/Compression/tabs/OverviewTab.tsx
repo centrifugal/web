@@ -18,13 +18,15 @@ import { useTheme } from '@mui/material/styles'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { EmptyState } from 'components/EmptyState'
-import { Panel, CapabilityChip, ChipTone, InlineStat } from 'pages/Inspector/ui'
+import { CopyButton } from 'components/CopyButton'
+import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
 import { HumanSize } from 'utils/Functions'
 
 import {
   useCompressionApi,
   CompressionOverview,
   ConnectionsByTier,
+  StructureInfo,
 } from '../api'
 
 const POLL_MS = 5000
@@ -105,6 +107,19 @@ export const OverviewTab = ({
   const [overview, setOverview] = useState<CompressionOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
+  // The structure dictionary's id and size, which the overview does not carry.
+  const [structure, setStructure] = useState<StructureInfo | null>(null)
+  const [togglingStructure, setTogglingStructure] = useState(false)
+
+  useEffect(() => {
+    api
+      .getStructure()
+      .then(setStructure)
+      .catch(() => {
+        // Only the size and id are missing then; the switch still works.
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Same visibility gate as the Status page: no point polling a backgrounded tab.
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
@@ -157,6 +172,32 @@ export const OverviewTab = ({
     }
   }
 
+  const handleToggleStructure = async (
+    _: React.ChangeEvent<HTMLInputElement>,
+    checked: boolean
+  ) => {
+    if (!overview) return
+    setTogglingStructure(true)
+    const previous = overview
+    setOverview({ ...overview, structure_active: checked })
+    try {
+      const updated = await api.setStructureActive(checked)
+      setStructure(updated)
+      setOverview(o => (o ? { ...o, structure_active: updated.active } : o))
+      showAlert(
+        checked
+          ? 'Structure dictionary activated'
+          : 'Structure dictionary deactivated',
+        { severity: 'success' }
+      )
+    } catch (err) {
+      setOverview(previous)
+      api.handleError(err)
+    } finally {
+      setTogglingStructure(false)
+    }
+  }
+
   if (loading && !overview) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -172,21 +213,6 @@ export const OverviewTab = ({
       </Alert>
     )
   }
-
-  // The two switches are independent settings but not independent effects:
-  // with serving off, Select returns nothing before it reaches the structure
-  // fallback. Reporting this tier as "Active" then describes a stored flag,
-  // not what any connection is getting.
-  const structureLabel = !overview.structure_active
-    ? 'Inactive'
-    : overview.enabled
-      ? 'Active'
-      : 'On, not serving'
-  const structureTone: ChipTone = !overview.structure_active
-    ? 'off'
-    : overview.enabled
-      ? 'on'
-      : 'warn'
 
   const serving = overview.serving
   // A node that does not answer contributes nothing, which looks exactly like
@@ -260,9 +286,6 @@ export const OverviewTab = ({
               }
             />
           )}
-          <InlineStat label="Structure dictionary">
-            <CapabilityChip label={structureLabel} tone={structureTone} />
-          </InlineStat>
           <InlineStat label="Profiles">
             <Typography variant="body2">{fmtInt(overview.profiles)}</Typography>
           </InlineStat>
@@ -271,6 +294,45 @@ export const OverviewTab = ({
               {fmtInt(overview.active_versions)}
             </Typography>
           </InlineStat>
+        </Box>
+        <Box
+          sx={{
+            mt: 2,
+            display: 'flex',
+            alignItems: 'center',
+            columnGap: 1,
+            flexWrap: 'wrap',
+          }}
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                size="small"
+                checked={overview.structure_active}
+                disabled={togglingStructure}
+                onChange={handleToggleStructure}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                Serve the structure dictionary
+              </Typography>
+            }
+            sx={{ mr: 0 }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            Built from the Centrifugo protocol with none of your data, so there
+            is nothing to review. JSON connections only
+            {structure &&
+              ` · ${HumanSize(structure.wire_size)} sent once to each new client`}
+            .
+          </Typography>
+          {structure && (
+            <CopyButton
+              value={structure.artifact_id}
+              label="Copy dictionary id"
+            />
+          )}
         </Box>
       </Panel>
 
