@@ -5,6 +5,7 @@ import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
 import Tooltip from '@mui/material/Tooltip'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -22,7 +23,7 @@ import { ShellContext } from 'contexts/ShellContext'
 import { useCan } from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 import { CopyButton } from 'components/CopyButton'
-import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
+import { Panel, InlineStat } from 'pages/Inspector/ui'
 import { HumanSize } from 'utils/Functions'
 
 import {
@@ -161,10 +162,7 @@ export const OverviewTab = ({
     return () => clearInterval(id)
   }, [load, visible])
 
-  const handleToggleEnabled = async (
-    _: React.ChangeEvent<HTMLInputElement>,
-    checked: boolean
-  ) => {
+  const setEnabled = async (checked: boolean) => {
     if (!overview) return
     setToggling(true)
     const previous = overview
@@ -185,6 +183,11 @@ export const OverviewTab = ({
       setToggling(false)
     }
   }
+
+  const handleToggleEnabled = (
+    _: React.ChangeEvent<HTMLInputElement>,
+    checked: boolean
+  ) => void setEnabled(checked)
 
   const handleToggleStructure = async (
     _: React.ChangeEvent<HTMLInputElement>,
@@ -288,6 +291,27 @@ export const OverviewTab = ({
           </Box>
         }
       >
+        {!overview.enabled && (
+          <Alert
+            severity="warning"
+            sx={{ mb: 2 }}
+            action={
+              canChange ? (
+                <Button
+                  color="inherit"
+                  size="small"
+                  disabled={toggling}
+                  onClick={() => void setEnabled(true)}
+                >
+                  Turn on
+                </Button>
+              ) : undefined
+            }
+          >
+            Serve dictionaries is off: no connection gets a dictionary, not even
+            the structure one. Training still collects.
+          </Alert>
+        )}
         <Box
           sx={{
             display: 'flex',
@@ -297,17 +321,6 @@ export const OverviewTab = ({
             rowGap: 1,
           }}
         >
-          {!overview.enabled && (
-            <CapabilityChip
-              label="Nothing is being served"
-              tone="warn"
-              title={
-                'Serve dictionaries is off, so no connection receives any ' +
-                'dictionary - including the structure tier - whatever the ' +
-                'settings beside this say.'
-              }
-            />
-          )}
           <InlineStat label="Profiles">
             <Typography variant="body2">{fmtInt(overview.profiles)}</Typography>
           </InlineStat>
@@ -324,6 +337,7 @@ export const OverviewTab = ({
             alignItems: 'center',
             columnGap: 1,
             flexWrap: 'wrap',
+            opacity: overview.enabled ? 1 : 0.6,
           }}
         >
           <FormControlLabel
@@ -348,6 +362,8 @@ export const OverviewTab = ({
             {structure &&
               ` · ${HumanSize(structure.wire_size)} sent once to each new client`}
             .
+            {!overview.enabled &&
+              ' Takes effect once Serve dictionaries is on.'}
           </Typography>
           {structure && (
             <CopyButton
