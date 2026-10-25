@@ -152,6 +152,9 @@ export const ReviewScreen = ({
     recommendedRef.current = true
     setSelected(prev => (prev.size > 0 ? prev : new Set(hashes)))
   }, [candidate.recommended_hashes, candidate.draft_count])
+  // Without a control window nothing could be measured, which the text below
+  // has to say rather than claim a measured selection.
+  const measured = candidate.size_curve.some(p => p.measured)
 
   // The size of the dictionary being reviewed FOR. It belongs here rather than
   // in the approve dialog: which values are worth approving depends on how much
@@ -426,7 +429,7 @@ export const ReviewScreen = ({
           Back to session
         </Button>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Review candidate — {candidate.fidelity}
+          Review values
         </Typography>
       </Box>
 
@@ -720,7 +723,11 @@ export const ReviewScreen = ({
               label="Dictionary size to review for"
               value={targetSize}
               onChange={e => handleTargetSize(Number(e.target.value))}
-              helperText="Every size here was built and measured. Changing it re-ticks the values measured for that size — the two are one answer, so reviewing 60 values for a dictionary with room for 5 would be reviewing the wrong list."
+              helperText={
+                measured
+                  ? 'Every size here was built and measured. Changing it re-ticks the values measured for that size — the two are one answer, so reviewing 60 values for a dictionary with room for 5 would be reviewing the wrong list.'
+                  : 'Every size here was built; nothing could be measured. The size decides how many values fit, so pick it before reviewing.'
+              }
             >
               {candidate.size_curve.map(p => (
                 <MenuItem key={p.size_bytes} value={p.size_bytes}>
@@ -763,14 +770,10 @@ export const ReviewScreen = ({
                 ` in a ${HumanSize(candidate.recommended_size)} dictionary`}
               .
             </strong>{' '}
-            This session held back its last quarter and the build tried several
-            cut-offs and sizes against it — traffic no dictionary here was built
-            from — so this is what the selection actually achieved, not what it
-            is projected to. Approving more is usually worse: past the peak,
-            extra values push the useful fragments out of range and the ratio
-            falls. Read these, untick anything that should not be disclosed, and
-            approve.
-            {candidate.recommended_size > 0 && (
+            {measured
+              ? 'This session held back its last quarter and the build tried several cut-offs and sizes against it — traffic no dictionary here was built from — so this is what the selection actually achieved, not what it is projected to. Approving more is usually worse: past the peak, extra values push the useful fragments out of range and the ratio falls. Read these, untick anything that should not be disclosed, and approve.'
+              : 'This session was stopped before its last quarter, which is held back to measure the result, so nothing here is measured. Selected are the values that fit in the dictionary. Read them, untick anything that should not be disclosed, and approve, or train again and let the session reach its deadline.'}
+            {measured && candidate.recommended_size > 0 && (
               <Typography variant="body2" sx={{ mt: 1 }}>
                 The size and the selection are one answer: this many values was
                 the best cut-off <em>at that size</em>. Pick another size above

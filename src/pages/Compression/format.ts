@@ -53,3 +53,7 @@ export const fmtFilter = (filter: TrainingFilter): string => {
   if (filter.unclassified) parts.push('unclassified')
   return parts.length > 0 ? parts.join(' · ') : 'all connections'
 }
+
+// What a training mode learns, as an operator reads it.
+export const fmtTrainingMode = (mode: string): string =>
+  mode === 'values' ? 'Shapes and values' : 'Shapes only'

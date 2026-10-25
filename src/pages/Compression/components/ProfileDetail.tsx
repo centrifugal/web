@@ -34,7 +34,7 @@ import {
   Session,
   Version,
 } from '../api'
-import { fmtDateTime, fmtRatio } from '../format'
+import { fmtDateTime, fmtRatio, fmtTrainingMode } from '../format'
 import { EditProfileDialog } from './EditProfileDialog'
 import { ActivateVersionDialog } from './ActivateVersionDialog'
 import { NextAction, nextStep, ProfileNextStep } from './ProfileNextStep'
@@ -357,9 +357,7 @@ export const ProfileDetail = ({
           {profile.active_version && (
             <InlineStat label="Contents">
               <Typography variant="body2">
-                {profile.training_mode === 'values'
-                  ? 'Shapes and values'
-                  : 'Shapes only'}
+                {fmtTrainingMode(profile.training_mode)}
               </Typography>
             </InlineStat>
           )}

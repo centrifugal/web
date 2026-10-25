@@ -38,6 +38,7 @@ import {
   fmtPct,
   fmtRatio,
   fmtRelative,
+  fmtTrainingMode,
 } from '../format'
 import { AssignCandidateDialog } from './AssignCandidateDialog'
 import { CreatedVersion } from './ActivateNowField'
@@ -66,6 +67,17 @@ const statusTone = (status: Session['status']) => {
 // non-JSON traffic can't be learned from, and this is the usual explanation
 // for a disappointing candidate.
 const PARSE_RATE_WARN_BELOW = 0.9
+
+// controlFrom is when a session's control window starts: its last quarter,
+// held back to measure what is built (see CreateSession in dictcontrol).
+const controlFrom = (s: Session): string =>
+  new Date(
+    Date.parse(s.started_at) +
+      0.75 * (Date.parse(s.deadline) - Date.parse(s.started_at))
+  ).toISOString()
+
+const beforeControlWindow = (s: Session): boolean =>
+  Date.now() < Date.parse(controlFrom(s))
 
 // SessionDetail: a single training session — live progress while it runs,
 // then build/review/assign once it has something collected. Stopping a
@@ -314,7 +326,11 @@ export const SessionDetail = ({
             </Button>
             <ConfirmButton
               title="Stop this session?"
-              body="Stopping early is not a failure — the session moves to collected and everything gathered so far stays usable for building candidates."
+              body={
+                beforeControlWindow(session)
+                  ? `What was gathered stays usable, but the session keeps its last quarter, from ${fmtDateTime(controlFrom(session))}, to measure the dictionary against traffic it was not built from. Stopped before then, its ratios are only projected and its values cannot be ranked by what they save.`
+                  : 'The session moves to collected and everything gathered so far stays usable.'
+              }
               confirmText="Stop"
               confirmColor="warning"
               onConfirm={handleStop}
@@ -355,8 +371,10 @@ export const SessionDetail = ({
 
       <Panel title="Overview">
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <FieldRow label="Training mode">
-            <Typography variant="body2">{session.training_mode}</Typography>
+          <FieldRow label="Learns">
+            <Typography variant="body2">
+              {fmtTrainingMode(session.training_mode)}
+            </Typography>
           </FieldRow>
           <FieldRow label="Filter">
             <Typography variant="body2">{fmtFilter(session.filter)}</Typography>
@@ -594,13 +612,19 @@ export const SessionDetail = ({
                             title="A later build of this session produced a newer candidate of the same kind. This one is still reviewable and still carries any draft made on it, but its numbers are older."
                           />
                         ) : (
-                          <Chip
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                            label="current"
-                            title="The most recent build of this session for this kind of candidate."
-                          />
+                          // "current" only means something next to an older
+                          // build of the same kind.
+                          candidates.some(
+                            (o, j) => j > i && o.fidelity === c.fidelity
+                          ) && (
+                            <Chip
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                              label="current"
+                              title="The most recent build of this session for this kind of candidate."
+                            />
+                          )
                         )}
                         <Box sx={{ flexGrow: 1 }} />
                         <Typography variant="caption" color="text.secondary">

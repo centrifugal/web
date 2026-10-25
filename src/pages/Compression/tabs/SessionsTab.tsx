@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -18,7 +19,7 @@ import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
 import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateSessionRequest, Session } from '../api'
-import { fmtDateTime, fmtFilter, fmtRelative } from '../format'
+import { fmtDateTime, fmtFilter, fmtRelative, fmtTrainingMode } from '../format'
 import { CreateSessionDialog } from '../components/CreateSessionDialog'
 import { SessionDetail } from '../components/SessionDetail'
 
@@ -56,10 +57,10 @@ export const SessionsTab = ({
   // Arriving from a profile that has nothing trained yet: open the dialog
   // already bound to it, so the step that journey exists for is not a field
   // the operator has to find.
-  const [trainFor, setTrainFor] = useUrlSelection('train_for')
+  const [trainFor] = useUrlSelection('train_for')
   // Retraining: the dialog opens filled in from the session the profile's
   // dictionary came from.
-  const [retrainFrom, setRetrainFrom] = useUrlSelection('retrain_from')
+  const [retrainFrom] = useUrlSelection('retrain_from')
   const [initial, setInitial] = useState<CreateSessionRequest | undefined>()
   useEffect(() => {
     if (!retrainFrom) {
@@ -93,6 +94,7 @@ export const SessionsTab = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainFor, retrainFrom])
   const [selectedId, setSelectedId] = useUrlSelection('session')
+  const [, setSearchParams] = useSearchParams()
   // Offered as the optional "train for" binding when creating a session. A
   // failure here is not worth surfacing: the binding is optional, so an empty
   // list simply hides the field.
@@ -144,10 +146,16 @@ export const SessionsTab = ({
       const created = await api.createSession(req)
       setCreateOpen(false)
       setSessions(prev => [created, ...prev])
-      // The dialog's reason to open is spent: a reload must not reopen it.
-      if (trainFor) setTrainFor(null)
-      if (retrainFrom) setRetrainFrom(null)
-      setSelectedId(created.id)
+      // One update: the dialog's reason to open is spent, so a reload must not
+      // reopen it, and the new session opens. Separate updates in one tick
+      // would each start from the same URL, and only the last would land.
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        next.delete('train_for')
+        next.delete('retrain_from')
+        next.set('session', created.id)
+        return next
+      })
     } catch (err) {
       api.handleError(err)
     }
@@ -201,7 +209,7 @@ export const SessionsTab = ({
                   <TableRow>
                     <TableCell>Status</TableCell>
                     <TableCell>Audience</TableCell>
-                    <TableCell>Mode</TableCell>
+                    <TableCell>Learns</TableCell>
                     <TableCell>Started</TableCell>
                     <TableCell>Deadline</TableCell>
                     <TableCell align="right">Nodes reported</TableCell>
@@ -234,7 +242,7 @@ export const SessionsTab = ({
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{s.training_mode}</TableCell>
+                      <TableCell>{fmtTrainingMode(s.training_mode)}</TableCell>
                       <TableCell>{fmtDateTime(s.started_at)}</TableCell>
                       <TableCell>
                         {s.status === 'running'
@@ -290,11 +298,16 @@ export const SessionsTab = ({
         open={createOpen}
         onClose={() => {
           setCreateOpen(false)
-          if (trainFor) setTrainFor(null)
-          if (retrainFrom) {
-            setRetrainFrom(null)
-            setInitial(undefined)
-          }
+          setInitial(undefined)
+          setSearchParams(
+            prev => {
+              const next = new URLSearchParams(prev)
+              next.delete('train_for')
+              next.delete('retrain_from')
+              return next
+            },
+            { replace: true }
+          )
         }}
         onSubmit={handleCreate}
         profiles={profiles}

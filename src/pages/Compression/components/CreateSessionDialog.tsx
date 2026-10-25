@@ -62,6 +62,9 @@ export const CreateSessionDialog = ({
     defaultProfileId ?? ''
   )
   const [submitting, setSubmitting] = useState(false)
+  // The request as sent, for whoever wants to see it; folded away so it does
+  // not read as part of the form.
+  const [showRequest, setShowRequest] = useState(false)
 
   useEffect(() => {
     if (!open) {
@@ -132,6 +135,8 @@ export const CreateSessionDialog = ({
     }
   }
 
+  const trainFor = profiles.find(p => p.id === trainForProfileId)
+
   return (
     <Dialog
       open={open}
@@ -139,20 +144,54 @@ export const CreateSessionDialog = ({
       maxWidth="sm"
       fullWidth
     >
-      <DialogTitle>Start a training session</DialogTitle>
+      <DialogTitle>
+        {initial && trainFor
+          ? `Retrain ${trainFor.name}`
+          : 'Start a training session'}
+      </DialogTitle>
       <DialogContent>
-        <FormControl component="fieldset" sx={{ mt: 1, mb: 1 }}>
-          <FormLabel sx={{ mb: 1 }}>Identity</FormLabel>
+        <FormControl component="fieldset" sx={{ mt: 1, mb: 2 }}>
+          <FormLabel sx={{ mb: 1 }}>What to learn</FormLabel>
+          <RadioGroup
+            value={trainingMode}
+            onChange={e => setTrainingMode(e.target.value as TrainingMode)}
+          >
+            <FormControlLabel
+              value="schema"
+              control={<Radio />}
+              label="Shapes only: field names and message structure, nothing to review"
+            />
+            <FormControlLabel
+              value="values"
+              control={<Radio />}
+              label="Shapes and values: compresses better, needs your review"
+            />
+          </RadioGroup>
+          {trainingMode === 'values' && (
+            <Typography variant="caption" color="text.secondary">
+              The session proposes values seen in your traffic. Every value you
+              approve is sent to every client this profile reaches.
+            </Typography>
+          )}
+        </FormControl>
+
+        <FormLabel component="legend" sx={{ mb: 1 }}>
+          Which connections to sample
+        </FormLabel>
+        <FormControl component="fieldset" sx={{ mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Users
+          </Typography>
           <RadioGroup
             value={identity}
             onChange={e => setIdentity(e.target.value as Identity)}
             row
           >
-            <FormControlLabel value="any" control={<Radio />} label="Any" />
+            <FormControlLabel value="any" control={<Radio />} label="All" />
             <FormControlLabel
               value="user"
               control={<Radio />}
-              label="Specific user"
+              label="One user"
             />
             <FormControlLabel
               value="anonymous"
@@ -171,19 +210,10 @@ export const CreateSessionDialog = ({
             sx={{ mb: 2 }}
           />
         )}
-
-        <TextField
-          value={channel}
-          onChange={e => setChannel(e.target.value)}
-          label="Channel (optional)"
-          placeholder="e.g., odds:*"
-          fullWidth
-          helperText="Only connections subscribed to a channel matching this pattern."
-          sx={{ mb: 2 }}
-        />
-
-        <FormControl component="fieldset" sx={{ mb: 1 }}>
-          <FormLabel sx={{ mb: 1 }}>Classification</FormLabel>
+        <FormControl component="fieldset" sx={{ mb: 1, display: 'block' }}>
+          <Typography variant="body2" color="text.secondary">
+            Profile
+          </Typography>
           <RadioGroup
             value={classification}
             onChange={e => setClassification(e.target.value as Classification)}
@@ -193,19 +223,14 @@ export const CreateSessionDialog = ({
             <FormControlLabel
               value="profile"
               control={<Radio />}
-              label="By profile"
+              label="Of one profile"
             />
             <FormControlLabel
               value="unclassified"
               control={<Radio />}
-              label="Unclassified"
+              label="Without a profile"
             />
           </RadioGroup>
-          <Typography variant="caption" color="text.secondary">
-            By profile samples what a profile's own audience is sending — use it
-            to train that profile's dictionary. Unclassified samples connections
-            that match no profile at all.
-          </Typography>
         </FormControl>
         {classification === 'profile' && (
           <TextField
@@ -217,44 +242,27 @@ export const CreateSessionDialog = ({
             sx={{ mb: 2 }}
           />
         )}
-
-        <FormControl component="fieldset" sx={{ mt: 1, mb: 2 }}>
-          <FormLabel sx={{ mb: 1 }}>Training mode</FormLabel>
-          <RadioGroup
-            value={trainingMode}
-            onChange={e => setTrainingMode(e.target.value as TrainingMode)}
-            row
-          >
-            <FormControlLabel
-              value="schema"
-              control={<Radio />}
-              label="Schema"
-            />
-            <FormControlLabel
-              value="values"
-              control={<Radio />}
-              label="Values"
-            />
-          </RadioGroup>
-          <Typography variant="caption" color="text.secondary">
-            Schema learns field names and shapes only — no review needed. Values
-            also proposes concrete field values for you to review and approve,
-            which compresses better but needs a look before it ships.
-          </Typography>
-        </FormControl>
+        <TextField
+          value={channel}
+          onChange={e => setChannel(e.target.value)}
+          label="Subscribed to channel (optional)"
+          placeholder="e.g., odds:*"
+          fullWidth
+          sx={{ mt: 1, mb: 2 }}
+        />
 
         {profiles.length > 0 && (
           <TextField
             select
             value={trainForProfileId}
             onChange={e => setTrainForProfileId(e.target.value)}
-            label="Train for profile (optional)"
+            label="Dictionary for profile"
             fullWidth
-            helperText="Set this when retraining an existing profile: values you already rejected for it will not be proposed again. Leave blank to explore first and choose the profile when you approve."
+            helperText="Values already rejected for this profile are not proposed again. Leave it open to decide when you create the dictionary."
             sx={{ mb: 2 }}
           >
             <MenuItem value="">
-              <em>Not decided yet</em>
+              <em>Decide later</em>
             </MenuItem>
             {profiles.map(p => (
               <MenuItem key={p.id} value={p.id}>
@@ -271,30 +279,38 @@ export const CreateSessionDialog = ({
           label="Duration (minutes)"
           fullWidth
           inputProps={{ min: 1 }}
-          helperText="Collection stops automatically at the deadline. It can be extended or stopped early from the session detail."
-          sx={{ mb: 2 }}
+          helperText="You can stop it early or extend it."
+          sx={{ mb: 1 }}
         />
 
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>
-          Filter preview (JSON):
-        </Typography>
-        <Paper
-          variant="outlined"
-          sx={{ p: 2, backgroundColor: 'background.default' }}
+        <Button
+          variant="text"
+          size="small"
+          color="inherit"
+          onClick={() => setShowRequest(v => !v)}
+          sx={{ px: 0 }}
         >
-          <Typography
-            component="pre"
-            variant="body2"
-            sx={{
-              fontFamily: 'Monaco, Consolas, "Courier New", monospace',
-              fontSize: '0.8rem',
-              whiteSpace: 'pre-wrap',
-              margin: 0,
-            }}
+          {showRequest ? 'Hide request' : 'Show request'}
+        </Button>
+        {showRequest && (
+          <Paper
+            variant="outlined"
+            sx={{ p: 2, mt: 1, backgroundColor: 'background.default' }}
           >
-            {jsonPreview}
-          </Typography>
-        </Paper>
+            <Typography
+              component="pre"
+              variant="body2"
+              sx={{
+                fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+                fontSize: '0.8rem',
+                whiteSpace: 'pre-wrap',
+                margin: 0,
+              }}
+            >
+              {jsonPreview}
+            </Typography>
+          </Paper>
+        )}
       </DialogContent>
       <DialogActions>
         <Button variant="text" onClick={onClose} disabled={submitting}>
