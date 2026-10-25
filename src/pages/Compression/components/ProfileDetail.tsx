@@ -72,7 +72,7 @@ export const ProfileDetail = ({
   const [profile, setProfile] = useState<ProfileDetailData | null>(null)
   const [, setSearchParams] = useSearchParams()
 
-  // Leaves this profile for the Sessions tab with the create dialog already
+  // Leaves this profile for the Training tab with the create dialog already
   // bound to it. The operator's next step from an empty profile is a training
   // session, and it is two tabs away otherwise.
   const startTraining = (retrainFrom?: string) => {

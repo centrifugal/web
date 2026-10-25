@@ -324,7 +324,7 @@ export const CreateSessionDialog = ({
             ) : undefined
           }
         >
-          {submitting ? 'Starting…' : 'Start session'}
+          {submitting ? 'Starting…' : 'Start training'}
         </Button>
       </DialogActions>
     </Dialog>

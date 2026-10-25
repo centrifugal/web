@@ -204,8 +204,8 @@ export const SessionsTab = ({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Panel
-        title="Sessions"
-        subtitle="Sample real traffic against a connection filter to learn what a dictionary should contain."
+        title="Training sessions"
+        subtitle="Each session samples live traffic of the connections you choose, for a set time, and builds a dictionary from it."
         action={
           <Button
             variant="solid"
@@ -214,7 +214,7 @@ export const SessionsTab = ({
             startIcon={<AddIcon />}
             onClick={() => setCreateOpen(true)}
           >
-            Start session
+            Start training
           </Button>
         }
       >
@@ -225,8 +225,8 @@ export const SessionsTab = ({
         ) : sessions.length === 0 ? (
           <EmptyState
             icon={<PlayCircleIcon sx={{ fontSize: 40 }} />}
-            title="No sessions yet"
-            hint="Start a training session against a connection filter to begin learning what a dictionary should contain."
+            title="No training yet"
+            hint="Start training on the connections you choose. Get started on Overview does it for every connection."
           />
         ) : (
           <>

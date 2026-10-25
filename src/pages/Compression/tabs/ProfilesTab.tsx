@@ -110,7 +110,7 @@ export const ProfilesTab = ({
           <EmptyState
             icon={<PeopleAltIcon sx={{ fontSize: 40 }} />}
             title="No profiles yet"
-            hint="Create a profile, then train and approve a dictionary for it from the Sessions tab."
+            hint="Create a profile, then train and approve a dictionary for it on the Training tab."
           />
         ) : (
           <TableContainer>

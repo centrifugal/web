@@ -42,6 +42,7 @@ import {
 } from '../format'
 import { AssignCandidateDialog } from './AssignCandidateDialog'
 import { CreatedVersion } from './ActivateNowField'
+import { TrainingProgress } from './TrainingProgress'
 import { ReviewScreen } from './ReviewScreen'
 
 interface SessionDetailProps {
@@ -273,7 +274,7 @@ export const SessionDetail = ({
           onClick={onBack}
           sx={{ alignSelf: 'flex-start' }}
         >
-          Back to sessions
+          Back to training
         </Button>
       </Box>
     )
@@ -304,7 +305,7 @@ export const SessionDetail = ({
           startIcon={<ArrowBackIcon />}
           onClick={onBack}
         >
-          Back to sessions
+          Back to training
         </Button>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Session
@@ -415,10 +416,10 @@ export const SessionDetail = ({
 
       {p && (
         <Panel
-          title="Collection progress"
+          title="Training"
           subtitle={
             session.status === 'running'
-              ? `Collecting until the deadline. The last quarter, from ${fmtDateTime(controlFrom(session))}, measures the result. When it ends, this page builds the dictionary.`
+              ? 'The dictionary is built from the training set, then measured on the traffic held back. When the session ends, this page builds it.'
               : undefined
           }
         >
@@ -432,80 +433,14 @@ export const SessionDetail = ({
             </Alert>
           )}
 
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: 2,
-              mb: 2,
-            }}
-          >
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: 1.5,
-                border: 1,
-                borderColor: parseRateLow ? 'warning.main' : 'divider',
-                bgcolor: parseRateLow ? 'warning.50' : 'transparent',
-                minWidth: 220,
-              }}
-            >
-              <Typography variant="caption" color="text.secondary">
-                Payload parse rate
-              </Typography>
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 700,
-                  color: parseRateLow ? 'warning.main' : 'text.primary',
-                }}
-              >
-                {p.frames_observed > 0 ? fmtPct(p.payload_parse_rate) : '—'}
-              </Typography>
-              {parseRateLow && (
-                <Typography variant="caption" color="warning.main">
-                  Traffic that isn&apos;t JSON can&apos;t be learned from — this
-                  is the usual reason a session's candidates disappoint.
-                </Typography>
-              )}
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <FieldRow label="Frames / bytes observed">
-              <Typography variant="body2">
-                {fmtInt(p.frames_observed)} frames ·{' '}
-                {HumanSize(p.bytes_observed)}
-              </Typography>
-            </FieldRow>
-            <FieldRow label="Connections sampled / matched">
-              <Typography variant="body2">
-                {fmtInt(p.connections_sampled)} sampled of{' '}
-                {fmtInt(p.connections_matched)} matched (cap{' '}
-                {fmtInt(p.effective_cap)})
-              </Typography>
-            </FieldRow>
-            <FieldRow label="Distinct shapes / keys / values">
-              <Typography variant="body2">
-                {fmtInt(p.distinct_shapes)} shapes · {fmtInt(p.distinct_keys)}{' '}
-                keys · {fmtInt(p.distinct_values)} values
-              </Typography>
-            </FieldRow>
-            <FieldRow label="By protocol">
-              <Typography variant="body2">
-                {Object.entries(p.by_protocol)
-                  .map(([k, v]) => `${k}: ${fmtInt(v)}`)
-                  .join(' · ') || '—'}
-              </Typography>
-            </FieldRow>
-            <FieldRow label="By frame type">
-              <Typography variant="body2">
-                {Object.entries(p.by_frame_type)
-                  .map(([k, v]) => `${k}: ${fmtInt(v)}`)
-                  .join(' · ') || '—'}
-              </Typography>
-            </FieldRow>
-          </Box>
+          {parseRateLow && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Only {fmtPct(p.payload_parse_rate)} of the publications are JSON.
+              Traffic that isn&apos;t JSON can&apos;t be learned from, which is
+              the usual reason a session&apos;s dictionary disappoints.
+            </Alert>
+          )}
+          <TrainingProgress session={session} progress={p} />
         </Panel>
       )}
 

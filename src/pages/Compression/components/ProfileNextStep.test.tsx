@@ -120,7 +120,7 @@ describe('CreateSessionDialog', () => {
   it('trains on shapes only unless asked otherwise', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     render(<CreateSessionDialog open onClose={() => {}} onSubmit={onSubmit} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Start session' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start training' }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][0].training_mode).toBe('schema')
   })
@@ -141,7 +141,7 @@ describe('CreateSessionDialog', () => {
         }}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Start session' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Start training' }))
     await waitFor(() => expect(onSubmit).toHaveBeenCalled())
     expect(onSubmit.mock.calls[0][0]).toEqual({
       filter: { channel: 'odds:*', profile: 'feed' },

@@ -28,7 +28,7 @@ const TAB_KEYS: TabKey[] = ['overview', 'profiles', 'sessions']
 const TAB_TITLES: Record<TabKey, string> = {
   overview: 'Overview',
   profiles: 'Profiles',
-  sessions: 'Sessions',
+  sessions: 'Training',
 }
 
 // Compression: the dictionary compression admin section (tab host), mirroring
@@ -128,7 +128,7 @@ export const Compression = ({
         <Tabs value={tab} onChange={handleTab}>
           <Tab label="Overview" value="overview" />
           <Tab label="Profiles" value="profiles" />
-          <Tab label="Sessions" value="sessions" />
+          <Tab label="Training" value="sessions" />
         </Tabs>
       </Box>
 

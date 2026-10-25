@@ -263,7 +263,13 @@ export interface SessionProgress {
   // unmeasured ratio rendered as zero reads as "measured, and terrible". The
   // server sends null deliberately, so anything consuming these must handle it
   // rather than mapping straight over them.
-  new_shapes_over_time: { at: string; count: number }[] | null
+  // Frames kept aside in the session's last quarter to measure what is built;
+  // every other count here is the training set.
+  held_back_frames: number
+  // When the training set last gained a message shape; null before the first.
+  last_new_shape_at: string | null
+  // Values refused before collection, by reason.
+  denied: Record<string, number> | null
   ratio_by_protocol: Record<string, number> | null
   size_curve: SizeCurvePoint[] | null
   holdout_leaks: number
