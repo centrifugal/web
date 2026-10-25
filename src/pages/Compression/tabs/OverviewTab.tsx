@@ -16,7 +16,10 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { useTheme } from '@mui/material/styles'
 
+import { useSearchParams } from 'react-router-dom'
+
 import { ShellContext } from 'contexts/ShellContext'
+import { useCan } from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 import { CopyButton } from 'components/CopyButton'
 import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
@@ -28,6 +31,7 @@ import {
   ConnectionsByTier,
   StructureInfo,
 } from '../api'
+import { GetStarted } from '../components/GetStarted'
 
 const POLL_MS = 5000
 
@@ -107,6 +111,15 @@ export const OverviewTab = ({
   const [overview, setOverview] = useState<CompressionOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [toggling, setToggling] = useState(false)
+  const canChange = useCan('ops:write')
+  const [, setSearchParams] = useSearchParams()
+  const openSession = (sessionId: string) =>
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', 'sessions')
+      next.set('session', sessionId)
+      return next
+    })
   // The structure dictionary's id and size, which the overview does not carry.
   const [structure, setStructure] = useState<StructureInfo | null>(null)
   const [togglingStructure, setTogglingStructure] = useState(false)
@@ -230,6 +243,14 @@ export const OverviewTab = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {overview.profiles === 0 && canChange && (
+        <GetStarted
+          api={api}
+          overview={overview}
+          onStarted={openSession}
+          onChanged={load}
+        />
+      )}
       <Panel
         title="Deployment"
         action={
