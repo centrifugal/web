@@ -32,6 +32,7 @@ import {
   StructureInfo,
 } from '../api'
 import { GetStarted } from '../components/GetStarted'
+import { NOT_MEASURED_HINT } from '../components/ExpectedRatio'
 
 const POLL_MS = 5000
 
@@ -469,7 +470,14 @@ export const OverviewTab = ({
                     <TableCell>Profile</TableCell>
                     <TableCell>Protocol</TableCell>
                     <TableCell>Serving</TableCell>
-                    <TableCell align="right">Realized ratio</TableCell>
+                    <TableCell align="right">
+                      <Tooltip
+                        title="What the dictionary was measured to save when its version was approved. Realized falling well below it means your messages changed: time to retrain."
+                        arrow
+                      >
+                        <span>Expected / realized</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell align="right">Cold / warm connects</TableCell>
                     <TableCell align="right">Net bytes saved</TableCell>
                   </TableRow>
@@ -548,7 +556,23 @@ export const OverviewTab = ({
                           )}
                         </TableCell>
                         <TableCell align="right">
-                          {measuring ? '—' : fmtRatio(p.realized_ratio)}
+                          {p.expected_measured ? (
+                            fmtRatio(p.expected_ratio)
+                          ) : p.tier === 'own_profile' ||
+                            p.tier === 'default_profile' ? (
+                            <Tooltip title={NOT_MEASURED_HINT} arrow>
+                              <Typography
+                                variant="body2"
+                                component="span"
+                                color="text.secondary"
+                              >
+                                not measured
+                              </Typography>
+                            </Tooltip>
+                          ) : (
+                            '—'
+                          )}{' '}
+                          / {measuring ? '—' : fmtRatio(p.realized_ratio)}
                         </TableCell>
                         <TableCell align="right">
                           <Tooltip

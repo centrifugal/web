@@ -63,6 +63,10 @@ export interface ProfileServing {
   // gross savings, since a dictionary re-delivered on every reconnect can cost
   // more than it saves and only this figure shows it.
   net_saved_bytes: number
+  // What this dictionary's version measured at approval; zero with
+  // expected_measured false when there is no version or it was not measured.
+  expected_ratio: number
+  expected_measured: boolean
 }
 
 export interface ServingSurvey {
@@ -106,6 +110,9 @@ export interface ActiveVersionSummary {
   activated_at: string
   rollout_percent: number
   approved_ratio: ApprovedRatio
+  // False when the session ended before its control window: approved_ratio
+  // is then a projection that flatters, not an expectation.
+  ratio_measured: boolean
 }
 
 export interface Profile {
@@ -142,6 +149,9 @@ export interface Version {
   artifact_json_wire_size: number
   approved_under: { client_declarable: boolean; serve_as_default: boolean }
   approved_ratio: ApprovedRatio
+  // False when the session ended before its control window: approved_ratio
+  // is then a projection that flatters, not an expectation.
+  ratio_measured: boolean
   approved_by: string
   approved_at: string
   activated_at: string | null

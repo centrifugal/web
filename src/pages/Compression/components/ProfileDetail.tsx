@@ -34,7 +34,8 @@ import {
   Session,
   Version,
 } from '../api'
-import { fmtDateTime, fmtRatio, fmtTrainingMode } from '../format'
+import { fmtDateTime, fmtTrainingMode } from '../format'
+import { ExpectedRatio } from './ExpectedRatio'
 import { EditProfileDialog } from './EditProfileDialog'
 import { ActivateVersionDialog } from './ActivateVersionDialog'
 import { NextAction, nextStep, ProfileNextStep } from './ProfileNextStep'
@@ -45,13 +46,6 @@ interface ProfileDetailProps {
   profileId: string
   onBack: () => void
   onDeleted: () => void
-}
-
-const fmtApprovedRatio = (r: Version['approved_ratio']): string => {
-  const parts: string[] = []
-  if (r?.json != null) parts.push(`json ${fmtRatio(r.json)}`)
-  if (r?.protobuf != null) parts.push(`protobuf ${fmtRatio(r.protobuf)}`)
-  return parts.length ? parts.join(' · ') : '—'
 }
 
 // ProfileDetail: a single profile's full record — its audience flags and its
@@ -430,7 +424,7 @@ export const ProfileDetail = ({
                   <TableCell>Contents</TableCell>
                   <TableCell>Artifacts</TableCell>
                   <TableCell align="right">Raw / wire size</TableCell>
-                  <TableCell align="right">Approved ratio</TableCell>
+                  <TableCell align="right">Expected ratio</TableCell>
                   <TableCell>Approved by / at</TableCell>
                   <TableCell align="right">Rollout</TableCell>
                   <TableCell>Status</TableCell>
@@ -498,7 +492,10 @@ export const ProfileDetail = ({
                       {HumanSize(v.artifact_json_wire_size)}
                     </TableCell>
                     <TableCell align="right">
-                      {fmtApprovedRatio(v.approved_ratio)}
+                      <ExpectedRatio
+                        ratio={v.approved_ratio}
+                        measured={v.ratio_measured}
+                      />
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">

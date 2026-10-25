@@ -19,7 +19,8 @@ import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
 import { useUrlSelection } from '../useUrlSelection'
 import { useCompressionApi, CreateProfileRequest, Profile } from '../api'
-import { fmtRatio, fmtTrainingMode } from '../format'
+import { fmtTrainingMode } from '../format'
+import { ExpectedRatio } from '../components/ExpectedRatio'
 import { CreateProfileDialog } from '../components/CreateProfileDialog'
 import { ProfileDetail } from '../components/ProfileDetail'
 import { UnclaimedPanel } from '../components/UnclaimedPanel'
@@ -27,16 +28,6 @@ import { UnclaimedPanel } from '../components/UnclaimedPanel'
 interface ProfilesTabProps {
   authorization: string
   signinSilent: () => void
-}
-
-const fmtApprovedRatio = (r: Profile['active_version']): string => {
-  if (!r) return '—'
-  const parts: string[] = []
-  if (r.approved_ratio?.json != null)
-    parts.push(`json ${fmtRatio(r.approved_ratio.json)}`)
-  if (r.approved_ratio?.protobuf != null)
-    parts.push(`protobuf ${fmtRatio(r.approved_ratio.protobuf)}`)
-  return parts.length ? parts.join(' · ') : '—'
 }
 
 // Profiles: manage dictionary audiences (create/edit profiles, review
@@ -129,7 +120,7 @@ export const ProfilesTab = ({
                   <TableCell>Name</TableCell>
                   <TableCell>Notes</TableCell>
                   <TableCell>Contents</TableCell>
-                  <TableCell align="right">Approved ratio</TableCell>
+                  <TableCell align="right">Expected ratio</TableCell>
                   <TableCell align="right">Connections</TableCell>
                   <TableCell>Declarable</TableCell>
                   <TableCell>Default</TableCell>
@@ -179,7 +170,14 @@ export const ProfilesTab = ({
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      {fmtApprovedRatio(p.active_version)}
+                      {p.active_version ? (
+                        <ExpectedRatio
+                          ratio={p.active_version.approved_ratio}
+                          measured={p.active_version.ratio_measured}
+                        />
+                      ) : (
+                        '—'
+                      )}
                     </TableCell>
                     <TableCell align="right">
                       {p.connections != null ? p.connections : '—'}
