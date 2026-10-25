@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
@@ -23,6 +23,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 
 import { ShellContext } from 'contexts/ShellContext'
+import { useCan } from 'contexts/SessionContext'
 import { Panel, FieldRow, CapabilityChip } from 'pages/Inspector/ui'
 import { EmptyState } from 'components/EmptyState'
 import { ConfirmButton } from 'components/ConfirmButton'
@@ -82,6 +83,11 @@ export const SessionDetail = ({
   const [extendOpen, setExtendOpen] = useState(false)
 
   const [candidates, setCandidates] = useState<Candidate[] | null>(null)
+  // Whether the candidates list was read, so that "none" is known rather than
+  // a failed read taken for it.
+  const [listed, setListed] = useState(false)
+  const autoBuilt = useRef(false)
+  const canChange = useCan('ops:write')
   const [buildReason, setBuildReason] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [assignTarget, setAssignTarget] = useState<Candidate | null>(null)
@@ -129,6 +135,7 @@ export const SessionDetail = ({
       if (res.candidates && res.candidates.length > 0) {
         setCandidates(res.candidates)
       }
+      setListed(true)
     } catch {
       // A session with nothing built yet is the ordinary case, and the Build
       // button below is the answer either way.
@@ -183,6 +190,10 @@ export const SessionDetail = ({
       // session looking like it had lost candidates and then found them again.
       if (res.candidates && res.candidates.length > 0) {
         await refreshCandidates()
+      } else {
+        // Nothing to build: say why, rather than staying on "Not built yet"
+        // as if the click had done nothing.
+        setCandidates(prev => prev ?? [])
       }
     } catch (err) {
       api.handleError(err)
@@ -190,6 +201,21 @@ export const SessionDetail = ({
       setBuilding(false)
     }
   }
+
+  // A collected session with no candidates is built on sight: building has no
+  // options, so the button only stood between the operator and the review.
+  // Once per page, only once the list is known to be empty, and only for a role
+  // that may build - the button stays for rebuilding.
+  useEffect(() => {
+    if (autoBuilt.current || !canChange || !listed || candidates || building)
+      return
+    if (session?.status !== 'collected') return
+    if ((session.progress?.holdout_leaks ?? 0) > 0) return
+    autoBuilt.current = true
+    void handleBuild()
+    // handleBuild reads only what these already cover.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canChange, listed, candidates, building, session])
 
   if (reviewCandidate) {
     return (
@@ -497,7 +523,7 @@ export const SessionDetail = ({
         >
           {!candidates ? (
             <EmptyState
-              title="Not built yet"
+              title={building ? 'Building candidates…' : 'Not built yet'}
               hint="Build merges every node's observations into one candidate per fidelity — a schema candidate (no review needed) and, for values-mode sessions, a reviewed candidate."
             />
           ) : candidates.length === 0 ? (
