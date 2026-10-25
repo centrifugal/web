@@ -7,8 +7,14 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
 
-import { CompressionApiHook, Candidate } from '../api'
+import { CompressionApiHook, Candidate, Profile } from '../api'
 import { ProfileSizeFields } from './ProfileSizeFields'
+import {
+  ActivateNowField,
+  activateCreated,
+  CreatedVersion,
+  validRolloutPercent,
+} from './ActivateNowField'
 
 interface AssignCandidateDialogProps {
   api: CompressionApiHook
@@ -17,8 +23,12 @@ interface AssignCandidateDialogProps {
   // ever a `schema` candidate — it carries no values, so there's nothing to
   // review.
   candidate: Candidate | null
+  // The profile the session was trained for, preselected. Empty when the
+  // session named none.
+  defaultProfileId?: string
   onClose: () => void
-  onAssigned: () => void
+  // Called once the version exists, whether or not activating it succeeded.
+  onAssigned: (created: CreatedVersion) => void
 }
 
 // AssignCandidateDialog: the schema shortcut. A schema candidate has no
@@ -28,16 +38,22 @@ export const AssignCandidateDialog = ({
   api,
   sessionId,
   candidate,
+  defaultProfileId,
   onClose,
   onAssigned,
 }: AssignCandidateDialogProps) => {
   const [profileId, setProfileId] = useState('')
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [sizeBytes, setSizeBytes] = useState(0)
+  const [activateNow, setActivateNow] = useState(false)
+  const [rolloutPercent, setRolloutPercent] = useState(100)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     if (candidate) {
-      setProfileId('')
+      setProfileId(defaultProfileId ?? '')
+      setActivateNow(false)
+      setRolloutPercent(100)
       const largest = candidate.size_curve.reduce(
         (max, p) => (p.size_bytes > max ? p.size_bytes : max),
         candidate.size_curve[0]?.size_bytes ?? 4096
@@ -48,21 +64,33 @@ export const AssignCandidateDialog = ({
     } else {
       setSubmitting(false)
     }
+    // Preselect once per opening, not again when the parent re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidate])
 
   if (!candidate) return null
 
-  const valid = profileId !== '' && sizeBytes > 0
+  const valid =
+    profileId !== '' &&
+    sizeBytes > 0 &&
+    (!activateNow || validRolloutPercent(rolloutPercent))
 
   const handleSubmit = async () => {
     if (!valid || submitting) return
     setSubmitting(true)
     try {
-      await api.assignSession(sessionId, {
+      const version = await api.assignSession(sessionId, {
         profile_id: profileId,
         size_bytes: sizeBytes,
       })
-      onAssigned()
+      const { activatedPercent, error } = await activateCreated(
+        api,
+        version.id,
+        activateNow,
+        rolloutPercent
+      )
+      onAssigned({ profileId, versionId: version.id, activatedPercent })
+      if (error) api.handleError(error)
     } catch (err) {
       api.handleError(err)
     } finally {
@@ -91,6 +119,14 @@ export const AssignCandidateDialog = ({
           onSizeChange={setSizeBytes}
           curve={candidate.size_curve}
           recommendedSize={candidate.recommended_size}
+          onProfileResolved={setProfile}
+        />
+        <ActivateNowField
+          profile={profile}
+          checked={activateNow}
+          onCheckedChange={setActivateNow}
+          percent={rolloutPercent}
+          onPercentChange={setRolloutPercent}
         />
       </DialogContent>
       <DialogActions>

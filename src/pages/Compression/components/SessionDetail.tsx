@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -38,6 +39,7 @@ import {
   fmtRelative,
 } from '../format'
 import { AssignCandidateDialog } from './AssignCandidateDialog'
+import { CreatedVersion } from './ActivateNowField'
 import { ReviewScreen } from './ReviewScreen'
 
 interface SessionDetailProps {
@@ -85,6 +87,21 @@ export const SessionDetail = ({
   const [assignTarget, setAssignTarget] = useState<Candidate | null>(null)
   const [reviewId, setReviewId] = useUrlSelection('candidate')
   const reviewCandidate = candidates?.find(c => c.id === reviewId) ?? null
+  // The version the last approve or assign created, so the page can lead to
+  // the profile serving it. A toast can't hold a link.
+  const [created, setCreated] = useState<CreatedVersion | null>(null)
+  const [, setSearchParams] = useSearchParams()
+
+  const openProfile = (profileId: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', 'profiles')
+      next.set('profile', profileId)
+      next.delete('session')
+      next.delete('candidate')
+      return next
+    })
+  }
 
   const load = useCallback(async () => {
     try {
@@ -190,7 +207,11 @@ export const SessionDetail = ({
             prev ? prev.map(c => (c.id === updated.id ? updated : c)) : prev
           )
         }
-        onApproved={() => setReviewId(null)}
+        defaultProfileId={session?.profile_id}
+        onApproved={c => {
+          setCreated(c)
+          setReviewId(null)
+        }}
       />
     )
   }
@@ -283,6 +304,25 @@ export const SessionDetail = ({
           </>
         )}
       </Box>
+      {created && (
+        <Alert
+          severity="success"
+          onClose={() => setCreated(null)}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => openProfile(created.profileId)}
+            >
+              Open profile
+            </Button>
+          }
+        >
+          {created.activatedPercent != null
+            ? `New version created and activated for ${created.activatedPercent}% of matching connections.`
+            : 'New version created. It serves nothing until it is activated on its profile.'}
+        </Alert>
+      )}
 
       <Panel title="Overview">
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -748,12 +788,17 @@ export const SessionDetail = ({
         api={api}
         sessionId={sessionId}
         candidate={assignTarget}
+        defaultProfileId={session.profile_id}
         onClose={() => setAssignTarget(null)}
-        onAssigned={() => {
+        onAssigned={c => {
           setAssignTarget(null)
-          showAlert('Schema candidate assigned — new version created', {
-            severity: 'success',
-          })
+          setCreated(c)
+          showAlert(
+            c.activatedPercent != null
+              ? `Schema candidate assigned — new version activated for ${c.activatedPercent}% of matching connections`
+              : 'Schema candidate assigned — new version created',
+            { severity: 'success' }
+          )
         }}
       />
     </Box>

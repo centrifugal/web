@@ -106,7 +106,7 @@ export const CreateProfileDialog = ({
             color="text.secondary"
             sx={{ display: 'block', ml: 4.5, mt: -0.5 }}
           >
-            Clients may request this profile by name in their subscription.
+            Clients may request this profile by name when they connect.
           </Typography>
         </Box>
         <Box sx={{ mt: 1 }}>

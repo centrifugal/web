@@ -39,6 +39,7 @@ import {
 } from '../api'
 import { fmtInt, fmtRatio, fmtRelative } from '../format'
 import { ApproveCandidateDialog } from './ApproveCandidateDialog'
+import { CreatedVersion } from './ActivateNowField'
 
 const PAGE_SIZE = 50
 
@@ -47,7 +48,9 @@ interface ReviewScreenProps {
   candidate: Candidate
   onBack: () => void
   onCandidateUpdated: (c: Candidate) => void
-  onApproved: () => void
+  // The profile the session was trained for, preselected on approve.
+  defaultProfileId?: string
+  onApproved: (created: CreatedVersion) => void
 }
 
 const DENIED_LABELS: {
@@ -98,6 +101,7 @@ export const ReviewScreen = ({
   candidate,
   onBack,
   onCandidateUpdated,
+  defaultProfileId,
   onApproved,
 }: ReviewScreenProps) => {
   const { showAlert } = useContext(ShellContext)
@@ -895,13 +899,17 @@ export const ReviewScreen = ({
         approvedHashes={Array.from(selected)}
         totalValues={candidate.values_total}
         sizeBytes={targetSize}
+        defaultProfileId={defaultProfileId}
         onClose={() => setApproveOpen(false)}
-        onApproved={() => {
+        onApproved={created => {
           setApproveOpen(false)
-          showAlert('Candidate approved — new version created', {
-            severity: 'success',
-          })
-          onApproved()
+          showAlert(
+            created.activatedPercent != null
+              ? `Candidate approved — new version activated for ${created.activatedPercent}% of matching connections`
+              : 'Candidate approved — new version created',
+            { severity: 'success' }
+          )
+          onApproved(created)
         }}
       />
     </Box>

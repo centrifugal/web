@@ -12,17 +12,20 @@ interface ProfileFieldProps {
   api: CompressionApiHook
   profileId: string
   onProfileChange: (id: string) => void
+  // Called with the selected profile once profiles are loaded, and on every
+  // change, so a caller can say what choosing it will do.
+  onProfileResolved?: (p: Profile | null) => void
 }
 
-// ProfileField: just the audience. Approving a reviewed candidate uses this
-// alone - the size was chosen on the review screen, because it decides which
-// values are worth approving and therefore has to precede the review, not
-// follow it.
-export const ProfileField = ({
-  api,
-  profileId,
-  onProfileChange,
-}: ProfileFieldProps) => {
+// useTargetProfiles loads the profiles a version can go to. A preselected id
+// that names no profile any more (deleted since the session started) is
+// cleared, rather than left selected with nothing shown for it.
+const useTargetProfiles = (
+  api: CompressionApiHook,
+  profileId: string,
+  onProfileChange: (id: string) => void,
+  onProfileResolved?: (p: Profile | null) => void
+) => {
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -43,13 +46,42 @@ export const ProfileField = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const selected = profiles.find(p => p.id === profileId) ?? null
+  useEffect(() => {
+    if (loading) return
+    if (profileId !== '' && !selected) onProfileChange('')
+    onProfileResolved?.(selected)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, selected])
+
+  return { profiles, loading }
+}
+
+// ProfileField: just the audience. Approving a reviewed candidate uses this
+// alone - the size was chosen on the review screen, because it decides which
+// values are worth approving and therefore has to precede the review, not
+// follow it.
+export const ProfileField = ({
+  api,
+  profileId,
+  onProfileChange,
+  onProfileResolved,
+}: ProfileFieldProps) => {
+  const { profiles, loading } = useTargetProfiles(
+    api,
+    profileId,
+    onProfileChange,
+    onProfileResolved
+  )
+
   return (
     <TextField
       select
       fullWidth
       margin="normal"
       label="Target profile"
-      value={profileId}
+      // A preselected id is shown once its option exists.
+      value={loading ? '' : profileId}
       onChange={e => onProfileChange(e.target.value)}
       disabled={loading}
       helperText="The audience this dictionary version will serve."
@@ -67,6 +99,7 @@ interface ProfileSizeFieldsProps {
   api: CompressionApiHook
   profileId: string
   onProfileChange: (id: string) => void
+  onProfileResolved?: (p: Profile | null) => void
   sizeBytes: number
   onSizeChange: (n: number) => void
   // The measured size ladder for this candidate. Given one, the size becomes a
@@ -96,26 +129,14 @@ export const ProfileSizeFields = ({
   onSizeChange,
   curve,
   recommendedSize,
+  onProfileResolved,
 }: ProfileSizeFieldsProps) => {
-  const [profiles, setProfiles] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    api
-      .listProfiles()
-      .then(data => {
-        if (!cancelled) setProfiles(data.profiles || [])
-      })
-      .catch(err => api.handleError(err))
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const { profiles, loading } = useTargetProfiles(
+    api,
+    profileId,
+    onProfileChange,
+    onProfileResolved
+  )
 
   const rungs = curve ?? []
   const measured = rungs.some(p => p.measured)
@@ -128,7 +149,8 @@ export const ProfileSizeFields = ({
         fullWidth
         margin="normal"
         label="Target profile"
-        value={profileId}
+        // A preselected id is shown once its option exists.
+        value={loading ? '' : profileId}
         onChange={e => onProfileChange(e.target.value)}
         disabled={loading}
         helperText="The audience this dictionary version will serve."

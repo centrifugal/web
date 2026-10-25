@@ -290,7 +290,7 @@ export const ProfileDetail = ({
             <CapabilityChip
               label={profile.client_declarable ? 'Yes' : 'No'}
               tone={profile.client_declarable ? 'on' : 'off'}
-              title="Whether a client may request this profile by name in its subscription."
+              title="Whether a client may request this profile by name when it connects."
             />
           </InlineStat>
           <InlineStat label="Serve as default">

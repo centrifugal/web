@@ -9,9 +9,15 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Typography from '@mui/material/Typography'
 
-import { CandidatePreview, CompressionApiHook } from '../api'
+import { CandidatePreview, CompressionApiHook, Profile } from '../api'
 import { HumanSize } from 'utils/Functions'
 import { ProfileField } from './ProfileSizeFields'
+import {
+  ActivateNowField,
+  activateCreated,
+  CreatedVersion,
+  validRolloutPercent,
+} from './ActivateNowField'
 
 interface ApproveCandidateDialogProps {
   api: CompressionApiHook
@@ -27,8 +33,12 @@ interface ApproveCandidateDialogProps {
   // much room there is for them, so a size picked after the review would
   // silently invalidate it.
   sizeBytes: number
+  // The profile the session was trained for, preselected. Empty when the
+  // session named none.
+  defaultProfileId?: string
   onClose: () => void
-  onApproved: () => void
+  // Called once the version exists, whether or not activating it succeeded.
+  onApproved: (created: CreatedVersion) => void
 }
 
 // ApproveCandidateDialog: the request carries only `approved` — the wire
@@ -46,10 +56,14 @@ export const ApproveCandidateDialog = ({
   approvedHashes,
   totalValues,
   sizeBytes,
+  defaultProfileId,
   onClose,
   onApproved,
 }: ApproveCandidateDialogProps) => {
   const [profileId, setProfileId] = useState('')
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [activateNow, setActivateNow] = useState(false)
+  const [rolloutPercent, setRolloutPercent] = useState(100)
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   // What this exact selection produces at this exact size. The candidate's
@@ -64,10 +78,15 @@ export const ApproveCandidateDialog = ({
     if (!open) {
       setProfileId('')
       setNotes('')
+      setActivateNow(false)
+      setRolloutPercent(100)
       setSubmitting(false)
       return
     }
+    setProfileId(defaultProfileId ?? '')
     setPreview(null)
+    // Preselect once per opening, not again when the parent re-renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
   useEffect(() => {
@@ -98,19 +117,29 @@ export const ApproveCandidateDialog = ({
   }, [open, sizeBytes, candidateId])
 
   const rejected = Math.max(totalValues - approvedHashes.length, 0)
-  const valid = profileId !== '' && sizeBytes > 0
+  const valid =
+    profileId !== '' &&
+    sizeBytes > 0 &&
+    (!activateNow || validRolloutPercent(rolloutPercent))
 
   const handleSubmit = async () => {
     if (!valid || submitting) return
     setSubmitting(true)
     try {
-      await api.approveCandidate(candidateId, {
+      const version = await api.approveCandidate(candidateId, {
         approved: approvedHashes,
         profile_id: profileId,
         size_bytes: sizeBytes,
         notes: notes || undefined,
       })
-      onApproved()
+      const { activatedPercent, error } = await activateCreated(
+        api,
+        version.id,
+        activateNow,
+        rolloutPercent
+      )
+      onApproved({ profileId, versionId: version.id, activatedPercent })
+      if (error) api.handleError(error)
     } catch (err) {
       api.handleError(err)
     } finally {
@@ -142,6 +171,7 @@ export const ApproveCandidateDialog = ({
           api={api}
           profileId={profileId}
           onProfileChange={setProfileId}
+          onProfileResolved={setProfile}
         />
         {(preview || previewing) && (
           <Alert
@@ -203,6 +233,13 @@ export const ApproveCandidateDialog = ({
           onChange={e => setNotes(e.target.value)}
           multiline
           minRows={2}
+        />
+        <ActivateNowField
+          profile={profile}
+          checked={activateNow}
+          onCheckedChange={setActivateNow}
+          percent={rolloutPercent}
+          onPercentChange={setRolloutPercent}
         />
       </DialogContent>
       <DialogActions>
