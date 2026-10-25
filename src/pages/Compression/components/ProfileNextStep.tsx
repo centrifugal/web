@@ -48,7 +48,7 @@ export const nextStep = (
     return {
       severity: 'info',
       title: 'Training in progress',
-      body: `Collecting traffic until ${fmtDateTime(latest.deadline)}. You can stop early once the number of message shapes stops growing.`,
+      body: `Collecting traffic until ${fmtDateTime(latest.deadline)}. When it ends, its dictionary is built and this page says what to do with it.`,
       action: { kind: 'open_session', sessionId: latest.id },
       actionLabel: 'Open session',
       paused,

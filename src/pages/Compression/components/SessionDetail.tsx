@@ -418,7 +418,7 @@ export const SessionDetail = ({
           title="Collection progress"
           subtitle={
             session.status === 'running'
-              ? 'Collecting until the deadline. When it ends, this page builds the dictionary. You can stop early once the number of distinct shapes stops growing.'
+              ? `Collecting until the deadline. The last quarter, from ${fmtDateTime(controlFrom(session))}, measures the result. When it ends, this page builds the dictionary.`
               : undefined
           }
         >
