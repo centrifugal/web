@@ -145,6 +145,33 @@ describe('ApproveCandidateDialog', () => {
     )
     expect(profileSelect().textContent).not.toContain('feed')
   })
+
+  // A session trained without a profile reaches approval with none to pick:
+  // the audience is created from the dialog itself and selected.
+  it('creates a profile from the dialog when there is none', async () => {
+    const api = makeApi({
+      listProfiles: vi.fn().mockResolvedValue({ profiles: [] }),
+      createProfile: vi.fn().mockResolvedValue(profile('p9', 'trading')),
+    } as Partial<CompressionApiHook>)
+    renderApprove(api)
+    expect(await screen.findByText(/No profiles yet/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled()
+
+    fireEvent.mouseDown(profileSelect())
+    fireEvent.click(await screen.findByRole('option', { name: 'New profile…' }))
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Name' }), {
+      target: { value: 'trading' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Create profile' }))
+
+    await waitFor(() =>
+      expect(profileSelect().textContent).toContain('trading')
+    )
+    expect(api.createProfile).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'trading' })
+    )
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled()
+  })
 })
 
 describe('AssignCandidateDialog', () => {

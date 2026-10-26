@@ -5,8 +5,14 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 
-import { CompressionApiHook, Profile, SizeCurvePoint } from '../api'
+import {
+  CompressionApiHook,
+  CreateProfileRequest,
+  Profile,
+  SizeCurvePoint,
+} from '../api'
 import { HumanSize } from 'utils/Functions'
+import { CreateProfileDialog } from './CreateProfileDialog'
 
 interface ProfileFieldProps {
   api: CompressionApiHook
@@ -54,7 +60,81 @@ const useTargetProfiles = (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, selected])
 
-  return { profiles, loading }
+  return { profiles, setProfiles, loading }
+}
+
+// NEW_PROFILE is the menu value that opens profile creation instead of
+// selecting a profile.
+const NEW_PROFILE = '__new__'
+
+interface ProfileSelectProps extends ProfileFieldProps {
+  profiles: Profile[]
+  setProfiles: (update: (prev: Profile[]) => Profile[]) => void
+  loading: boolean
+}
+
+// ProfileSelect: the target profile, with a way to create one on the spot -
+// a session trained without a profile would otherwise reach approval with
+// nothing to approve into.
+const ProfileSelect = ({
+  api,
+  profileId,
+  onProfileChange,
+  profiles,
+  setProfiles,
+  loading,
+}: ProfileSelectProps) => {
+  const [createOpen, setCreateOpen] = useState(false)
+
+  const handleCreate = async (req: CreateProfileRequest) => {
+    try {
+      const created = await api.createProfile(req)
+      setProfiles(prev => [...prev, created])
+      onProfileChange(created.id)
+      setCreateOpen(false)
+    } catch (err) {
+      api.handleError(err)
+    }
+  }
+
+  return (
+    <>
+      <TextField
+        select
+        fullWidth
+        margin="normal"
+        label="Target profile"
+        // A preselected id is shown once its option exists.
+        value={loading ? '' : profileId}
+        onChange={e => {
+          if (e.target.value === NEW_PROFILE) setCreateOpen(true)
+          else onProfileChange(e.target.value)
+        }}
+        disabled={loading}
+        helperText={
+          !loading && profiles.length === 0
+            ? 'No profiles yet: create the audience this version will serve.'
+            : 'The audience this dictionary version will serve.'
+        }
+      >
+        {profiles.map(p => (
+          <MenuItem key={p.id} value={p.id}>
+            {p.name}
+          </MenuItem>
+        ))}
+        <MenuItem value={NEW_PROFILE}>
+          <Typography variant="body2" color="primary">
+            New profile…
+          </Typography>
+        </MenuItem>
+      </TextField>
+      <CreateProfileDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreate}
+      />
+    </>
+  )
 }
 
 // ProfileField: just the audience. Approving a reviewed candidate uses this
@@ -67,7 +147,7 @@ export const ProfileField = ({
   onProfileChange,
   onProfileResolved,
 }: ProfileFieldProps) => {
-  const { profiles, loading } = useTargetProfiles(
+  const { profiles, setProfiles, loading } = useTargetProfiles(
     api,
     profileId,
     onProfileChange,
@@ -75,23 +155,14 @@ export const ProfileField = ({
   )
 
   return (
-    <TextField
-      select
-      fullWidth
-      margin="normal"
-      label="Target profile"
-      // A preselected id is shown once its option exists.
-      value={loading ? '' : profileId}
-      onChange={e => onProfileChange(e.target.value)}
-      disabled={loading}
-      helperText="The audience this dictionary version will serve."
-    >
-      {profiles.map(p => (
-        <MenuItem key={p.id} value={p.id}>
-          {p.name}
-        </MenuItem>
-      ))}
-    </TextField>
+    <ProfileSelect
+      api={api}
+      profileId={profileId}
+      onProfileChange={onProfileChange}
+      profiles={profiles}
+      setProfiles={setProfiles}
+      loading={loading}
+    />
   )
 }
 
@@ -131,7 +202,7 @@ export const ProfileSizeFields = ({
   recommendedSize,
   onProfileResolved,
 }: ProfileSizeFieldsProps) => {
-  const { profiles, loading } = useTargetProfiles(
+  const { profiles, setProfiles, loading } = useTargetProfiles(
     api,
     profileId,
     onProfileChange,
@@ -144,23 +215,14 @@ export const ProfileSizeFields = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-      <TextField
-        select
-        fullWidth
-        margin="normal"
-        label="Target profile"
-        // A preselected id is shown once its option exists.
-        value={loading ? '' : profileId}
-        onChange={e => onProfileChange(e.target.value)}
-        disabled={loading}
-        helperText="The audience this dictionary version will serve."
-      >
-        {profiles.map(p => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
+      <ProfileSelect
+        api={api}
+        profileId={profileId}
+        onProfileChange={onProfileChange}
+        profiles={profiles}
+        setProfiles={setProfiles}
+        loading={loading}
+      />
       {rungs.length > 0 ? (
         <TextField
           select
