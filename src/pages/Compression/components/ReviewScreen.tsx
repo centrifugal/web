@@ -124,6 +124,11 @@ export const ReviewScreen = ({
   const [minWitnessDraft, setMinWitnessDraft] = useState('')
   const [minWitnessApplied, setMinWitnessApplied] = useState('')
 
+  // On a retrain most rows were decided last time; this narrows the list to
+  // the ones that were not. Read through a ref so every fetch path honours it.
+  const [newOnly, setNewOnly] = useState(false)
+  const newOnlyRef = useRef(false)
+  const [newTotal, setNewTotal] = useState(0)
   const [nextCursor, setNextCursor] = useState('')
   // The cursor of every page visited to get here, the current one last. Going
   // back is popping this, so page N-1 is always cursors[length - 2].
@@ -229,10 +234,12 @@ export const ReviewScreen = ({
         if (opts.cursor) params.cursor = opts.cursor
         if (opts.search) params.search = opts.search
         if (opts.minWitness) params.min_witness = Number(opts.minWitness)
+        if (newOnlyRef.current) params.new_only = true
         const data = await api.getCandidateValues(candidate.id, params)
         const rows = data.values || []
         setValues(rows)
         setTotal(data.total)
+        setNewTotal(data.new_total ?? 0)
         setTotalContribution(data.total_contribution ?? 0)
         setDeniedSummary(data.denied_summary)
         rows.forEach(v =>
@@ -268,6 +275,16 @@ export const ReviewScreen = ({
       direction: 'first',
       search: searchDraft,
       minWitness: minWitnessDraft,
+    })
+  }
+
+  const handleNewOnly = (on: boolean) => {
+    newOnlyRef.current = on
+    setNewOnly(on)
+    fetchValues({
+      direction: 'first',
+      search: searchApplied,
+      minWitness: minWitnessApplied,
     })
   }
 
@@ -568,6 +585,16 @@ export const ReviewScreen = ({
             >
               <ClearIcon />
             </IconButton>
+          )}
+          {(newOnly || newTotal < candidate.values_total) && (
+            <Tooltip title="Values no earlier review of this profile allowed or denied - on a retrain, the only rows that need reading.">
+              <Chip
+                label={`New only (${fmtInt(newTotal)})`}
+                color={newOnly ? 'primary' : 'default'}
+                variant={newOnly ? 'filled' : 'outlined'}
+                onClick={() => handleNewOnly(!newOnly)}
+              />
+            </Tooltip>
           )}
           <Box sx={{ flexGrow: 1 }} />
           <Tooltip title="Checks every row currently shown on this page — a convenience for bulk-approving values above a witness threshold, not a server-side select-all.">

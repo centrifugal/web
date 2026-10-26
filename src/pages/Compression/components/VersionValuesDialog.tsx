@@ -17,6 +17,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
 import BlockIcon from '@mui/icons-material/Block'
 import UndoIcon from '@mui/icons-material/Undo'
 
@@ -53,9 +54,11 @@ export const VersionValuesDialog = ({
     value: VersionValue
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     setValues(null)
+    setSearch('')
     setDenied(new Set())
     setDeniedFields(new Set())
     if (!version) return
@@ -126,6 +129,14 @@ export const VersionValuesDialog = ({
           Connections that already hold this dictionary keep it until they
           reconnect.
         </Typography>
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Search value or key path"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          sx={{ mb: 1 }}
+        />
         {values === null ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress disableShrink />
@@ -141,62 +152,75 @@ export const VersionValuesDialog = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {values.map(v => {
-                const fieldDenied = deniedFields.has(v.path)
-                const rowDenied = fieldDenied || denied.has(v.value_hash)
-                return (
-                  <TableRow
-                    key={v.value_hash}
-                    sx={rowDenied ? { opacity: 0.6 } : undefined}
-                  >
-                    <TableCell sx={{ fontFamily: 'monospace' }}>
-                      {v.path}
-                    </TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>
-                      {rowDenied && (
-                        <Chip
-                          size="small"
-                          color="error"
-                          variant="outlined"
-                          label={fieldDenied ? 'field denied' : 'denied'}
-                          sx={{ mr: 1, fontFamily: 'inherit' }}
-                        />
-                      )}
-                      {v.value}
-                    </TableCell>
-                    <TableCell align="right">{fmtInt(v.witnesses)}</TableCell>
-                    <TableCell padding="checkbox">
-                      {!canWithdraw ? null : rowDenied ? (
-                        <Tooltip title="Keep it">
-                          <IconButton
+              {values
+                .filter(v => {
+                  const q = search.trim().toLowerCase()
+                  return (
+                    !q ||
+                    v.path.toLowerCase().includes(q) ||
+                    v.value.toLowerCase().includes(q)
+                  )
+                })
+                .map(v => {
+                  const fieldDenied = deniedFields.has(v.path)
+                  const rowDenied = fieldDenied || denied.has(v.value_hash)
+                  return (
+                    <TableRow
+                      key={v.value_hash}
+                      sx={rowDenied ? { opacity: 0.6 } : undefined}
+                    >
+                      <TableCell sx={{ fontFamily: 'monospace' }}>
+                        {v.path}
+                      </TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace' }}>
+                        {rowDenied && (
+                          <Chip
                             size="small"
-                            aria-label={`Keep ${v.path} = ${v.value}`}
-                            onClick={() =>
-                              fieldDenied
-                                ? toggle(deniedFields, setDeniedFields, v.path)
-                                : toggle(denied, setDenied, v.value_hash)
-                            }
-                          >
-                            <UndoIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title="Deny - take it out of this version">
-                          <IconButton
-                            size="small"
-                            aria-label={`Deny ${v.path} = ${v.value}`}
-                            onClick={e =>
-                              setMenu({ anchor: e.currentTarget, value: v })
-                            }
-                          >
-                            <BlockIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                            color="error"
+                            variant="outlined"
+                            label={fieldDenied ? 'field denied' : 'denied'}
+                            sx={{ mr: 1, fontFamily: 'inherit' }}
+                          />
+                        )}
+                        {v.value}
+                      </TableCell>
+                      <TableCell align="right">{fmtInt(v.witnesses)}</TableCell>
+                      <TableCell padding="checkbox">
+                        {!canWithdraw ? null : rowDenied ? (
+                          <Tooltip title="Keep it">
+                            <IconButton
+                              size="small"
+                              aria-label={`Keep ${v.path} = ${v.value}`}
+                              onClick={() =>
+                                fieldDenied
+                                  ? toggle(
+                                      deniedFields,
+                                      setDeniedFields,
+                                      v.path
+                                    )
+                                  : toggle(denied, setDenied, v.value_hash)
+                              }
+                            >
+                              <UndoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Deny - take it out of this version">
+                            <IconButton
+                              size="small"
+                              aria-label={`Deny ${v.path} = ${v.value}`}
+                              onClick={e =>
+                                setMenu({ anchor: e.currentTarget, value: v })
+                              }
+                            >
+                              <BlockIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
             </TableBody>
           </Table>
         )}

@@ -422,12 +422,16 @@ export interface CandidateValuesResponse {
   // "how much of the benefit have I selected". Always the whole candidate,
   // never the filtered page.
   total_contribution: number
+  // Values no earlier review of the profile decided, whatever the filter.
+  new_total: number
   denied_summary: DeniedSummary
 }
 
 export interface GetCandidateValuesParams {
   search?: string
   min_witness?: number
+  // Only values no earlier review of the profile decided.
+  new_only?: boolean
   cursor?: string
   limit?: number
 }

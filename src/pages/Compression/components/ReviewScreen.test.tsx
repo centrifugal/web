@@ -59,6 +59,7 @@ const pageFor = (cursor?: string): CandidateValuesResponse => {
   return {
     values,
     total: 120,
+    new_total: 120,
     total_contribution: 100000,
     next_cursor: end < 120 ? String(end) : '',
     denied_summary: {
@@ -169,13 +170,17 @@ describe('ReviewScreen decisions', () => {
       denied_fields: ['user.ssn'],
     },
   }
+  let api: CompressionApiHook & {
+    getCandidateValues: ReturnType<typeof vi.fn>
+  }
   const setup = () => {
     const draftCandidate = vi.fn(async () => retrain)
-    const api = {
+    api = {
       getCandidateValues: vi.fn(async () => ({
         ...pageFor(),
         values: rows,
         total: rows.length,
+        new_total: 2,
         next_cursor: '',
       })),
       previewCandidate: vi.fn(async () => {
@@ -183,7 +188,7 @@ describe('ReviewScreen decisions', () => {
       }),
       draftCandidate,
       handleError: vi.fn(),
-    } as unknown as CompressionApiHook
+    } as unknown as typeof api
     render(
       <MemoryRouter>
         <ReviewScreen
@@ -240,6 +245,18 @@ describe('ReviewScreen decisions', () => {
     expect([...sel.approved].sort()).toEqual(['h-open', 'h-venue'])
     expect(sel.denied).toEqual([])
     expect([...sel.denied_fields].sort()).toEqual(['user.email', 'user.ssn'])
+  })
+
+  it('narrows a retrain to the values nobody decided', async () => {
+    setup()
+    await screen.findByText('open')
+    fireEvent.click(screen.getByText('New only (2)'))
+    await waitFor(() =>
+      expect(api.getCandidateValues).toHaveBeenLastCalledWith(
+        'cand-1',
+        expect.objectContaining({ new_only: true })
+      )
+    )
   })
 
   it('lists a denied field the session never saw, and undoes it', async () => {
