@@ -282,15 +282,23 @@ describe('ReviewScreen decisions', () => {
     expect([...sel.denied_fields].sort()).toEqual(['user.email', 'user.ssn'])
   })
 
-  it('narrows a retrain to the values nobody decided', async () => {
+  it('opens a retrain on what is new, with everything one click away', async () => {
     setup()
+    // By field: only fields with undecided values.
+    await screen.findByText('user.email')
+    expect(screen.queryByText('market.status')).not.toBeInTheDocument()
     await allValues()
-    await screen.findByText('open')
-    fireEvent.click(screen.getByText('New only (2)'))
     await waitFor(() =>
       expect(api.getCandidateValues).toHaveBeenLastCalledWith(
         'cand-1',
         expect.objectContaining({ new_only: true })
+      )
+    )
+    fireEvent.click(screen.getByText(/New only \(2\) — show all/))
+    await waitFor(() =>
+      expect(api.getCandidateValues).toHaveBeenLastCalledWith(
+        'cand-1',
+        expect.not.objectContaining({ new_only: true })
       )
     )
   })
@@ -316,6 +324,7 @@ describe('ReviewScreen decisions', () => {
     const draftCandidate = setup()
     const allow = (path: string) =>
       screen.getByRole('checkbox', { name: `Allow ${path}` })
+    fireEvent.click(await screen.findByText(/— show all/))
     await screen.findByText('market.status')
     // open was approved before, halted denied: everything allowable is ticked.
     expect(allow('market.status')).toBeChecked()

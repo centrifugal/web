@@ -9,6 +9,8 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Checkbox from '@mui/material/Checkbox'
 import Menu from '@mui/material/Menu'
+import Collapse from '@mui/material/Collapse'
+import Paper from '@mui/material/Paper'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -19,7 +21,6 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Tooltip from '@mui/material/Tooltip'
-import Alert from '@mui/material/Alert'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
@@ -134,6 +135,7 @@ export const ReviewScreen = ({
   // The review is by field unless the operator opens one field, or asks for
   // every value. fieldRef carries the opened field into every fetch.
   const [view, setView] = useState<'fields' | 'values'>('fields')
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [fields, setFields] = useState<CandidateField[]>([])
   const [fieldPath, setFieldPath] = useState<string | null>(null)
   const fieldRef = useRef<string | null>(null)
@@ -173,6 +175,17 @@ export const ReviewScreen = ({
       return
     }
     const prior = candidate.prior_decisions ?? {}
+    // A retrain: most of the list was decided last time, so it opens on what
+    // is new. The full list is one click away.
+    if (
+      (prior.allowed?.length ?? 0) +
+        (prior.denied?.length ?? 0) +
+        (prior.denied_fields?.length ?? 0) >
+      0
+    ) {
+      newOnlyRef.current = true
+      setNewOnly(true)
+    }
     setSelected(
       new Set([
         ...(candidate.recommended_hashes ?? []),
@@ -518,6 +531,15 @@ export const ReviewScreen = ({
     selected.has(v.value_hash)
   ).length
 
+  const fieldPaths = new Set(fields.map(f => f.path))
+  const unseenDeniedFields = Array.from(deniedFields)
+    .filter(p => !fieldPaths.has(p))
+    .sort()
+  const deniedCount = denied.size + deniedFields.size
+  const notFitting =
+    preview !== null && preview.values_held < preview.values_offered
+  const previewRatio = preview?.ratio_by_protocol?.json ?? 0
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box
@@ -537,72 +559,106 @@ export const ReviewScreen = ({
         >
           Back to session
         </Button>
-        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          Review values
-        </Typography>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+            Review values
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {fmtInt(candidate.values_total)} values in {fmtInt(fields.length)}{' '}
+            field{fields.length === 1 ? '' : 's'} ·{' '}
+            {measured ? 'measured on held-back traffic' : 'not measured'} · open
+            until {fmtRelative(candidate.expires_at)}
+          </Typography>
+        </Box>
+        <Box sx={{ flexGrow: 1 }} />
+        <Button
+          size="small"
+          variant="text"
+          color="inherit"
+          onClick={() => setDetailsOpen(o => !o)}
+          aria-expanded={detailsOpen}
+        >
+          {detailsOpen ? 'Hide details' : 'Details'}
+        </Button>
       </Box>
 
-      <Panel title="Candidate">
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <FieldRow label="Values total">
-            <Typography variant="body2">{fmtInt(total)}</Typography>
-          </FieldRow>
-          <FieldRow label="Ratio by protocol">
+      <Collapse in={detailsOpen} unmountOnExit>
+        <Panel title="Details">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             <Typography variant="body2">
-              {Object.entries(candidate.ratio_by_protocol)
-                .map(([proto, ratio]) => `${proto} ${fmtRatio(ratio)}`)
-                .join(' · ') || '—'}
-              {candidate.projected_ratio && (
-                <Typography
-                  component="span"
-                  variant="caption"
-                  color="warning.main"
-                  sx={{ ml: 1 }}
-                >
-                  (projected — assumes full approval, will drop as values are
-                  rejected)
-                </Typography>
-              )}
+              {candidate.recommended_count > 0
+                ? measured
+                  ? `${fmtInt(candidate.recommended_count)} values were pre-selected by building several dictionaries and measuring each on the last quarter of the session, which none was built from. More is usually worse: past the best cut-off, extra values push the useful ones out of reach.`
+                  : `${fmtInt(candidate.recommended_count)} values were pre-selected because they fit the dictionary. The session ended before enough traffic was held back to measure the result; train longer for a measured selection.`
+                : 'Nothing was pre-selected: the build had nothing to measure a selection against.'}{' '}
+              Size and selection go together: picking another size re-selects
+              what was measured for it.
             </Typography>
-          </FieldRow>
-          <FieldRow label="Expires">
-            <Typography variant="body2">
-              {fmtRelative(candidate.expires_at)}
-            </Typography>
-          </FieldRow>
-        </Box>
-      </Panel>
-
-      {deniedSummary && (
-        <Panel
-          title="Denied before review"
-          subtitle="Values the server never proposed, and why — without this the list below looks arbitrary."
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-            {DENIED_LABELS.map(d => (
-              <Tooltip key={d.key} title={d.hint} arrow>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75 }}
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    {d.label}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                    {fmtInt(deniedSummary[d.key])}
-                  </Typography>
+            <FieldRow label="Ratio by protocol">
+              <Typography variant="body2">
+                {Object.entries(candidate.ratio_by_protocol)
+                  .map(([proto, ratio]) => `${proto} ${fmtRatio(ratio)}`)
+                  .join(' · ') || '—'}
+                {candidate.projected_ratio && ' (if every value were allowed)'}
+              </Typography>
+            </FieldRow>
+            {deniedSummary && (
+              <FieldRow label="Refused before review">
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                  {DENIED_LABELS.map(d => (
+                    <Tooltip key={d.key} title={d.hint} arrow>
+                      <Typography variant="body2">
+                        {d.label}{' '}
+                        <strong>{fmtInt(deniedSummary[d.key])}</strong>
+                      </Typography>
+                    </Tooltip>
+                  ))}
                 </Box>
-              </Tooltip>
-            ))}
+              </FieldRow>
+            )}
+            {totalContribution > 0 && (
+              <FieldRow label="Saving covered">
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <LinearProgress
+                    variant="determinate"
+                    value={Math.min(coverage * 100, 100)}
+                    sx={{ height: 6, borderRadius: 3, width: 160 }}
+                  />
+                  <Typography variant="body2">
+                    {Math.round(coverage * 100)}% of what these values can save
+                  </Typography>
+                  <Button size="small" onClick={() => selectTopUpTo(0.8)}>
+                    Allow top 80%
+                  </Button>
+                  <Button size="small" onClick={() => selectTopUpTo(0.95)}>
+                    95%
+                  </Button>
+                </Box>
+              </FieldRow>
+            )}
           </Box>
         </Panel>
-      )}
+      </Collapse>
 
       <Panel
-        title={view === 'fields' ? 'Proposed fields' : 'Proposed values'}
+        title={
+          view === 'values' && fieldPath
+            ? 'Values'
+            : view === 'fields'
+              ? 'Fields'
+              : 'All values'
+        }
         subtitle={
           view === 'fields'
-            ? 'One row per field, most valuable first. Tick a field to allow its values, deny it to never show or collect it, or open it to decide value by value.'
-            : 'Ordered by witness count, then contribution. A value many people already saw is a smaller disclosure than one only two people saw — it orders the list, it does not make anything safe.'
+            ? 'Tick a field to allow its values, deny it to never show or collect it, or open it to decide value by value.'
+            : 'Most seen first. Tick to allow; deny what must never be shown.'
         }
         action={
           <ToggleButtonGroup
@@ -623,14 +679,17 @@ export const ReviewScreen = ({
           <>
             {(newOnly || fieldsNew < candidate.values_total) && (
               <Box sx={{ mb: 1.5 }}>
-                <Tooltip title="Fields with values no earlier review of this profile allowed or denied - on a retrain, the only ones that need reading.">
-                  <Chip
-                    label={`New only (${fmtInt(fieldsNew)})`}
-                    color={newOnly ? 'primary' : 'default'}
-                    variant={newOnly ? 'filled' : 'outlined'}
-                    onClick={() => handleNewOnly(!newOnly)}
-                  />
-                </Tooltip>
+                <Chip
+                  label={
+                    newOnly
+                      ? `New only (${fmtInt(fieldsNew)}) — show all`
+                      : `New only (${fmtInt(fieldsNew)})`
+                  }
+                  color={newOnly ? 'primary' : 'default'}
+                  variant={newOnly ? 'filled' : 'outlined'}
+                  onClick={() => handleNewOnly(!newOnly)}
+                  title="Values no earlier review of this profile decided."
+                />
               </Box>
             )}
             <FieldReview
@@ -638,6 +697,7 @@ export const ReviewScreen = ({
               selected={selected}
               denied={denied}
               deniedFields={deniedFields}
+              unseenDeniedFields={unseenDeniedFields}
               newOnly={newOnly}
               onAllow={allowField}
               onDenyField={setFieldDenied}
@@ -701,7 +761,11 @@ export const ReviewScreen = ({
               {(newOnly || newTotal < candidate.values_total) && (
                 <Tooltip title="Values no earlier review of this profile allowed or denied - on a retrain, the only rows that need reading.">
                   <Chip
-                    label={`New only (${fmtInt(newTotal)})`}
+                    label={
+                      newOnly
+                        ? `New only (${fmtInt(newTotal)}) — show all`
+                        : `New only (${fmtInt(newTotal)})`
+                    }
                     color={newOnly ? 'primary' : 'default'}
                     variant={newOnly ? 'filled' : 'outlined'}
                     onClick={() => handleNewOnly(!newOnly)}
@@ -973,48 +1037,67 @@ export const ReviewScreen = ({
         )}
       </Panel>
 
-      {deniedFields.size > 0 && (
-        <Panel
-          title="Denied fields"
-          subtitle="Every value under these is left out, and training no longer collects them - so they are not in the list above. Remove one to collect it again from the next session."
+      <Paper
+        variant="outlined"
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 1,
+          p: 2,
+          borderRadius: 2,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap',
+          }}
         >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {Array.from(deniedFields)
-              .sort()
-              .map(path => (
-                <Chip
-                  key={path}
-                  label={path}
-                  color="error"
-                  variant="outlined"
-                  sx={{ fontFamily: 'monospace' }}
-                  onDelete={() => setFieldDenied(path, false)}
-                  deleteIcon={
-                    <Tooltip title="Undo - collect this field again">
-                      <UndoIcon aria-label={`Undo denying ${path}`} />
-                    </Tooltip>
-                  }
-                />
-              ))}
+          <Box sx={{ flexGrow: 1, minWidth: 260 }}>
+            <Typography variant="body1">
+              <strong>{fmtInt(selected.size)}</strong> allowed ·{' '}
+              <strong>{fmtInt(deniedCount)}</strong> denied
+              {preview && (
+                <Typography
+                  component="span"
+                  color="text.secondary"
+                  sx={{ opacity: previewStale ? 0.6 : 1 }}
+                >
+                  {' '}
+                  → {HumanSize(preview.artifact_bytes)} dictionary
+                  {previewRatio > 0 && `, ${previewRatio.toFixed(2)}x`}
+                  {!preview.measured && ' (not measured)'}
+                </Typography>
+              )}
+            </Typography>
+            <Typography
+              variant="caption"
+              color={notFitting ? 'warning.main' : 'text.secondary'}
+            >
+              {notFitting
+                ? `${fmtInt(preview.values_offered - preview.values_held)} allowed values don't fit at this size; they stay allowed for a larger one.`
+                : 'Only allowed values ship. Values left unticked are asked about again next time.'}
+            </Typography>
           </Box>
-        </Panel>
-      )}
-
-      <Panel title="Decision">
-        {candidate.size_curve.length > 0 && (
-          <Box sx={{ mb: 2 }}>
+          {candidate.size_curve.length > 0 && (
             <TextField
               select
-              fullWidth
               size="small"
-              label="Dictionary size to review for"
+              label="Size"
               value={targetSize}
               onChange={e => handleTargetSize(Number(e.target.value))}
-              helperText={
-                measured
-                  ? 'Every size here was built and measured. Changing it re-ticks the values measured for that size — the two are one answer, so reviewing 60 values for a dictionary with room for 5 would be reviewing the wrong list.'
-                  : 'Every size here was built; nothing could be measured. The size decides how many values fit, so pick it before reviewing.'
-              }
+              sx={{ width: 170 }}
+              SelectProps={{
+                renderValue: v =>
+                  `${HumanSize(Number(v))}${
+                    Number(v) === candidate.recommended_size
+                      ? ' (recommended)'
+                      : ''
+                  }`,
+              }}
             >
               {candidate.size_curve.map(p => (
                 <MenuItem key={p.size_bytes} value={p.size_bytes}>
@@ -1030,7 +1113,7 @@ export const ReviewScreen = ({
                     <Typography variant="body2" color="text.secondary">
                       {p.ratio.toFixed(2)}x · {p.recommended_values} value
                       {p.recommended_values === 1 ? '' : 's'} ·{' '}
-                      {HumanSize(p.delivery_bytes)} per cold connect
+                      {HumanSize(p.delivery_bytes)} per new connection
                     </Typography>
                     {candidate.recommended_size === p.size_bytes && (
                       <Chip
@@ -1045,118 +1128,7 @@ export const ReviewScreen = ({
                 </MenuItem>
               ))}
             </TextField>
-          </Box>
-        )}
-        {candidate.recommended_count > 0 && (
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>
-              {fmtInt(candidate.recommended_count)} values are selected for you
-              {candidate.recommended_ratio > 0 &&
-                `, measured at ${candidate.recommended_ratio.toFixed(2)}x`}
-              {candidate.recommended_size > 0 &&
-                ` in a ${HumanSize(candidate.recommended_size)} dictionary`}
-              .
-            </strong>{' '}
-            {measured
-              ? 'This session held back its last quarter and the build tried several cut-offs and sizes against it — traffic no dictionary here was built from — so this is what the selection actually achieved, not what it is projected to. Approving more is usually worse: past the peak, extra values push the useful fragments out of range and the ratio falls. Read these, untick anything that should not be disclosed, and approve.'
-              : 'This session was stopped before its last quarter, which is held back to measure the result, so nothing here is measured. Selected are the values that fit in the dictionary. Read them, untick anything that should not be disclosed, and approve, or train again and let the session reach its deadline.'}
-            {measured && candidate.recommended_size > 0 && (
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                The size and the selection are one answer: this many values was
-                the best cut-off <em>at that size</em>. Pick another size above
-                and the ticks follow it.
-              </Typography>
-            )}
-          </Alert>
-        )}
-        {preview && (
-          <Alert
-            severity={
-              preview.values_held < preview.values_offered
-                ? 'warning'
-                : 'success'
-            }
-            sx={{ mb: 2, opacity: previewStale ? 0.6 : 1 }}
-          >
-            <strong>
-              What you have ticked: {HumanSize(preview.artifact_bytes)}{' '}
-              dictionary
-              {(preview.ratio_by_protocol?.json ?? 0) > 0 &&
-                `, ${preview.ratio_by_protocol.json.toFixed(2)}x`}
-              , {HumanSize(preview.delivery_bytes)} per cold connect.
-            </strong>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              {preview.values_held < preview.values_offered ? (
-                <>
-                  Only {preview.values_held} of your {preview.values_offered}{' '}
-                  ticked values fit in {HumanSize(targetSize)}. The rest stay
-                  allowed but are not in the dictionary — a larger size later
-                  can use them without another review.
-                </>
-              ) : (
-                <>
-                  All {preview.values_held} fit. Ticking more raises the ratio
-                  while there is room; past {HumanSize(targetSize)} the rest
-                  stay allowed but are left out of the dictionary.
-                </>
-              )}
-            </Typography>
-          </Alert>
-        )}
-        {totalContribution > 0 && (
-          <Box sx={{ mb: 2 }}>
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: 1,
-                mb: 0.5,
-              }}
-            >
-              <Typography variant="body2">
-                Selected values cover{' '}
-                <strong>{Math.round(coverage * 100)}%</strong> of the saving
-                this vocabulary can give.
-              </Typography>
-              <Box sx={{ flexGrow: 1 }} />
-              <Button size="small" onClick={() => selectTopUpTo(0.8)}>
-                Take top 80%
-              </Button>
-              <Button size="small" onClick={() => selectTopUpTo(0.95)}>
-                95%
-              </Button>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={Math.min(coverage * 100, 100)}
-              sx={{ height: 6, borderRadius: 3 }}
-            />
-            {/* Values are listed best-first, so this climbs steeply and then
-                flattens. Where it flattens is where reading further stops
-                paying - which is the whole point of showing it. */}
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 0.5 }}
-            >
-              Values are listed most valuable first, so this rises quickly and
-              then flattens. Once it has flattened, the rows below are worth
-              little and can be left unapproved.
-            </Typography>
-          </Box>
-        )}
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <strong>
-            {fmtInt(selected.size)} allowed · {fmtInt(denied.size)} denied
-            {deniedFields.size > 0 &&
-              ` · ${fmtInt(deniedFields.size)} field${deniedFields.size === 1 ? '' : 's'} denied`}
-          </strong>
-          {' — '}
-          only allowed values can go into the dictionary. Everything else is not
-          reviewed: it isn&apos;t used, isn&apos;t remembered, and is offered
-          again next time.
-        </Alert>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          )}
           <Button
             variant="tonal"
             color="inherit"
@@ -1178,7 +1150,7 @@ export const ReviewScreen = ({
             Approve…
           </Button>
         </Box>
-      </Panel>
+      </Paper>
 
       <ApproveCandidateDialog
         api={api}
@@ -1194,8 +1166,8 @@ export const ReviewScreen = ({
           setApproveOpen(false)
           showAlert(
             created.activatedPercent != null
-              ? `Candidate approved — new version activated for ${created.activatedPercent}% of matching connections`
-              : 'Candidate approved — new version created',
+              ? `Approved — the new version serves ${created.activatedPercent}% of matching connections`
+              : 'Approved — a new version was created',
             { severity: 'success' }
           )
           onApproved(created)

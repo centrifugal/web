@@ -23,6 +23,9 @@ interface FieldReviewProps {
   selected: Set<string>
   denied: Set<string>
   deniedFields: Set<string>
+  // Fields denied in an earlier review that this session has no values of -
+  // nodes no longer collect them - listed so the denial can be undone.
+  unseenDeniedFields: string[]
   // Only fields holding values no earlier review decided.
   newOnly: boolean
   onAllow: (field: CandidateField, allow: boolean) => void
@@ -44,13 +47,14 @@ export const FieldReview = ({
   selected,
   denied,
   deniedFields,
+  unseenDeniedFields,
   newOnly,
   onAllow,
   onDenyField,
   onShowValues,
 }: FieldReviewProps) => {
   const shown = newOnly ? fields.filter(f => f.new > 0) : fields
-  if (shown.length === 0) {
+  if (shown.length === 0 && unseenDeniedFields.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 3 }}>
         {newOnly
@@ -205,6 +209,48 @@ export const FieldReview = ({
               </TableRow>
             )
           })}
+          {unseenDeniedFields.map(path => (
+            <TableRow key={path} sx={{ opacity: 0.6 }}>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  disabled
+                  inputProps={{ 'aria-label': `Allow ${path}` }}
+                />
+              </TableCell>
+              <TableCell>
+                <Typography
+                  variant="body2"
+                  component="span"
+                  sx={{ fontFamily: 'monospace' }}
+                >
+                  {path}
+                </Typography>
+                <Chip
+                  size="small"
+                  color="error"
+                  variant="outlined"
+                  label="denied"
+                  sx={{ ml: 1 }}
+                />
+              </TableCell>
+              <TableCell align="right" colSpan={4}>
+                <Typography variant="caption" color="text.secondary">
+                  Not collected since it was denied
+                </Typography>
+              </TableCell>
+              <TableCell padding="checkbox">
+                <Tooltip title="Undo - collect this field again">
+                  <IconButton
+                    size="small"
+                    aria-label={`Undo denying ${path}`}
+                    onClick={() => onDenyField(path, false)}
+                  >
+                    <UndoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </TableContainer>
