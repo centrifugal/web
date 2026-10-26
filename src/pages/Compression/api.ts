@@ -528,8 +528,6 @@ export interface CompressionApiHook {
     sessionId: string,
     req: AssignSessionRequest
   ) => Promise<Version>
-  undoDecision: (decisionId: string) => Promise<void>
-
   // Versions
   listVersions: (profileId: string) => Promise<{ versions: Version[] }>
   // confirmAudience approves the version for a wider audience than it was
@@ -719,9 +717,6 @@ export function useCompressionApi({
         postJson<Version>(`/candidates/${candidateId}/approve`, reqBody),
       assignSession: (sessionId, reqBody) =>
         postJson<Version>(`/sessions/${sessionId}/assign`, reqBody),
-      undoDecision: decisionId =>
-        postJson<void>(`/decisions/${decisionId}/undo`),
-
       listVersions: profileId =>
         getJson<{ versions: Version[] }>(`/profiles/${profileId}/versions`),
       activateVersion: (versionId, rolloutPercent, confirmAudience) =>

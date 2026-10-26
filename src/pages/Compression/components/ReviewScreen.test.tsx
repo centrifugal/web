@@ -162,7 +162,12 @@ describe('ReviewScreen decisions', () => {
     ...candidate,
     values_total: rows.length,
     recommended_hashes: ['h-venue'],
-    prior_decisions: { allowed: ['h-open'], denied: ['h-halted'] },
+    prior_decisions: {
+      allowed: ['h-open'],
+      denied: ['h-halted'],
+      // Not collected any more, so none of its values is in the list.
+      denied_fields: ['user.ssn'],
+    },
   }
   const setup = () => {
     const draftCandidate = vi.fn(async () => retrain)
@@ -234,6 +239,21 @@ describe('ReviewScreen decisions', () => {
     ]
     expect([...sel.approved].sort()).toEqual(['h-open', 'h-venue'])
     expect(sel.denied).toEqual([])
-    expect(sel.denied_fields).toEqual(['user.email'])
+    expect([...sel.denied_fields].sort()).toEqual(['user.email', 'user.ssn'])
+  })
+
+  it('lists a denied field the session never saw, and undoes it', async () => {
+    const draftCandidate = setup()
+    await screen.findByText('open')
+    expect(screen.getByText('user.ssn')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Undo denying user.ssn'))
+    expect(screen.queryByText('user.ssn')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /save draft/i }))
+    await waitFor(() => expect(draftCandidate).toHaveBeenCalled())
+    const [, sel] = draftCandidate.mock.calls[0] as unknown as [
+      string,
+      { denied_fields: string[] },
+    ]
+    expect(sel.denied_fields).toEqual([])
   })
 })

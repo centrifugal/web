@@ -830,6 +830,33 @@ export const ReviewScreen = ({
         </Box>
       </Panel>
 
+      {deniedFields.size > 0 && (
+        <Panel
+          title="Denied fields"
+          subtitle="Every value under these is left out, and training no longer collects them - so they are not in the list above. Remove one to collect it again from the next session."
+        >
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {Array.from(deniedFields)
+              .sort()
+              .map(path => (
+                <Chip
+                  key={path}
+                  label={path}
+                  color="error"
+                  variant="outlined"
+                  sx={{ fontFamily: 'monospace' }}
+                  onDelete={() => setFieldDenied(path, false)}
+                  deleteIcon={
+                    <Tooltip title="Undo - collect this field again">
+                      <UndoIcon aria-label={`Undo denying ${path}`} />
+                    </Tooltip>
+                  }
+                />
+              ))}
+          </Box>
+        </Panel>
+      )}
+
       <Panel title="Decision">
         {candidate.size_curve.length > 0 && (
           <Box sx={{ mb: 2 }}>

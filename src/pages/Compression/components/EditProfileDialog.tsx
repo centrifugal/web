@@ -79,7 +79,8 @@ export const EditProfileDialog = ({
       but it widens who receives it. A dictionary approved for a narrower
       audience can&apos;t be assumed safe for a wider one, so saving this will
       deactivate the active version. Serving it again asks you to approve it for
-      the wider audience first.
+      the wider audience first, and the next review asks again about every value
+      approved so far.
     </>
   )
 
