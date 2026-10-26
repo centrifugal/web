@@ -6,6 +6,7 @@ import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
 import Card from '@mui/material/Card'
+import Collapse from '@mui/material/Collapse'
 import CardContent from '@mui/material/CardContent'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -103,6 +104,14 @@ export const SessionDetail = ({
   const [buildReason, setBuildReason] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [assignTarget, setAssignTarget] = useState<Candidate | null>(null)
+  // A candidate's size table and a session's older builds are there for
+  // whoever wants them, folded away for everyone else.
+  const [sizesOpen, setSizesOpen] = useState<Set<string>>(new Set())
+  const [showOlder, setShowOlder] = useState(false)
+  // Builds of the same kind as a newer one; they arrive newest first.
+  const olderBuilds = (candidates ?? []).filter((c, i, all) =>
+    all.slice(0, i).some(o => o.fidelity === c.fidelity)
+  ).length
   const [reviewId, setReviewId] = useUrlSelection('candidate')
   const reviewCandidate = candidates?.find(c => c.id === reviewId) ?? null
   // The version the last approve or assign created, so the page can lead to
@@ -499,6 +508,12 @@ export const SessionDetail = ({
                 const superseded = candidates
                   .slice(0, i)
                   .some(o => o.fidelity === c.fidelity)
+                if (superseded && !showOlder) return null
+                const measured = c.size_curve.some(sp => sp.measured)
+                const headline =
+                  c.recommended_ratio > 0
+                    ? c.recommended_ratio
+                    : (c.ratio_by_protocol.json ?? 0)
                 return (
                   <Card
                     key={c.id}
@@ -566,160 +581,166 @@ export const SessionDetail = ({
                         sx={{ mb: 1 }}
                       >
                         {c.fidelity === 'schema'
-                          ? 'Field names, nesting and key order. No values from your traffic, so there is nothing to read and you can activate it straight away.'
-                          : 'The same shapes plus the values you approve, one at a time. Compresses harder, and every value you tick is a value served to everyone this profile reaches.'}
+                          ? 'Field names and structure, no values from your traffic: nothing to review.'
+                          : 'Adds the values you allow. Compresses more, and needs a review first.'}
                       </Typography>
 
-                      {c.fidelity !== 'schema' && (
-                        <Typography variant="body2" color="text.secondary">
-                          {fmtInt(c.values_total)} value
-                          {c.values_total === 1 ? '' : 's'}
-                        </Typography>
-                      )}
-                      <Typography variant="body2" sx={{ mt: 0.5 }}>
-                        {Object.entries(c.ratio_by_protocol)
-                          .map(
-                            ([proto, ratio]) => `${proto} ${fmtRatio(ratio)}`
-                          )
-                          .join(' · ') || '—'}
-                        {c.projected_ratio && (
-                          <Typography
-                            component="span"
-                            variant="caption"
-                            color="warning.main"
-                            sx={{ display: 'block' }}
-                          >
-                            Projected — assumes full approval, will drop as
-                            values are rejected.
-                          </Typography>
+                      <Typography variant="body1">
+                        {headline > 0 ? (
+                          <>
+                            <strong>{fmtRatio(headline)}</strong>
+                            {c.recommended_size > 0 &&
+                              ` at ${HumanSize(c.recommended_size)}`}
+                          </>
+                        ) : (
+                          '—'
                         )}
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="text.secondary"
+                        >
+                          {measured ? ' · measured' : ' · not measured'}
+                          {c.fidelity !== 'schema' &&
+                            ` · ${fmtInt(c.values_total)} value${c.values_total === 1 ? '' : 's'} to review`}
+                        </Typography>
                       </Typography>
 
                       {c.size_curve.length > 0 && (
-                        <TableContainer sx={{ mt: 1.5 }}>
-                          {/* Which size to build at was the least-supported
+                        <Collapse in={sizesOpen.has(c.id)} unmountOnExit>
+                          <TableContainer sx={{ mt: 1.5 }}>
+                            {/* Which size to build at was the least-supported
                             decision in the whole flow: a free-form byte count
                             with no way to see what it bought. Every rung here
                             was built and scored, so the answer is on screen
                             rather than left to intuition. */}
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{ display: 'block', mb: 0.5 }}
-                          >
-                            {c.size_curve.some(sp => sp.measured)
-                              ? 'Each size built and measured on traffic held back from training.'
-                              : 'Projected — this session had no control window, so ratios are optimistic.'}
-                          </Typography>
-                          {c.recommended_size > 0 && (
                             <Typography
                               variant="caption"
-                              color="primary"
+                              color="text.secondary"
                               sx={{ display: 'block', mb: 0.5 }}
-                              title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
                             >
-                              Recommended: {HumanSize(c.recommended_size)}
-                              {c.recommended_count > 0 &&
-                                ` · ${fmtInt(c.recommended_count)} values`}
-                              {c.recommended_ratio > 0 &&
-                                ` · ${fmtRatio(c.recommended_ratio)}`}
+                              {c.size_curve.some(sp => sp.measured)
+                                ? 'Each size built and measured on traffic held back from training.'
+                                : 'Projected — this session had no control window, so ratios are optimistic.'}
                             </Typography>
-                          )}
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Size</TableCell>
-                                <TableCell align="right">Ratio</TableCell>
-                                <TableCell align="right">Wire</TableCell>
-                                <TableCell align="right">Holds</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {c.size_curve.map(sp => (
-                                <TableRow
-                                  key={sp.size_bytes}
-                                  selected={
-                                    sp.size_bytes === c.recommended_size
-                                  }
-                                >
-                                  <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                                    <Typography
-                                      variant="body2"
-                                      component="span"
-                                      sx={{
-                                        fontWeight:
-                                          sp.size_bytes === c.recommended_size
-                                            ? 600
-                                            : 400,
-                                      }}
-                                    >
-                                      {HumanSize(sp.size_bytes)}
-                                    </Typography>
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {fmtRatio(sp.ratio)}
-                                    {sp.recommended_values > 0 && (
+                            {c.recommended_size > 0 && (
+                              <Typography
+                                variant="caption"
+                                color="primary"
+                                sx={{ display: 'block', mb: 0.5 }}
+                                title="The smallest size within a couple of percent of the best measured ratio. Bigger rungs cost every connection more for almost nothing."
+                              >
+                                Recommended: {HumanSize(c.recommended_size)}
+                                {c.recommended_count > 0 &&
+                                  ` · ${fmtInt(c.recommended_count)} values`}
+                                {c.recommended_ratio > 0 &&
+                                  ` · ${fmtRatio(c.recommended_ratio)}`}
+                              </Typography>
+                            )}
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  <TableCell>Size</TableCell>
+                                  <TableCell align="right">Ratio</TableCell>
+                                  <TableCell align="right">Wire</TableCell>
+                                  <TableCell align="right">Holds</TableCell>
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {c.size_curve.map(sp => (
+                                  <TableRow
+                                    key={sp.size_bytes}
+                                    selected={
+                                      sp.size_bytes === c.recommended_size
+                                    }
+                                  >
+                                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
                                       <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ display: 'block' }}
-                                        title="How many of the ranked values were worth approving at this size. It differs down the ladder: a smaller dictionary fills up sooner, so extra values only push useful fragments out."
+                                        variant="body2"
+                                        component="span"
+                                        sx={{
+                                          fontWeight:
+                                            sp.size_bytes === c.recommended_size
+                                              ? 600
+                                              : 400,
+                                        }}
                                       >
-                                        {sp.recommended_values} values
+                                        {HumanSize(sp.size_bytes)}
                                       </Typography>
-                                    )}
-                                  </TableCell>
-                                  <TableCell align="right">
-                                    {HumanSize(sp.delivery_bytes)}
-                                  </TableCell>
-                                  {/* A size that holds part of the vocabulary
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {fmtRatio(sp.ratio)}
+                                      {sp.recommended_values > 0 && (
+                                        <Typography
+                                          variant="caption"
+                                          color="text.secondary"
+                                          sx={{ display: 'block' }}
+                                          title="How many of the ranked values were worth approving at this size. It differs down the ladder: a smaller dictionary fills up sooner, so extra values only push useful fragments out."
+                                        >
+                                          {sp.recommended_values} values
+                                        </Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell align="right">
+                                      {HumanSize(sp.delivery_bytes)}
+                                    </TableCell>
+                                    {/* A size that holds part of the vocabulary
                                     reports the same ratio shape as one that
                                     holds all of it. Without this an operator
                                     picking a small size cannot see that the
                                     dictionary covers little of their traffic. */}
-                                  <TableCell align="right">
-                                    {/* The values denominator is the selection
+                                    <TableCell align="right">
+                                      {/* The values denominator is the selection
                                       measured at this size, not the session's
                                       whole vocabulary - "60/60 values" read as
                                       a riddle when the candidate held 250. It
                                       now says what it means. */}
-                                    <Typography
-                                      variant="body2"
-                                      component="span"
-                                      color={
-                                        sp.shapes_held < sp.shapes_total ||
-                                        sp.values_held < sp.values_total
-                                          ? 'warning.main'
-                                          : 'text.secondary'
-                                      }
-                                      // The full sentences live here, where
-                                      // length costs nothing. In the cell they
-                                      // wrapped over three lines and pushed
-                                      // the table wider than its card.
-                                      title={
-                                        (sp.shapes_held < sp.shapes_total
-                                          ? `Holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes — the ratio is real, but measured on the part that fit. `
-                                          : 'Holds every message shape the session learned. ') +
-                                        (sp.values_total === 0
-                                          ? ''
-                                          : sp.values_held === sp.values_total
-                                            ? `All ${sp.values_total} values measured at this size fit.`
-                                            : `Only ${sp.values_held} of the ${sp.values_total} values measured at this size fit; the rest would be approved without being in the dictionary.`)
-                                      }
-                                    >
-                                      {sp.shapes_held}/{sp.shapes_total} shapes
-                                      {sp.values_total > 0 &&
-                                        `, ${sp.values_held}/${sp.values_total} values`}
-                                    </Typography>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
+                                      <Typography
+                                        variant="body2"
+                                        component="span"
+                                        color={
+                                          sp.shapes_held < sp.shapes_total ||
+                                          sp.values_held < sp.values_total
+                                            ? 'warning.main'
+                                            : 'text.secondary'
+                                        }
+                                        // The full sentences live here, where
+                                        // length costs nothing. In the cell they
+                                        // wrapped over three lines and pushed
+                                        // the table wider than its card.
+                                        title={
+                                          (sp.shapes_held < sp.shapes_total
+                                            ? `Holds ${sp.shapes_held} of ${sp.shapes_total} learned message shapes — the ratio is real, but measured on the part that fit. `
+                                            : 'Holds every message shape the session learned. ') +
+                                          (sp.values_total === 0
+                                            ? ''
+                                            : sp.values_held === sp.values_total
+                                              ? `All ${sp.values_total} values measured at this size fit.`
+                                              : `Only ${sp.values_held} of the ${sp.values_total} values measured at this size fit; the rest would be approved without being in the dictionary.`)
+                                        }
+                                      >
+                                        {sp.shapes_held}/{sp.shapes_total}{' '}
+                                        shapes
+                                        {sp.values_total > 0 &&
+                                          `, ${sp.values_held}/${sp.values_total} values`}
+                                      </Typography>
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                        </Collapse>
                       )}
 
-                      <Box sx={{ mt: 1.5 }}>
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          display: 'flex',
+                          gap: 1,
+                          alignItems: 'center',
+                        }}
+                      >
                         {c.fidelity === 'schema' ? (
                           <Button
                             variant="solid"
@@ -736,7 +757,24 @@ export const SessionDetail = ({
                             size="small"
                             onClick={() => setReviewId(c.id)}
                           >
-                            Review
+                            Review values
+                          </Button>
+                        )}
+                        {c.size_curve.length > 0 && (
+                          <Button
+                            variant="text"
+                            color="inherit"
+                            size="small"
+                            onClick={() =>
+                              setSizesOpen(prev => {
+                                const next = new Set(prev)
+                                if (next.has(c.id)) next.delete(c.id)
+                                else next.add(c.id)
+                                return next
+                              })
+                            }
+                          >
+                            {sizesOpen.has(c.id) ? 'Hide sizes' : 'Sizes'}
                           </Button>
                         )}
                       </Box>
@@ -745,6 +783,19 @@ export const SessionDetail = ({
                 )
               })}
             </Box>
+          )}
+          {olderBuilds > 0 && (
+            <Button
+              variant="text"
+              color="inherit"
+              size="small"
+              sx={{ mt: 1 }}
+              onClick={() => setShowOlder(v => !v)}
+            >
+              {showOlder
+                ? 'Hide older builds'
+                : `Show ${olderBuilds} older build${olderBuilds === 1 ? '' : 's'}`}
+            </Button>
           )}
         </Panel>
       )}
