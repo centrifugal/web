@@ -32,6 +32,7 @@ const row = (i: number): CandidateValue => ({
   decided: null,
   recommended: false,
   previously_denied: false,
+  previously_approved: false,
 })
 
 const candidate: Candidate = {
@@ -126,5 +127,113 @@ describe('ReviewScreen paging', () => {
     // first, next, next, prev, prev — the last two must walk back down, not
     // repeat where they already were.
     expect(cursorsRequested).toEqual([undefined, '50', '100', '50', undefined])
+  })
+})
+
+// A retrain opens on what earlier reviews decided: allowed values ticked,
+// denied ones denied and not tickable, so only what is new needs reading. And
+// the review saves all three answers, not only the ticks.
+describe('ReviewScreen decisions', () => {
+  const rows: CandidateValue[] = [
+    {
+      ...row(0),
+      path: 'market.status',
+      value: 'open',
+      value_hash: 'h-open',
+      previously_approved: true,
+    },
+    {
+      ...row(1),
+      path: 'market.status',
+      value: 'halted',
+      value_hash: 'h-halted',
+      previously_denied: true,
+    },
+    { ...row(2), path: 'user.email', value: 'a@b.c', value_hash: 'h-email' },
+    {
+      ...row(3),
+      path: 'market.venue',
+      value: 'XNAS',
+      value_hash: 'h-venue',
+      recommended: true,
+    },
+  ]
+  const retrain: Candidate = {
+    ...candidate,
+    values_total: rows.length,
+    recommended_hashes: ['h-venue'],
+    prior_decisions: { allowed: ['h-open'], denied: ['h-halted'] },
+  }
+  const setup = () => {
+    const draftCandidate = vi.fn(async () => retrain)
+    const api = {
+      getCandidateValues: vi.fn(async () => ({
+        ...pageFor(),
+        values: rows,
+        total: rows.length,
+        next_cursor: '',
+      })),
+      previewCandidate: vi.fn(async () => {
+        throw new Error('not measured in this test')
+      }),
+      draftCandidate,
+      handleError: vi.fn(),
+    } as unknown as CompressionApiHook
+    render(
+      <MemoryRouter>
+        <ReviewScreen
+          api={api}
+          candidate={retrain}
+          onBack={() => {}}
+          onCandidateUpdated={() => {}}
+          onApproved={() => {}}
+        />
+      </MemoryRouter>
+    )
+    return draftCandidate
+  }
+  const box = (path: string, value: string) =>
+    screen.getByRole('checkbox', { name: `Allow ${path} = ${value}` })
+
+  it('opens on earlier decisions and the recommendation', async () => {
+    setup()
+    await screen.findByText('open')
+    expect(box('market.status', 'open')).toBeChecked()
+    expect(box('market.venue', 'XNAS')).toBeChecked()
+    expect(box('market.status', 'halted')).not.toBeChecked()
+    expect(box('market.status', 'halted')).toBeDisabled()
+    expect(box('user.email', 'a@b.c')).not.toBeChecked()
+    expect(box('user.email', 'a@b.c')).not.toBeDisabled()
+  })
+
+  it('denies a field whole and saves all three answers', async () => {
+    const draftCandidate = setup()
+    await screen.findByText('a@b.c')
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Deny user.email = a@b.c' })
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /deny every value of/i })
+    )
+    expect(box('user.email', 'a@b.c')).toBeDisabled()
+
+    // Undoing a value's denial leaves it not reviewed, not allowed.
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Undo denial of market.status = halted',
+      })
+    )
+    expect(box('market.status', 'halted')).not.toBeDisabled()
+    expect(box('market.status', 'halted')).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: /save draft/i }))
+    await waitFor(() => expect(draftCandidate).toHaveBeenCalled())
+    const [, sel] = draftCandidate.mock.calls[0] as unknown as [
+      string,
+      { approved: string[]; denied: string[]; denied_fields: string[] },
+    ]
+    expect([...sel.approved].sort()).toEqual(['h-open', 'h-venue'])
+    expect(sel.denied).toEqual([])
+    expect(sel.denied_fields).toEqual(['user.email'])
   })
 })

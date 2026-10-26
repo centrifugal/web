@@ -8,6 +8,7 @@ import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Checkbox from '@mui/material/Checkbox'
+import Menu from '@mui/material/Menu'
 import CircularProgress from '@mui/material/CircularProgress'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -23,6 +24,8 @@ import ClearIcon from '@mui/icons-material/Clear'
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import BlockIcon from '@mui/icons-material/Block'
+import UndoIcon from '@mui/icons-material/Undo'
 
 import { ShellContext } from 'contexts/ShellContext'
 import { HumanSize } from 'utils/Functions'
@@ -80,22 +83,20 @@ const DENIED_LABELS: {
   },
   {
     key: 'prior_decision',
-    label: 'Already rejected',
-    hint: 'You turned these down for this profile before. They are still listed, marked "rejected before" - tick one to approve it after all.',
+    label: 'Denied before',
+    hint: 'You denied these, or their field, for this profile before. They are still listed, marked "denied before" - undo the denial to allow one after all.',
   },
 ]
 
 // ReviewScreen: the value-by-value approval gate between a training session
-// and a served dictionary. The two rules that make this screen safe rather
-// than a rubber stamp:
+// and a served dictionary. Each value is allowed (ticked), denied, or not
+// reviewed. Only allowed values ship, and only allowed and denied ones are
+// remembered for the profile: a value nobody looked at is neither approved by
+// being left alone nor refused forever, it is simply asked about next time.
 //
-// 1. Nothing starts checked. A value only becomes "approved" because the
-//    operator checked it (or it was checked and saved in an earlier draft
-//    pass) — never as a default.
-// 2. The approve request carries only the checked set. Everything else,
-//    including values on a page the operator never opened, is recorded as
-//    rejected. That's the API contract, not a UI choice, so this screen
-//    cannot construct a request that approves something unseen.
+// It opens on the saved draft, or else on the build's recommendation plus what
+// earlier reviews of the profile allowed, with what they denied marked denied -
+// so a retrain on a new session only asks about what is new.
 export const ReviewScreen = ({
   api,
   candidate,
@@ -114,6 +115,9 @@ export const ReviewScreen = ({
   // Contribution per value hash, accumulated as pages load, so coverage can be
   // reported for a selection spanning pages the operator has scrolled past.
   const contributionRef = useRef<Map<string, number>>(new Map())
+  // Key path per value hash, as pages load, so denying a field can untick the
+  // values of it already ticked.
+  const pathRef = useRef<Map<string, string>>(new Map())
 
   const [searchDraft, setSearchDraft] = useState('')
   const [searchApplied, setSearchApplied] = useState('')
@@ -132,26 +136,39 @@ export const ReviewScreen = ({
   // ordering to get wrong.
   const [cursors, setCursors] = useState<string[]>([''])
 
-  // Every value_hash the operator has explicitly approved, accumulated across
-  // pages and searches for the lifetime of this screen. This is the only
-  // input to the approve request.
+  // The review, accumulated across pages and searches for the lifetime of this
+  // screen: allowed value hashes, denied value hashes, fields denied whole.
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  // The build's measured recommendation, applied once when the screen opens on
-  // an untouched candidate. A saved draft always wins: an operator who has
-  // already made decisions must not have them replaced by a machine's.
-  //
-  // Seeded from the hashes the build chose, not from the rows on screen: the
-  // list is paged 50 at a time, so seeding from the loaded page ticked 50 of a
-  // 60-value recommendation and left the rest looking rejected on page two.
-  const recommendedRef = useRef(false)
+  const [denied, setDenied] = useState<Set<string>>(new Set())
+  const [deniedFields, setDeniedFields] = useState<Set<string>>(new Set())
+  const priorAllowed = candidate.prior_decisions?.allowed ?? []
+  // Seeded once per candidate, from hashes rather than from the rows on
+  // screen: the list is paged, so seeding from the loaded page would leave
+  // the rest of a recommendation looking unticked on page two. A saved draft
+  // wins - an operator's own answers must not be replaced by a machine's.
+  const seededRef = useRef<string | null>(null)
   useEffect(() => {
-    if (recommendedRef.current) return
-    const hashes = candidate.recommended_hashes
-    if (!hashes || hashes.length === 0) return
-    if (candidate.draft_count > 0) return
-    recommendedRef.current = true
-    setSelected(prev => (prev.size > 0 ? prev : new Set(hashes)))
-  }, [candidate.recommended_hashes, candidate.draft_count])
+    if (seededRef.current === candidate.id) return
+    seededRef.current = candidate.id
+    const draft = candidate.draft
+    if (candidate.draft_count > 0 && draft) {
+      setSelected(new Set(draft.approved ?? []))
+      setDenied(new Set(draft.denied ?? []))
+      setDeniedFields(new Set(draft.denied_fields ?? []))
+      return
+    }
+    const prior = candidate.prior_decisions ?? {}
+    setSelected(
+      new Set([
+        ...(candidate.recommended_hashes ?? []),
+        ...(prior.allowed ?? []),
+      ])
+    )
+    setDenied(new Set(prior.denied ?? []))
+    setDeniedFields(new Set(prior.denied_fields ?? []))
+  }, [candidate])
+  const isDenied = (v: CandidateValue) =>
+    denied.has(v.value_hash) || deniedFields.has(v.path)
   // Without a control window nothing could be measured, which the text below
   // has to say rather than claim a measured selection.
   const measured = candidate.size_curve.some(p => p.measured)
@@ -188,16 +205,13 @@ export const ReviewScreen = ({
     const rung = candidate.size_curve.find(p => p.size_bytes === size)
     const n = rung?.recommended_values ?? 0
     // Only when the ranking actually covers that rung - otherwise leave the
-    // ticks alone rather than applying a selection nobody measured.
+    // ticks alone rather than applying a selection nobody measured. What an
+    // earlier review allowed stays allowed: that was a person's answer, not
+    // the build's.
     if (n > 0 && n <= ranked.length) {
-      setSelected(new Set(ranked.slice(0, n)))
+      setSelected(new Set([...ranked.slice(0, n), ...priorAllowed]))
     }
   }
-
-  // Guards re-seeding `selected` from a prior draft's `decided` flag more than
-  // once per value, so paging back to a page the operator already unchecked a
-  // box on doesn't silently re-check it.
-  const seenRef = useRef<Set<string>>(new Set())
 
   const [savingDraft, setSavingDraft] = useState(false)
   const [approveOpen, setApproveOpen] = useState(false)
@@ -225,28 +239,13 @@ export const ReviewScreen = ({
           contributionRef.current.set(v.value_hash, v.contribution)
         )
         setNextCursor(data.next_cursor || '')
+        rows.forEach(v => pathRef.current.set(v.value_hash, v.path))
         if (opts.direction === 'next') {
           setCursors(prev => [...prev, opts.cursor || ''])
         } else if (opts.direction === 'prev') {
           setCursors(prev => (prev.length > 1 ? prev.slice(0, -1) : prev))
         } else {
           setCursors([''])
-        }
-
-        // Seed selection from prior decisions, once per value ever seen.
-        const newlyApproved: string[] = []
-        rows.forEach(v => {
-          if (!seenRef.current.has(v.value_hash)) {
-            seenRef.current.add(v.value_hash)
-            if (v.decided === true) newlyApproved.push(v.value_hash)
-          }
-        })
-        if (newlyApproved.length > 0) {
-          setSelected(prev => {
-            const next = new Set(prev)
-            newlyApproved.forEach(h => next.add(h))
-            return next
-          })
         }
       } catch (err) {
         api.handleError(err)
@@ -337,10 +336,45 @@ export const ReviewScreen = ({
     })
   }
 
+  // Denying takes a value out of the allowed set; undoing a denial leaves it
+  // not reviewed rather than allowed - allowing it is a tick of its own.
+  const setValueDenied = (hash: string, on: boolean) => {
+    setDenied(prev => {
+      const next = new Set(prev)
+      if (on) next.add(hash)
+      else next.delete(hash)
+      return next
+    })
+    if (on) toggleValue(hash, false)
+  }
+  const setFieldDenied = (path: string, on: boolean) => {
+    setDeniedFields(prev => {
+      const next = new Set(prev)
+      if (on) next.add(path)
+      else next.delete(path)
+      return next
+    })
+    if (on) {
+      setSelected(prev => {
+        const next = new Set(prev)
+        prev.forEach(h => {
+          if (pathRef.current.get(h) === path) next.delete(h)
+        })
+        return next
+      })
+    }
+  }
+  const [denyMenu, setDenyMenu] = useState<{
+    anchor: HTMLElement
+    value: CandidateValue
+  } | null>(null)
+
   const selectAllShown = () => {
     setSelected(prev => {
       const next = new Set(prev)
-      values.forEach(v => next.add(v.value_hash))
+      values.forEach(v => {
+        if (!isDenied(v)) next.add(v.value_hash)
+      })
       return next
     })
   }
@@ -355,13 +389,14 @@ export const ReviewScreen = ({
   const handleSaveDraft = async () => {
     setSavingDraft(true)
     try {
-      const updated = await api.draftCandidate(
-        candidate.id,
-        Array.from(selected)
-      )
+      const updated = await api.draftCandidate(candidate.id, {
+        approved: Array.from(selected),
+        denied: Array.from(denied),
+        denied_fields: Array.from(deniedFields),
+      })
       onCandidateUpdated(updated)
       showAlert(
-        `Draft saved — ${selected.size.toLocaleString()} approved so far. Review window extended to ${fmtRelative(updated.expires_at)}.`,
+        `Draft saved — ${selected.size.toLocaleString()} allowed, ${denied.size.toLocaleString()} denied so far. Review window extended to ${fmtRelative(updated.expires_at)}.`,
         { severity: 'success' }
       )
     } catch (err) {
@@ -371,11 +406,6 @@ export const ReviewScreen = ({
     }
   }
 
-  // Against the candidate's whole vocabulary, never the filtered page count.
-  // `total` narrows with a search or witness filter, so counting against it
-  // reported almost nothing rejected at exactly the moment thousands were -
-  // the operator has looked at a slice and is about to reject the rest, which
-  // is precisely what this number exists to tell them.
   // What share of the achievable saving the current selection covers. Values
   // are listed best-first, so this climbs steeply and then flattens - which is
   // the signal to stop reading.
@@ -395,7 +425,7 @@ export const ReviewScreen = ({
       let running = selectedContribution
       for (const v of values) {
         if (running / Math.max(totalContribution, 1) >= target) break
-        if (!next.has(v.value_hash)) {
+        if (!next.has(v.value_hash) && !isDenied(v)) {
           next.add(v.value_hash)
           running += v.contribution
         }
@@ -404,7 +434,6 @@ export const ReviewScreen = ({
     })
   }
 
-  const rejectedCount = Math.max(candidate.values_total - selected.size, 0)
   const shownApprovedCount = values.filter(v =>
     selected.has(v.value_hash)
   ).length
@@ -601,81 +630,169 @@ export const ReviewScreen = ({
                     </Box>
                   </TableCell>
                   <TableCell align="right">Contribution</TableCell>
+                  <TableCell padding="checkbox"></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {values.map(v => (
-                  <TableRow
-                    key={v.value_hash}
-                    hover
-                    selected={selected.has(v.value_hash)}
-                  >
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selected.has(v.value_hash)}
-                        inputProps={{
-                          'aria-label': `Approve ${v.path} = ${v.value}`,
-                        }}
-                        onChange={(_, checked) =>
-                          toggleValue(v.value_hash, checked)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontFamily: 'monospace' }}
-                      >
-                        {v.path}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        maxWidth: 320,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
+                {values.map(v => {
+                  const valueDenied = denied.has(v.value_hash)
+                  const fieldDenied = deniedFields.has(v.path)
+                  const rowDenied = valueDenied || fieldDenied
+                  return (
+                    <TableRow
+                      key={v.value_hash}
+                      hover
+                      selected={selected.has(v.value_hash)}
+                      sx={rowDenied ? { opacity: 0.6 } : undefined}
                     >
-                      {v.recommended && (
-                        <Chip
-                          size="small"
-                          label="recommended"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ mr: 1 }}
-                          title="Measured as worth approving against traffic held back from training. Ticked for you — untick it if it should not be disclosed to this profile's audience."
+                      <TableCell padding="checkbox">
+                        <Checkbox
+                          checked={selected.has(v.value_hash)}
+                          disabled={rowDenied}
+                          inputProps={{
+                            'aria-label': `Allow ${v.path} = ${v.value}`,
+                          }}
+                          onChange={(_, checked) =>
+                            toggleValue(v.value_hash, checked)
+                          }
                         />
-                      )}
-                      {v.previously_denied && (
-                        <Chip
-                          size="small"
-                          label="rejected before"
-                          color="warning"
-                          variant="outlined"
-                          sx={{ mr: 1 }}
-                          title="You turned this down in an earlier review for this profile. Tick it to approve it after all."
-                        />
-                      )}
-                      <Typography
-                        variant="body2"
-                        component="span"
-                        sx={{ fontFamily: 'monospace' }}
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontFamily: 'monospace' }}
+                        >
+                          {v.path}
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          maxWidth: 320,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
                       >
-                        {v.value}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">{fmtInt(v.occurrences)}</TableCell>
-                    <TableCell align="right">{fmtInt(v.witnesses)}</TableCell>
-                    <TableCell align="right">
-                      {fmtInt(v.contribution)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        {v.recommended && (
+                          <Chip
+                            size="small"
+                            label="recommended"
+                            color="primary"
+                            variant="outlined"
+                            sx={{ mr: 1 }}
+                            title="Measured as worth approving against traffic held back from training. Ticked for you — untick it if it should not be disclosed to this profile's audience."
+                          />
+                        )}
+                        {rowDenied ? (
+                          <Chip
+                            size="small"
+                            label={fieldDenied ? 'field denied' : 'denied'}
+                            color="error"
+                            variant="outlined"
+                            sx={{ mr: 1 }}
+                            title={
+                              fieldDenied
+                                ? `Every value of ${v.path} is denied, in this and later sessions.`
+                                : 'Never shown to this profile, and never recommended again.'
+                            }
+                          />
+                        ) : (
+                          v.previously_approved && (
+                            <Chip
+                              size="small"
+                              label="approved before"
+                              variant="outlined"
+                              sx={{ mr: 1 }}
+                              title="An earlier review of this profile allowed it, so it arrives ticked."
+                            />
+                          )
+                        )}
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{ fontFamily: 'monospace' }}
+                        >
+                          {v.value}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        {fmtInt(v.occurrences)}
+                      </TableCell>
+                      <TableCell align="right">{fmtInt(v.witnesses)}</TableCell>
+                      <TableCell align="right">
+                        {fmtInt(v.contribution)}
+                      </TableCell>
+                      <TableCell padding="checkbox">
+                        {rowDenied ? (
+                          <Tooltip
+                            title={
+                              fieldDenied
+                                ? `Undo denying every value of ${v.path}`
+                                : 'Undo the denial - it goes back to not reviewed'
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              aria-label={`Undo denial of ${v.path} = ${v.value}`}
+                              onClick={() =>
+                                fieldDenied
+                                  ? setFieldDenied(v.path, false)
+                                  : setValueDenied(v.value_hash, false)
+                              }
+                            >
+                              <UndoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Deny - never shown to this profile">
+                            <IconButton
+                              size="small"
+                              aria-label={`Deny ${v.path} = ${v.value}`}
+                              onClick={e =>
+                                setDenyMenu({
+                                  anchor: e.currentTarget,
+                                  value: v,
+                                })
+                              }
+                            >
+                              <BlockIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </TableContainer>
         )}
+
+        <Menu
+          anchorEl={denyMenu?.anchor}
+          open={denyMenu !== null}
+          onClose={() => setDenyMenu(null)}
+        >
+          <MenuItem
+            onClick={() => {
+              if (denyMenu) setValueDenied(denyMenu.value.value_hash, true)
+              setDenyMenu(null)
+            }}
+          >
+            Deny this value
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (denyMenu) setFieldDenied(denyMenu.value.path, true)
+              setDenyMenu(null)
+            }}
+          >
+            Deny every value of&nbsp;
+            <Typography component="span" sx={{ fontFamily: 'monospace' }}>
+              {denyMenu?.value.path}
+            </Typography>
+          </MenuItem>
+        </Menu>
 
         <Box
           sx={{
@@ -802,17 +919,15 @@ export const ReviewScreen = ({
               {preview.values_held < preview.values_offered ? (
                 <>
                   Only {preview.values_held} of your {preview.values_offered}{' '}
-                  ticked values fit in {HumanSize(targetSize)}. The rest are
-                  recorded as approved — disclosed to everyone this profile
-                  reaches — while contributing nothing. Untick some, or review
-                  for a larger size.
+                  ticked values fit in {HumanSize(targetSize)}. The rest stay
+                  allowed but are not in the dictionary — a larger size later
+                  can use them without another review.
                 </>
               ) : (
                 <>
                   All {preview.values_held} fit. Ticking more raises the ratio
-                  while there is room, and once the dictionary reaches{' '}
-                  {HumanSize(targetSize)} the rest are dropped from it — still
-                  disclosed as approved, but contributing nothing.
+                  while there is room; past {HumanSize(targetSize)} the rest
+                  stay allowed but are left out of the dictionary.
                 </>
               )}
             </Typography>
@@ -860,16 +975,16 @@ export const ReviewScreen = ({
             </Typography>
           </Box>
         )}
-        <Alert
-          severity={rejectedCount > 0 ? 'warning' : 'success'}
-          sx={{ mb: 2 }}
-        >
+        <Alert severity="info" sx={{ mb: 2 }}>
           <strong>
-            {fmtInt(selected.size)} approved, {fmtInt(rejectedCount)} rejected
+            {fmtInt(selected.size)} allowed · {fmtInt(denied.size)} denied
+            {deniedFields.size > 0 &&
+              ` · ${fmtInt(deniedFields.size)} field${deniedFields.size === 1 ? '' : 's'} denied`}
           </strong>
           {' — '}
-          rejected includes every value on a page not yet opened. Only what
-          you've checked will be approved.
+          only allowed values can go into the dictionary. Everything else is not
+          reviewed: it isn&apos;t used, isn&apos;t remembered, and is offered
+          again next time.
         </Alert>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
           <Button
@@ -900,7 +1015,8 @@ export const ReviewScreen = ({
         open={approveOpen}
         candidateId={candidate.id}
         approvedHashes={Array.from(selected)}
-        totalValues={candidate.values_total}
+        deniedHashes={Array.from(denied)}
+        deniedFields={Array.from(deniedFields)}
         sizeBytes={targetSize}
         defaultProfileId={defaultProfileId}
         onClose={() => setApproveOpen(false)}

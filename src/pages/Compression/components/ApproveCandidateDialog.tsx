@@ -23,11 +23,12 @@ interface ApproveCandidateDialogProps {
   api: CompressionApiHook
   open: boolean
   candidateId: string
-  // The exact set the operator has checked, and nothing else — computed by
+  // The review: values allowed and denied, fields denied whole. Computed by
   // the caller from what was actually reviewed, never from a server-side
   // "everything matching a filter" selection.
   approvedHashes: string[]
-  totalValues: number
+  deniedHashes: string[]
+  deniedFields: string[]
   // The size the review was done for, chosen on the review screen and carried
   // here. It is not re-asked: which values are worth approving depends on how
   // much room there is for them, so a size picked after the review would
@@ -41,11 +42,9 @@ interface ApproveCandidateDialogProps {
   onApproved: (created: CreatedVersion) => void
 }
 
-// ApproveCandidateDialog: the request carries only `approved` — the wire
-// contract is explicit that anything left out is recorded as a rejection.
-// That is what makes the summary below load-bearing rather than decorative:
-// it is the last chance to notice that most of the candidate is about to be
-// rejected because it was never looked at.
+// ApproveCandidateDialog: only `approved` ships. Denials are remembered for the
+// profile; values in neither list are not reviewed, and are asked about again
+// next time.
 const jsonRatio = (p: CandidatePreview): number =>
   p.ratio_by_protocol?.json ?? 0
 
@@ -54,7 +53,8 @@ export const ApproveCandidateDialog = ({
   open,
   candidateId,
   approvedHashes,
-  totalValues,
+  deniedHashes,
+  deniedFields,
   sizeBytes,
   defaultProfileId,
   onClose,
@@ -116,7 +116,6 @@ export const ApproveCandidateDialog = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, sizeBytes, candidateId])
 
-  const rejected = Math.max(totalValues - approvedHashes.length, 0)
   const valid =
     profileId !== '' &&
     sizeBytes > 0 &&
@@ -128,6 +127,8 @@ export const ApproveCandidateDialog = ({
     try {
       const version = await api.approveCandidate(candidateId, {
         approved: approvedHashes,
+        denied: deniedHashes,
+        denied_fields: deniedFields,
         profile_id: profileId,
         size_bytes: sizeBytes,
         notes: notes || undefined,
@@ -156,15 +157,18 @@ export const ApproveCandidateDialog = ({
     >
       <DialogTitle>Approve values</DialogTitle>
       <DialogContent>
-        <Alert severity={rejected > 0 ? 'warning' : 'success'} sx={{ mb: 1 }}>
+        <Alert severity="info" sx={{ mb: 1 }}>
           <strong>
-            {approvedHashes.length.toLocaleString()} approved,{' '}
-            {rejected.toLocaleString()} rejected
+            {approvedHashes.length.toLocaleString()} allowed,{' '}
+            {deniedHashes.length.toLocaleString()} denied
+            {deniedFields.length > 0 &&
+              `, ${deniedFields.length.toLocaleString()} field${deniedFields.length === 1 ? '' : 's'} denied`}
           </strong>
           <Typography variant="body2" sx={{ mt: 0.5 }}>
-            Only checked values go in. Every other value — including any page
-            never opened — is recorded as rejected. This can&apos;t be undone by
-            resubmitting; use undo on the resulting decisions if needed.
+            Only allowed values can go in. Allowed and denied are remembered for
+            this profile, so retraining asks only about new values; everything
+            else is asked about again. A value approved by mistake can be
+            withdrawn later from the version, without training again.
           </Typography>
         </Alert>
         <ProfileField

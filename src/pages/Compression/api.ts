@@ -301,9 +301,33 @@ export interface ListSessionsParams {
   cursor?: string
 }
 
+// A review's three answers. A value in none of them is not reviewed: it does
+// not ship and is not remembered, so the next review asks about it again.
+// The server may send null for an empty list.
+export interface ReviewSelection {
+  approved: string[] | null
+  denied: string[] | null
+  // Fields denied whole: every value under the path, in this and later
+  // sessions.
+  denied_fields: string[] | null
+}
+
+// What earlier reviews of the profile decided about a candidate's values.
+export interface PriorDecisions {
+  allowed?: string[]
+  denied?: string[]
+  denied_fields?: string[]
+}
+
 export interface Candidate {
-  // How many values are already ticked in a saved draft.
+  // How many answers a saved draft holds, allowed and denied together.
   draft_count: number
+  // The saved draft. It wins over the recommendation and prior_decisions.
+  draft?: ReviewSelection
+  // Earlier reviews of the session's profile: what was allowed arrives
+  // ticked, what was denied arrives denied, so a retrain asks only about
+  // what is new. Denied values are never recommended.
+  prior_decisions?: PriorDecisions
   // How far down the ranked list the build measured as best, and what that
   // selection achieved against the session's control window - traffic the
   // dictionary was not built from, so a measurement rather than a projection.
@@ -369,10 +393,12 @@ export interface CandidateValue {
   witnesses: number
   contribution: number
   decided: boolean | null
-  // True when this profile's operator turned the value down in an earlier
-  // review. Shown marked rather than filtered out, so a rejection made by
-  // mistake stays visible and reversible.
+  // True when this profile's operator denied the value, or its whole field, in
+  // an earlier review. Shown marked rather than filtered out, so a denial made
+  // by mistake stays visible and reversible.
   previously_denied: boolean
+  // True when an earlier review of this profile allowed it.
+  previously_approved: boolean
   // The build measured this value as worth approving. Recommended rows sort to
   // the top of the list and arrive ticked.
   recommended: boolean
@@ -407,7 +433,11 @@ export interface GetCandidateValuesParams {
 }
 
 export interface ApproveCandidateRequest {
-  approved: string[] // approved value_hashes; everything else is rejected
+  // Only these ship. Values in no list are not reviewed: not shipped, not
+  // remembered.
+  approved: string[]
+  denied: string[]
+  denied_fields: string[]
   profile_id: string
   size_bytes: number
   notes?: string
@@ -422,6 +452,20 @@ export interface ConflictError {
   error: 'conflict'
   current_revision: number
 }
+
+// A value a version ships, from GET /versions/{id}/values.
+export interface VersionValue {
+  path: string
+  value: string
+  value_hash: string
+  occurrences: number
+  witnesses: number
+}
+
+// The profile was made client_declarable or default after this version was
+// approved: serving it again approves it for the wider audience, so the
+// request has to be resent with confirm_audience.
+export const AUDIENCE_WIDENED = 'audience_widened'
 
 export interface ActivateConflictError {
   error: 'conflict'
@@ -468,7 +512,7 @@ export interface CompressionApiHook {
   ) => Promise<CandidateValuesResponse>
   draftCandidate: (
     candidateId: string,
-    approved: string[]
+    selection: ReviewSelection
   ) => Promise<Candidate>
   // What a specific selection produces at a specific size, measured the way
   // the candidate was. Approves nothing.
@@ -488,12 +532,25 @@ export interface CompressionApiHook {
 
   // Versions
   listVersions: (profileId: string) => Promise<{ versions: Version[] }>
+  // confirmAudience approves the version for a wider audience than it was
+  // approved for; without it the server refuses with AUDIENCE_WIDENED.
   activateVersion: (
     versionId: string,
-    rolloutPercent: number
+    rolloutPercent: number,
+    confirmAudience?: boolean
   ) => Promise<Version>
   deactivateVersion: (versionId: string) => Promise<Version>
-  rollbackProfile: (profileId: string) => Promise<Version>
+  rollbackProfile: (
+    profileId: string,
+    confirmAudience?: boolean
+  ) => Promise<Version>
+  listVersionValues: (versionId: string) => Promise<{ values: VersionValue[] }>
+  // Withdraws values from an approved version: rebuilt without them as a new
+  // version, which replaces the old one if it was active.
+  denyVersionValues: (
+    versionId: string,
+    req: { denied: string[]; denied_fields: string[] }
+  ) => Promise<Version>
 
   // Standard 401/403/generic handling, same contract as useAdminApi.handleError.
   handleError: (error: unknown) => void
@@ -651,8 +708,8 @@ export function useCompressionApi({
         getJson<CandidateValuesResponse>(
           `/candidates/${candidateId}/values${buildQuery(params)}`
         ),
-      draftCandidate: (candidateId, approved) =>
-        postJson<Candidate>(`/candidates/${candidateId}/draft`, { approved }),
+      draftCandidate: (candidateId, selection) =>
+        postJson<Candidate>(`/candidates/${candidateId}/draft`, selection),
       previewCandidate: (candidateId, reqBody) =>
         postJson<CandidatePreview>(
           `/candidates/${candidateId}/preview`,
@@ -667,14 +724,22 @@ export function useCompressionApi({
 
       listVersions: profileId =>
         getJson<{ versions: Version[] }>(`/profiles/${profileId}/versions`),
-      activateVersion: (versionId, rolloutPercent) =>
+      activateVersion: (versionId, rolloutPercent, confirmAudience) =>
         postJson<Version>(`/versions/${versionId}/activate`, {
           rollout_percent: rolloutPercent,
+          confirm_audience: !!confirmAudience,
         }),
       deactivateVersion: versionId =>
         postJson<Version>(`/versions/${versionId}/deactivate`),
-      rollbackProfile: profileId =>
-        postJson<Version>(`/profiles/${profileId}/rollback`),
+      rollbackProfile: (profileId, confirmAudience) =>
+        postJson<Version>(
+          `/profiles/${profileId}/rollback`,
+          confirmAudience ? { confirm_audience: true } : undefined
+        ),
+      listVersionValues: versionId =>
+        getJson<{ values: VersionValue[] }>(`/versions/${versionId}/values`),
+      denyVersionValues: (versionId, reqBody) =>
+        postJson<Version>(`/versions/${versionId}/deny`, reqBody),
 
       handleError: handleCompressionError,
     }),

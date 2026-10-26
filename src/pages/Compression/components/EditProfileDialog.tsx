@@ -78,8 +78,8 @@ export const EditProfileDialog = ({
       Turning this on doesn&apos;t change the dictionary itself — same bytes —
       but it widens who receives it. A dictionary approved for a narrower
       audience can&apos;t be assumed safe for a wider one, so saving this will
-      deactivate the active version. It will need to be re-approved (or
-      reactivated) before it serves again.
+      deactivate the active version. Serving it again asks you to approve it for
+      the wider audience first.
     </>
   )
 

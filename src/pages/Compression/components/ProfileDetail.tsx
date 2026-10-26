@@ -27,6 +27,7 @@ import { CopyButton } from 'components/CopyButton'
 import { HumanSize } from 'utils/Functions'
 
 import {
+  AUDIENCE_WIDENED,
   CompressionApiHook,
   CompressionApiError,
   ProfileDetail as ProfileDetailData,
@@ -38,6 +39,8 @@ import { fmtDateTime, fmtTrainingMode } from '../format'
 import { ExpectedRatio } from './ExpectedRatio'
 import { EditProfileDialog } from './EditProfileDialog'
 import { ActivateVersionDialog } from './ActivateVersionDialog'
+import { AudienceConfirmDialog } from './AudienceConfirmDialog'
+import { VersionValuesDialog } from './VersionValuesDialog'
 import { NextAction, nextStep, ProfileNextStep } from './ProfileNextStep'
 import { ProfileAssignment } from './ProfileAssignment'
 
@@ -95,6 +98,8 @@ export const ProfileDetail = ({
     })
   }
   const canChange = useCan('ops:write')
+  // A version's values are channel content, like a candidate's.
+  const canReadValues = useCan('channels:read')
   // Sessions trained for this profile, newest first, and whether anything is
   // served at all: what the next step is depends on both.
   const [sessions, setSessions] = useState<Session[]>([])
@@ -130,6 +135,17 @@ export const ProfileDetail = ({
   const [activateTarget, setActivateTarget] = useState<Version | null>(null)
   const [busyVersionId, setBusyVersionId] = useState<string | null>(null)
   const [rollbackBusy, setRollbackBusy] = useState(false)
+  const [valuesTarget, setValuesTarget] = useState<Version | null>(null)
+  // An activation or rollback the server refused because the version was
+  // approved for a narrower audience than the profile now reaches; confirming
+  // resends it as an approval for the wider one.
+  const [audiencePending, setAudiencePending] = useState<
+    | { kind: 'activate'; versionId: string; rolloutPercent: number }
+    | { kind: 'rollback' }
+    | null
+  >(null)
+  const audienceWidened = (err: unknown) =>
+    err instanceof CompressionApiError && err.code === AUDIENCE_WIDENED
 
   const load = useCallback(async () => {
     try {
@@ -177,13 +193,23 @@ export const ProfileDetail = ({
     }
   }
 
-  const handleActivate = async (versionId: string, rolloutPercent: number) => {
+  const handleActivate = async (
+    versionId: string,
+    rolloutPercent: number,
+    confirmAudience = false
+  ) => {
     try {
-      await api.activateVersion(versionId, rolloutPercent)
+      await api.activateVersion(versionId, rolloutPercent, confirmAudience)
       showAlert('Version activated', { severity: 'success' })
       setActivateTarget(null)
+      setAudiencePending(null)
       load()
     } catch (err) {
+      if (audienceWidened(err)) {
+        setActivateTarget(null)
+        setAudiencePending({ kind: 'activate', versionId, rolloutPercent })
+        return
+      }
       if (err instanceof CompressionApiError && err.code === 'conflict') {
         showAlert(
           `Another activation won the race before this one landed: ${err.message}`,
@@ -210,14 +236,19 @@ export const ProfileDetail = ({
     }
   }
 
-  const handleRollback = async () => {
+  const handleRollback = async (confirmAudience = false) => {
     if (!profile) return
     setRollbackBusy(true)
     try {
-      await api.rollbackProfile(profile.id)
+      await api.rollbackProfile(profile.id, confirmAudience)
       showAlert('Rolled back to the previous version', { severity: 'success' })
+      setAudiencePending(null)
       load()
     } catch (err) {
+      if (audienceWidened(err)) {
+        setAudiencePending({ kind: 'rollback' })
+        return
+      }
       api.handleError(err)
     } finally {
       setRollbackBusy(false)
@@ -400,7 +431,7 @@ export const ProfileDetail = ({
               body="Re-activates whichever version was active before the current one. Established connections keep whatever dictionary they currently have until they reconnect."
               confirmText="Rollback"
               confirmColor="warning"
-              onConfirm={handleRollback}
+              onConfirm={() => handleRollback()}
             >
               {open => (
                 <Button
@@ -520,6 +551,19 @@ export const ProfileDetail = ({
                       />
                     </TableCell>
                     <TableCell align="right">
+                      {canReadValues &&
+                        v.fidelity === 'reviewed' &&
+                        v.values_count > 0 && (
+                          <Button
+                            variant="text"
+                            color="inherit"
+                            size="small"
+                            onClick={() => setValuesTarget(v)}
+                            sx={{ mr: 1 }}
+                          >
+                            Values ({v.values_count})
+                          </Button>
+                        )}
                       {v.active ? (
                         <ConfirmButton
                           title="Deactivate this version?"
@@ -570,7 +614,39 @@ export const ProfileDetail = ({
       <ActivateVersionDialog
         version={activateTarget}
         onClose={() => setActivateTarget(null)}
-        onActivate={handleActivate}
+        onActivate={(id, percent) => handleActivate(id, percent)}
+      />
+      <AudienceConfirmDialog
+        open={audiencePending !== null}
+        profile={profile}
+        onClose={() => setAudiencePending(null)}
+        onConfirm={async () => {
+          if (audiencePending?.kind === 'activate') {
+            await handleActivate(
+              audiencePending.versionId,
+              audiencePending.rolloutPercent,
+              true
+            )
+          } else if (audiencePending?.kind === 'rollback') {
+            await handleRollback(true)
+          }
+        }}
+      />
+      <VersionValuesDialog
+        api={api}
+        version={valuesTarget}
+        canWithdraw={canChange}
+        onClose={() => setValuesTarget(null)}
+        onWithdrawn={created => {
+          setValuesTarget(null)
+          showAlert(
+            created.active
+              ? `Withdrawn. The rebuilt version now serves ${created.rollout_percent}% of matching connections.`
+              : 'Withdrawn. The rebuilt version is in the list, inactive.',
+            { severity: 'success' }
+          )
+          load()
+        }}
       />
     </Box>
   )

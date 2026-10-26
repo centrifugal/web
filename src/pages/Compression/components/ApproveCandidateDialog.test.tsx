@@ -50,7 +50,8 @@ const renderApprove = (api: CompressionApiHook, defaultProfileId?: string) => {
       open
       candidateId="c1"
       approvedHashes={['h1']}
-      totalValues={1}
+      deniedHashes={['h2']}
+      deniedFields={['user.email']}
       sizeBytes={4096}
       defaultProfileId={defaultProfileId}
       onClose={() => {}}
@@ -76,7 +77,12 @@ describe('ApproveCandidateDialog', () => {
     await waitFor(() => expect(onApproved).toHaveBeenCalled())
     expect(api.approveCandidate).toHaveBeenCalledWith(
       'c1',
-      expect.objectContaining({ profile_id: 'p2' })
+      expect.objectContaining({
+        profile_id: 'p2',
+        approved: ['h1'],
+        denied: ['h2'],
+        denied_fields: ['user.email'],
+      })
     )
     expect(api.activateVersion).not.toHaveBeenCalled()
     expect(onApproved).toHaveBeenCalledWith({
