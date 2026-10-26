@@ -157,20 +157,15 @@ export const ApproveCandidateDialog = ({
     >
       <DialogTitle>Approve values</DialogTitle>
       <DialogContent>
-        <Alert severity="info" sx={{ mb: 1 }}>
+        <Typography variant="body2" sx={{ mb: 1 }}>
           <strong>
             {approvedHashes.length.toLocaleString()} allowed,{' '}
-            {deniedHashes.length.toLocaleString()} denied
-            {deniedFields.length > 0 &&
-              `, ${deniedFields.length.toLocaleString()} field${deniedFields.length === 1 ? '' : 's'} denied`}
-          </strong>
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
-            Only allowed values can go in. Allowed and denied are remembered for
-            this profile, so retraining asks only about new values; everything
-            else is asked about again. A value approved by mistake can be
-            withdrawn later from the version, without training again.
-          </Typography>
-        </Alert>
+            {(deniedHashes.length + deniedFields.length).toLocaleString()}{' '}
+            denied.
+          </strong>{' '}
+          Only allowed values go in; a value approved by mistake can be
+          withdrawn from the version later.
+        </Typography>
         <ProfileField
           api={api}
           profileId={profileId}
