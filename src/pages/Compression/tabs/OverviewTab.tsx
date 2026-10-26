@@ -375,7 +375,7 @@ export const OverviewTab = ({
       </Panel>
 
       <Panel
-        title="Connections by tier"
+        title="What connections compress with"
         subtitle="What every currently-connected client is compressing against, right now."
       >
         {!serving ? (
