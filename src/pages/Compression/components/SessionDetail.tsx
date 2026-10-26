@@ -20,6 +20,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 
 import { ShellContext } from 'contexts/ShellContext'
@@ -44,6 +45,7 @@ import { AssignCandidateDialog } from './AssignCandidateDialog'
 import { CreatedVersion } from './ActivateNowField'
 import { TrainingProgress } from './TrainingProgress'
 import { ReviewScreen } from './ReviewScreen'
+import { MEASURED_HINT } from './ExpectedRatio'
 
 interface SessionDetailProps {
   api: CompressionApiHook
@@ -600,7 +602,13 @@ export const SessionDetail = ({
                           variant="body2"
                           color="text.secondary"
                         >
-                          {measured ? ' · measured' : ' · not measured'}
+                          {measured ? (
+                            <Tooltip title={MEASURED_HINT} arrow>
+                              <span> · measured</span>
+                            </Tooltip>
+                          ) : (
+                            ' · not measured'
+                          )}
                           {c.fidelity !== 'schema' &&
                             ` · ${fmtInt(c.values_total)} value${c.values_total === 1 ? '' : 's'} to review`}
                         </Typography>

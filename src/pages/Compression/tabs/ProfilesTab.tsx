@@ -120,7 +120,7 @@ export const ProfilesTab = ({
                   <TableCell>Name</TableCell>
                   <TableCell>Notes</TableCell>
                   <TableCell>Contents</TableCell>
-                  <TableCell align="right">Expected ratio</TableCell>
+                  <TableCell align="right">Measured ratio</TableCell>
                   <TableCell align="right">Connections</TableCell>
                   <TableCell>Declarable</TableCell>
                   <TableCell>Default</TableCell>

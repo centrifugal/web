@@ -488,10 +488,10 @@ export const OverviewTab = ({
                     <TableCell>Serving</TableCell>
                     <TableCell align="right">
                       <Tooltip
-                        title="What the dictionary was measured to save when its version was approved. Realized falling well below it means your messages changed: time to retrain."
+                        title="Measured: what the version was measured to save when it was approved, message by message. Live: what connections receive, usually more, since messages sent together are compressed together. Live falling below measured means your messages changed: time to retrain."
                         arrow
                       >
-                        <span>Expected / realized</span>
+                        <span>Measured / live</span>
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">Cold / warm connects</TableCell>

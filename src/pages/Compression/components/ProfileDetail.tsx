@@ -476,7 +476,7 @@ export const ProfileDetail = ({
                 <TableRow>
                   <TableCell>Contents</TableCell>
                   <TableCell align="right">Size</TableCell>
-                  <TableCell align="right">Expected ratio</TableCell>
+                  <TableCell align="right">Measured ratio</TableCell>
                   <TableCell>Approved by / at</TableCell>
                   <TableCell align="right">Rollout</TableCell>
                   <TableCell>Status</TableCell>

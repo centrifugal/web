@@ -7,6 +7,12 @@ import { fmtRatio } from '../format'
 export const NOT_MEASURED_HINT =
   'This dictionary came from a training session stopped before its last quarter, which is held back to measure the result, so nothing measured it. Overview shows what it actually saves.'
 
+// The measured ratio is a floor, not a forecast: the build compresses each
+// message on its own, while a server sends messages queued together as one and
+// compresses them as one, each reusing the ones before it.
+export const MEASURED_HINT =
+  'Measured message by message on traffic held back from training. Live traffic usually does better: messages sent together are compressed together.'
+
 interface ExpectedRatioProps {
   ratio: ApprovedRatio | undefined
   measured: boolean
@@ -29,5 +35,10 @@ export const ExpectedRatio = ({ ratio, measured }: ExpectedRatioProps) => {
   if (ratio?.json != null) parts.push(`json ${fmtRatio(ratio.json)}`)
   if (ratio?.protobuf != null)
     parts.push(`protobuf ${fmtRatio(ratio.protobuf)}`)
-  return <>{parts.length ? parts.join(' · ') : '—'}</>
+  if (!parts.length) return <>—</>
+  return (
+    <Tooltip title={MEASURED_HINT} arrow>
+      <span>{parts.join(' · ')}</span>
+    </Tooltip>
+  )
 }
