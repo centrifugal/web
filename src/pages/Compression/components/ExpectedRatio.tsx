@@ -9,9 +9,10 @@ export const NOT_MEASURED_HINT =
 
 // The measured ratio is a floor, not a forecast: the build compresses each
 // message on its own, while a server sends messages queued together as one and
-// compresses them as one, each reusing the ones before it.
+// compresses them as one, each reusing the ones before it. Across several
+// nodes publications arrive one at a time, so live comes out about the same.
 export const MEASURED_HINT =
-  'Measured message by message on traffic held back from training. Live traffic usually does better: messages sent together are compressed together.'
+  'Measured message by message on traffic held back from training. Live traffic matches it, or does better when messages are sent together: those are compressed together.'
 
 interface ExpectedRatioProps {
   ratio: ApprovedRatio | undefined
