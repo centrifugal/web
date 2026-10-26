@@ -84,6 +84,7 @@ describe('ReviewScreen paging', () => {
 
     const api = {
       getCandidateValues,
+      getCandidateFields: vi.fn(async () => ({ fields: [] })),
       // The screen measures the current selection as it changes; the paging
       // assertions do not depend on it, but leaving it out would have the
       // component call undefined.
@@ -105,6 +106,8 @@ describe('ReviewScreen paging', () => {
       </MemoryRouter>
     )
 
+    // The review opens by field; paging is the values view.
+    fireEvent.click(screen.getByRole('button', { name: 'All values' }))
     await screen.findByText('value-0')
 
     const next = screen.getByRole('button', { name: /next/i })
@@ -125,9 +128,16 @@ describe('ReviewScreen paging', () => {
 
     await waitFor(() => expect(prev).toBeDisabled())
 
-    // first, next, next, prev, prev — the last two must walk back down, not
-    // repeat where they already were.
-    expect(cursorsRequested).toEqual([undefined, '50', '100', '50', undefined])
+    // open, all values, next, next, prev, prev — the last two must walk back
+    // down, not repeat where they already were.
+    expect(cursorsRequested).toEqual([
+      undefined,
+      undefined,
+      '50',
+      '100',
+      '50',
+      undefined,
+    ])
   })
 })
 
@@ -170,6 +180,25 @@ describe('ReviewScreen decisions', () => {
       denied_fields: ['user.ssn'],
     },
   }
+  const field = (path: string, hs: string[], extra = {}) => ({
+    path,
+    values: hs.length,
+    seen_once: 0,
+    occurrences: 10,
+    contribution: 10,
+    witnesses: 5,
+    examples: rows.filter(r => r.path === path).map(r => r.value),
+    recommended: 0,
+    new: 0,
+    denied_before: false,
+    hashes: hs,
+    ...extra,
+  })
+  const fields = [
+    field('market.status', ['h-open', 'h-halted']),
+    field('user.email', ['h-email'], { new: 1 }),
+    field('market.venue', ['h-venue'], { new: 1, recommended: 1 }),
+  ]
   let api: CompressionApiHook & {
     getCandidateValues: ReturnType<typeof vi.fn>
   }
@@ -183,6 +212,7 @@ describe('ReviewScreen decisions', () => {
         new_total: 2,
         next_cursor: '',
       })),
+      getCandidateFields: vi.fn(async () => ({ fields })),
       previewCandidate: vi.fn(async () => {
         throw new Error('not measured in this test')
       }),
@@ -202,11 +232,15 @@ describe('ReviewScreen decisions', () => {
     )
     return draftCandidate
   }
+  const allValues = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'All values' }))
+  }
   const box = (path: string, value: string) =>
     screen.getByRole('checkbox', { name: `Allow ${path} = ${value}` })
 
   it('opens on earlier decisions and the recommendation', async () => {
     setup()
+    await allValues()
     await screen.findByText('open')
     expect(box('market.status', 'open')).toBeChecked()
     expect(box('market.venue', 'XNAS')).toBeChecked()
@@ -218,6 +252,7 @@ describe('ReviewScreen decisions', () => {
 
   it('denies a field whole and saves all three answers', async () => {
     const draftCandidate = setup()
+    await allValues()
     await screen.findByText('a@b.c')
     fireEvent.click(
       screen.getByRole('button', { name: 'Deny user.email = a@b.c' })
@@ -249,6 +284,7 @@ describe('ReviewScreen decisions', () => {
 
   it('narrows a retrain to the values nobody decided', async () => {
     setup()
+    await allValues()
     await screen.findByText('open')
     fireEvent.click(screen.getByText('New only (2)'))
     await waitFor(() =>
@@ -261,7 +297,7 @@ describe('ReviewScreen decisions', () => {
 
   it('lists a denied field the session never saw, and undoes it', async () => {
     const draftCandidate = setup()
-    await screen.findByText('open')
+    await screen.findByText('user.ssn')
     expect(screen.getByText('user.ssn')).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Undo denying user.ssn'))
     expect(screen.queryByText('user.ssn')).not.toBeInTheDocument()
@@ -272,5 +308,56 @@ describe('ReviewScreen decisions', () => {
       { denied_fields: string[] },
     ]
     expect(sel.denied_fields).toEqual([])
+  })
+
+  // The review opens by field: a tick allows every value of a field, a partly
+  // allowed field shows as such, and opening a field lists exactly its values.
+  it('reviews by field', async () => {
+    const draftCandidate = setup()
+    const allow = (path: string) =>
+      screen.getByRole('checkbox', { name: `Allow ${path}` })
+    await screen.findByText('market.status')
+    // open was approved before, halted denied: everything allowable is ticked.
+    expect(allow('market.status')).toBeChecked()
+    expect(allow('market.venue')).toBeChecked()
+    expect(allow('user.email')).not.toBeChecked()
+
+    fireEvent.click(allow('user.email'))
+    expect(allow('user.email')).toBeChecked()
+    fireEvent.click(allow('market.venue'))
+    expect(allow('market.venue')).not.toBeChecked()
+
+    fireEvent.click(screen.getByRole('button', { name: /^2 values/ }))
+    await waitFor(() =>
+      expect(api.getCandidateValues).toHaveBeenLastCalledWith(
+        'cand-1',
+        expect.objectContaining({ path: 'market.status' })
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'All fields' }))
+    await screen.findByRole('checkbox', { name: 'Allow market.status' })
+
+    fireEvent.click(screen.getByRole('button', { name: /save draft/i }))
+    await waitFor(() => expect(draftCandidate).toHaveBeenCalled())
+    const [, sel] = draftCandidate.mock.calls[0] as unknown as [
+      string,
+      { approved: string[] },
+    ]
+    expect([...sel.approved].sort()).toEqual(['h-email', 'h-open'])
+  })
+
+  it('denies a field from its row', async () => {
+    setup()
+    await screen.findByText('user.email')
+    fireEvent.click(screen.getByRole('button', { name: 'Deny user.email' }))
+    expect(
+      screen.getByRole('checkbox', { name: 'Allow user.email' })
+    ).toBeDisabled()
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Undo denying user.email' })[0]
+    )
+    expect(
+      screen.getByRole('checkbox', { name: 'Allow user.email' })
+    ).not.toBeDisabled()
   })
 })

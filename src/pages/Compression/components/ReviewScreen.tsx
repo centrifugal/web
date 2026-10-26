@@ -9,6 +9,8 @@ import TextField from '@mui/material/TextField'
 import MenuItem from '@mui/material/MenuItem'
 import Checkbox from '@mui/material/Checkbox'
 import Menu from '@mui/material/Menu'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import CircularProgress from '@mui/material/CircularProgress'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -36,12 +38,14 @@ import {
   CompressionApiHook,
   Candidate,
   CandidatePreview,
+  CandidateField,
   CandidateValue,
   DeniedSummary,
   GetCandidateValuesParams,
 } from '../api'
 import { fmtInt, fmtRatio, fmtRelative } from '../format'
 import { ApproveCandidateDialog } from './ApproveCandidateDialog'
+import { FieldCrumb, FieldReview } from './FieldReview'
 import { CreatedVersion } from './ActivateNowField'
 
 const PAGE_SIZE = 50
@@ -127,6 +131,12 @@ export const ReviewScreen = ({
   // On a retrain most rows were decided last time; this narrows the list to
   // the ones that were not. Read through a ref so every fetch path honours it.
   const [newOnly, setNewOnly] = useState(false)
+  // The review is by field unless the operator opens one field, or asks for
+  // every value. fieldRef carries the opened field into every fetch.
+  const [view, setView] = useState<'fields' | 'values'>('fields')
+  const [fields, setFields] = useState<CandidateField[]>([])
+  const [fieldPath, setFieldPath] = useState<string | null>(null)
+  const fieldRef = useRef<string | null>(null)
   const newOnlyRef = useRef(false)
   const [newTotal, setNewTotal] = useState(0)
   const [nextCursor, setNextCursor] = useState('')
@@ -235,6 +245,7 @@ export const ReviewScreen = ({
         if (opts.search) params.search = opts.search
         if (opts.minWitness) params.min_witness = Number(opts.minWitness)
         if (newOnlyRef.current) params.new_only = true
+        if (fieldRef.current) params.path = fieldRef.current
         const data = await api.getCandidateValues(candidate.id, params)
         const rows = data.values || []
         setValues(rows)
@@ -277,6 +288,58 @@ export const ReviewScreen = ({
       minWitness: minWitnessDraft,
     })
   }
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .getCandidateFields(candidate.id)
+      .then(r => {
+        if (cancelled) return
+        const fs = r.fields ?? []
+        fs.forEach(f => f.hashes.forEach(h => pathRef.current.set(h, f.path)))
+        setFields(fs)
+      })
+      .catch(err => {
+        if (!cancelled) api.handleError(err)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [api, candidate.id])
+
+  const allowField = (f: CandidateField, allow: boolean) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      f.hashes.forEach(h => {
+        if (!allow) next.delete(h)
+        else if (!denied.has(h)) next.add(h)
+      })
+      return next
+    })
+  }
+  const openField = (path: string | null) => {
+    fieldRef.current = path
+    setFieldPath(path)
+    setView(path === null ? 'fields' : 'values')
+    if (path !== null) {
+      fetchValues({
+        direction: 'first',
+        search: searchApplied,
+        minWitness: minWitnessApplied,
+      })
+    }
+  }
+  const showAllValues = () => {
+    fieldRef.current = null
+    setFieldPath(null)
+    setView('values')
+    fetchValues({
+      direction: 'first',
+      search: searchApplied,
+      minWitness: minWitnessApplied,
+    })
+  }
+  const fieldsNew = fields.reduce((n, f) => n + f.new, 0)
 
   const handleNewOnly = (on: boolean) => {
     newOnlyRef.current = on
@@ -535,326 +598,379 @@ export const ReviewScreen = ({
       )}
 
       <Panel
-        title="Proposed values"
-        subtitle="Ordered by witness count, then contribution. A value many people already saw is a smaller disclosure than one only two people saw — that's why it orders the list. It does not make anything safe on its own; approval is still a per-value decision."
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 1,
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            mb: 2,
-          }}
-        >
-          <TextField
+        title={view === 'fields' ? 'Proposed fields' : 'Proposed values'}
+        subtitle={
+          view === 'fields'
+            ? 'One row per field, most valuable first. Tick a field to allow its values, deny it to never show or collect it, or open it to decide value by value.'
+            : 'Ordered by witness count, then contribution. A value many people already saw is a smaller disclosure than one only two people saw — it orders the list, it does not make anything safe.'
+        }
+        action={
+          <ToggleButtonGroup
             size="small"
-            placeholder="Search value or key path"
-            value={searchDraft}
-            onChange={e => setSearchDraft(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !loading) handleApplyFilters()
+            exclusive
+            value={view}
+            onChange={(_, v) => {
+              if (v === 'fields') openField(null)
+              else if (v === 'values') showAllValues()
             }}
-            sx={{ minWidth: 260 }}
-          />
-          <TextField
-            size="small"
-            type="number"
-            inputProps={{ min: 0 }}
-            placeholder="Min witnesses"
-            value={minWitnessDraft}
-            onChange={e => setMinWitnessDraft(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !loading) handleApplyFilters()
-            }}
-            sx={{ width: 160 }}
-          />
-          <IconButton
-            size="small"
-            onClick={handleApplyFilters}
-            disabled={loading}
-            aria-label="Apply filters"
           >
-            <SearchIcon />
-          </IconButton>
-          {(searchApplied || minWitnessApplied) && (
-            <IconButton
-              size="small"
-              onClick={handleClearFilters}
-              aria-label="Clear filters"
+            <ToggleButton value="fields">By field</ToggleButton>
+            <ToggleButton value="values">All values</ToggleButton>
+          </ToggleButtonGroup>
+        }
+      >
+        {view === 'fields' && (
+          <>
+            {(newOnly || fieldsNew < candidate.values_total) && (
+              <Box sx={{ mb: 1.5 }}>
+                <Tooltip title="Fields with values no earlier review of this profile allowed or denied - on a retrain, the only ones that need reading.">
+                  <Chip
+                    label={`New only (${fmtInt(fieldsNew)})`}
+                    color={newOnly ? 'primary' : 'default'}
+                    variant={newOnly ? 'filled' : 'outlined'}
+                    onClick={() => handleNewOnly(!newOnly)}
+                  />
+                </Tooltip>
+              </Box>
+            )}
+            <FieldReview
+              fields={fields}
+              selected={selected}
+              denied={denied}
+              deniedFields={deniedFields}
+              newOnly={newOnly}
+              onAllow={allowField}
+              onDenyField={setFieldDenied}
+              onShowValues={path => openField(path)}
+            />
+          </>
+        )}
+        {view === 'values' && fieldPath && (
+          <FieldCrumb path={fieldPath} onBack={() => openField(null)} />
+        )}
+        {view === 'values' && (
+          <>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 1,
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                mb: 2,
+              }}
             >
-              <ClearIcon />
-            </IconButton>
-          )}
-          {(newOnly || newTotal < candidate.values_total) && (
-            <Tooltip title="Values no earlier review of this profile allowed or denied - on a retrain, the only rows that need reading.">
-              <Chip
-                label={`New only (${fmtInt(newTotal)})`}
-                color={newOnly ? 'primary' : 'default'}
-                variant={newOnly ? 'filled' : 'outlined'}
-                onClick={() => handleNewOnly(!newOnly)}
+              <TextField
+                size="small"
+                placeholder="Search value or key path"
+                value={searchDraft}
+                onChange={e => setSearchDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !loading) handleApplyFilters()
+                }}
+                sx={{ minWidth: 260 }}
               />
-            </Tooltip>
-          )}
-          <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title="Checks every row currently shown on this page — a convenience for bulk-approving values above a witness threshold, not a server-side select-all.">
-            <span>
+              <TextField
+                size="small"
+                type="number"
+                inputProps={{ min: 0 }}
+                placeholder="Min witnesses"
+                value={minWitnessDraft}
+                onChange={e => setMinWitnessDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !loading) handleApplyFilters()
+                }}
+                sx={{ width: 160 }}
+              />
+              <IconButton
+                size="small"
+                onClick={handleApplyFilters}
+                disabled={loading}
+                aria-label="Apply filters"
+              >
+                <SearchIcon />
+              </IconButton>
+              {(searchApplied || minWitnessApplied) && (
+                <IconButton
+                  size="small"
+                  onClick={handleClearFilters}
+                  aria-label="Clear filters"
+                >
+                  <ClearIcon />
+                </IconButton>
+              )}
+              {(newOnly || newTotal < candidate.values_total) && (
+                <Tooltip title="Values no earlier review of this profile allowed or denied - on a retrain, the only rows that need reading.">
+                  <Chip
+                    label={`New only (${fmtInt(newTotal)})`}
+                    color={newOnly ? 'primary' : 'default'}
+                    variant={newOnly ? 'filled' : 'outlined'}
+                    onClick={() => handleNewOnly(!newOnly)}
+                  />
+                </Tooltip>
+              )}
+              <Box sx={{ flexGrow: 1 }} />
+              <Tooltip title="Checks every row currently shown on this page — a convenience for bulk-approving values above a witness threshold, not a server-side select-all.">
+                <span>
+                  <Button
+                    variant="tonal"
+                    color="inherit"
+                    size="small"
+                    onClick={selectAllShown}
+                    disabled={values.length === 0}
+                  >
+                    Select shown ({values.length})
+                  </Button>
+                </span>
+              </Tooltip>
               <Button
                 variant="tonal"
                 color="inherit"
                 size="small"
-                onClick={selectAllShown}
-                disabled={values.length === 0}
+                onClick={clearAllShown}
+                disabled={shownApprovedCount === 0}
               >
-                Select shown ({values.length})
+                Unselect shown
               </Button>
-            </span>
-          </Tooltip>
-          <Button
-            variant="tonal"
-            color="inherit"
-            size="small"
-            onClick={clearAllShown}
-            disabled={shownApprovedCount === 0}
-          >
-            Unselect shown
-          </Button>
-        </Box>
+            </Box>
 
-        {loading && values.length === 0 ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-            <CircularProgress disableShrink />
-          </Box>
-        ) : values.length === 0 ? (
-          <EmptyState
-            title="No values match"
-            hint="Try clearing the search or witness filter."
-          />
-        ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell padding="checkbox"></TableCell>
-                  <TableCell>Key path</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell align="right">Occurrences</TableCell>
-                  <TableCell align="right">
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5,
-                        justifyContent: 'flex-end',
-                      }}
-                    >
-                      Witnesses
-                      <Tooltip title="Distinct connections that produced this value. Ordering only — a high witness count makes a value a smaller disclosure, not a safe one.">
-                        <InfoOutlinedIcon
-                          sx={{ fontSize: 14, color: 'text.disabled' }}
-                        />
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                  <TableCell align="right">Contribution</TableCell>
-                  <TableCell padding="checkbox"></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {values.map(v => {
-                  const valueDenied = denied.has(v.value_hash)
-                  const fieldDenied = deniedFields.has(v.path)
-                  const rowDenied = valueDenied || fieldDenied
-                  return (
-                    <TableRow
-                      key={v.value_hash}
-                      hover
-                      selected={selected.has(v.value_hash)}
-                      sx={rowDenied ? { opacity: 0.6 } : undefined}
-                    >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          checked={selected.has(v.value_hash)}
-                          disabled={rowDenied}
-                          inputProps={{
-                            'aria-label': `Allow ${v.path} = ${v.value}`,
+            {loading && values.length === 0 ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                <CircularProgress disableShrink />
+              </Box>
+            ) : values.length === 0 ? (
+              <EmptyState
+                title="No values match"
+                hint="Try clearing the search or witness filter."
+              />
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell padding="checkbox"></TableCell>
+                      <TableCell>Key path</TableCell>
+                      <TableCell>Value</TableCell>
+                      <TableCell align="right">Occurrences</TableCell>
+                      <TableCell align="right">
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            justifyContent: 'flex-end',
                           }}
-                          onChange={(_, checked) =>
-                            toggleValue(v.value_hash, checked)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontFamily: 'monospace' }}
                         >
-                          {v.path}
-                        </Typography>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          maxWidth: 320,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {v.recommended && (
-                          <Chip
-                            size="small"
-                            label="recommended"
-                            color="primary"
-                            variant="outlined"
-                            sx={{ mr: 1 }}
-                            title="Measured as worth approving against traffic held back from training. Ticked for you — untick it if it should not be disclosed to this profile's audience."
-                          />
-                        )}
-                        {rowDenied ? (
-                          <Chip
-                            size="small"
-                            label={fieldDenied ? 'field denied' : 'denied'}
-                            color="error"
-                            variant="outlined"
-                            sx={{ mr: 1 }}
-                            title={
-                              fieldDenied
-                                ? `Every value of ${v.path} is denied, in this and later sessions.`
-                                : 'Never shown to this profile, and never recommended again.'
-                            }
-                          />
-                        ) : (
-                          v.previously_approved && (
-                            <Chip
-                              size="small"
-                              label="approved before"
-                              variant="outlined"
-                              sx={{ mr: 1 }}
-                              title="An earlier review of this profile allowed it, so it arrives ticked."
+                          Witnesses
+                          <Tooltip title="Distinct connections that produced this value. Ordering only — a high witness count makes a value a smaller disclosure, not a safe one.">
+                            <InfoOutlinedIcon
+                              sx={{ fontSize: 14, color: 'text.disabled' }}
                             />
-                          )
-                        )}
-                        <Typography
-                          variant="body2"
-                          component="span"
-                          sx={{ fontFamily: 'monospace' }}
-                        >
-                          {v.value}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        {fmtInt(v.occurrences)}
-                      </TableCell>
-                      <TableCell align="right">{fmtInt(v.witnesses)}</TableCell>
-                      <TableCell align="right">
-                        {fmtInt(v.contribution)}
-                      </TableCell>
-                      <TableCell padding="checkbox">
-                        {rowDenied ? (
-                          <Tooltip
-                            title={
-                              fieldDenied
-                                ? `Undo denying every value of ${v.path}`
-                                : 'Undo the denial - it goes back to not reviewed'
-                            }
-                          >
-                            <IconButton
-                              size="small"
-                              aria-label={`Undo denial of ${v.path} = ${v.value}`}
-                              onClick={() =>
-                                fieldDenied
-                                  ? setFieldDenied(v.path, false)
-                                  : setValueDenied(v.value_hash, false)
-                              }
-                            >
-                              <UndoIcon fontSize="small" />
-                            </IconButton>
                           </Tooltip>
-                        ) : (
-                          <Tooltip title="Deny - never shown to this profile">
-                            <IconButton
-                              size="small"
-                              aria-label={`Deny ${v.path} = ${v.value}`}
-                              onClick={e =>
-                                setDenyMenu({
-                                  anchor: e.currentTarget,
-                                  value: v,
-                                })
-                              }
-                            >
-                              <BlockIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
+                        </Box>
                       </TableCell>
+                      <TableCell align="right">Contribution</TableCell>
+                      <TableCell padding="checkbox"></TableCell>
                     </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {values.map(v => {
+                      const valueDenied = denied.has(v.value_hash)
+                      const fieldDenied = deniedFields.has(v.path)
+                      const rowDenied = valueDenied || fieldDenied
+                      return (
+                        <TableRow
+                          key={v.value_hash}
+                          hover
+                          selected={selected.has(v.value_hash)}
+                          sx={rowDenied ? { opacity: 0.6 } : undefined}
+                        >
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              checked={selected.has(v.value_hash)}
+                              disabled={rowDenied}
+                              inputProps={{
+                                'aria-label': `Allow ${v.path} = ${v.value}`,
+                              }}
+                              onChange={(_, checked) =>
+                                toggleValue(v.value_hash, checked)
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              sx={{ fontFamily: 'monospace' }}
+                            >
+                              {v.path}
+                            </Typography>
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              maxWidth: 320,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            {v.recommended && (
+                              <Chip
+                                size="small"
+                                label="recommended"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ mr: 1 }}
+                                title="Measured as worth approving against traffic held back from training. Ticked for you — untick it if it should not be disclosed to this profile's audience."
+                              />
+                            )}
+                            {rowDenied ? (
+                              <Chip
+                                size="small"
+                                label={fieldDenied ? 'field denied' : 'denied'}
+                                color="error"
+                                variant="outlined"
+                                sx={{ mr: 1 }}
+                                title={
+                                  fieldDenied
+                                    ? `Every value of ${v.path} is denied, in this and later sessions.`
+                                    : 'Never shown to this profile, and never recommended again.'
+                                }
+                              />
+                            ) : (
+                              v.previously_approved && (
+                                <Chip
+                                  size="small"
+                                  label="approved before"
+                                  variant="outlined"
+                                  sx={{ mr: 1 }}
+                                  title="An earlier review of this profile allowed it, so it arrives ticked."
+                                />
+                              )
+                            )}
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={{ fontFamily: 'monospace' }}
+                            >
+                              {v.value}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(v.occurrences)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(v.witnesses)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fmtInt(v.contribution)}
+                          </TableCell>
+                          <TableCell padding="checkbox">
+                            {rowDenied ? (
+                              <Tooltip
+                                title={
+                                  fieldDenied
+                                    ? `Undo denying every value of ${v.path}`
+                                    : 'Undo the denial - it goes back to not reviewed'
+                                }
+                              >
+                                <IconButton
+                                  size="small"
+                                  aria-label={`Undo denial of ${v.path} = ${v.value}`}
+                                  onClick={() =>
+                                    fieldDenied
+                                      ? setFieldDenied(v.path, false)
+                                      : setValueDenied(v.value_hash, false)
+                                  }
+                                >
+                                  <UndoIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title="Deny - never shown to this profile">
+                                <IconButton
+                                  size="small"
+                                  aria-label={`Deny ${v.path} = ${v.value}`}
+                                  onClick={e =>
+                                    setDenyMenu({
+                                      anchor: e.currentTarget,
+                                      value: v,
+                                    })
+                                  }
+                                >
+                                  <BlockIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+
+            <Menu
+              anchorEl={denyMenu?.anchor}
+              open={denyMenu !== null}
+              onClose={() => setDenyMenu(null)}
+            >
+              <MenuItem
+                onClick={() => {
+                  if (denyMenu) setValueDenied(denyMenu.value.value_hash, true)
+                  setDenyMenu(null)
+                }}
+              >
+                Deny this value
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  if (denyMenu) setFieldDenied(denyMenu.value.path, true)
+                  setDenyMenu(null)
+                }}
+              >
+                Deny every value of&nbsp;
+                <Typography component="span" sx={{ fontFamily: 'monospace' }}>
+                  {denyMenu?.value.path}
+                </Typography>
+              </MenuItem>
+            </Menu>
+
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mt: 2,
+              }}
+            >
+              <Typography variant="body2" color="text.secondary">
+                {fmtInt(total)} values total
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<NavigateBeforeIcon />}
+                  onClick={handlePrev}
+                  disabled={loading || cursors.length < 2}
+                  variant="tonal"
+                  color="inherit"
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="small"
+                  endIcon={<NavigateNextIcon />}
+                  onClick={handleNext}
+                  disabled={loading || !nextCursor}
+                  variant="tonal"
+                  color="inherit"
+                >
+                  Next
+                </Button>
+              </Box>
+            </Box>
+          </>
         )}
-
-        <Menu
-          anchorEl={denyMenu?.anchor}
-          open={denyMenu !== null}
-          onClose={() => setDenyMenu(null)}
-        >
-          <MenuItem
-            onClick={() => {
-              if (denyMenu) setValueDenied(denyMenu.value.value_hash, true)
-              setDenyMenu(null)
-            }}
-          >
-            Deny this value
-          </MenuItem>
-          <MenuItem
-            onClick={() => {
-              if (denyMenu) setFieldDenied(denyMenu.value.path, true)
-              setDenyMenu(null)
-            }}
-          >
-            Deny every value of&nbsp;
-            <Typography component="span" sx={{ fontFamily: 'monospace' }}>
-              {denyMenu?.value.path}
-            </Typography>
-          </MenuItem>
-        </Menu>
-
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mt: 2,
-          }}
-        >
-          <Typography variant="body2" color="text.secondary">
-            {fmtInt(total)} values total
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              size="small"
-              startIcon={<NavigateBeforeIcon />}
-              onClick={handlePrev}
-              disabled={loading || cursors.length < 2}
-              variant="tonal"
-              color="inherit"
-            >
-              Previous
-            </Button>
-            <Button
-              size="small"
-              endIcon={<NavigateNextIcon />}
-              onClick={handleNext}
-              disabled={loading || !nextCursor}
-              variant="tonal"
-              color="inherit"
-            >
-              Next
-            </Button>
-          </Box>
-        </Box>
       </Panel>
 
       {deniedFields.size > 0 && (

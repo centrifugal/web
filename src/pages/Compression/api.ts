@@ -404,6 +404,25 @@ export interface CandidateValue {
   recommended: boolean
 }
 
+// One row of GET /candidates/{id}/fields: every value of one key path.
+export interface CandidateField {
+  path: string
+  values: number
+  // Values that occurred once. A field of these is a measurement (prices,
+  // volumes), not vocabulary.
+  seen_once: number
+  occurrences: number
+  contribution: number
+  witnesses: number
+  examples: string[]
+  recommended: number
+  // Values no earlier review of the profile decided.
+  new: number
+  denied_before: boolean
+  // Allowing the field is ticking each of these.
+  hashes: string[]
+}
+
 export interface DeniedSummary {
   name: number
   shape: number
@@ -432,6 +451,8 @@ export interface GetCandidateValuesParams {
   min_witness?: number
   // Only values no earlier review of the profile decided.
   new_only?: boolean
+  // Only this field's values.
+  path?: string
   cursor?: string
   limit?: number
 }
@@ -514,6 +535,9 @@ export interface CompressionApiHook {
     candidateId: string,
     params?: GetCandidateValuesParams
   ) => Promise<CandidateValuesResponse>
+  getCandidateFields: (
+    candidateId: string
+  ) => Promise<{ fields: CandidateField[] }>
   draftCandidate: (
     candidateId: string,
     selection: ReviewSelection
@@ -709,6 +733,10 @@ export function useCompressionApi({
       getCandidateValues: (candidateId, params) =>
         getJson<CandidateValuesResponse>(
           `/candidates/${candidateId}/values${buildQuery(params)}`
+        ),
+      getCandidateFields: candidateId =>
+        getJson<{ fields: CandidateField[] }>(
+          `/candidates/${candidateId}/fields`
         ),
       draftCandidate: (candidateId, selection) =>
         postJson<Candidate>(`/candidates/${candidateId}/draft`, selection),
