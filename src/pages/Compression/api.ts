@@ -408,9 +408,9 @@ export interface CandidateValue {
 export interface CandidateField {
   path: string
   values: number
-  // Values that occurred once. A field of these is a measurement (prices,
-  // volumes), not vocabulary.
-  seen_once: number
+  // Values no connection saw twice - a price published once, however many
+  // received it. A field of these is a measurement, not vocabulary.
+  one_off: number
   occurrences: number
   contribution: number
   witnesses: number

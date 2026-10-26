@@ -183,7 +183,7 @@ describe('ReviewScreen decisions', () => {
   const field = (path: string, hs: string[], extra = {}) => ({
     path,
     values: hs.length,
-    seen_once: 0,
+    one_off: 0,
     occurrences: 10,
     contribution: 10,
     witnesses: 5,

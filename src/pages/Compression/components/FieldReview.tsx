@@ -33,7 +33,7 @@ interface FieldReviewProps {
 // A field whose values almost all occurred once is a measurement - prices,
 // volumes, timestamps - not vocabulary: each value is unlikely to come again.
 const mostlyOneOff = (f: CandidateField) =>
-  f.values >= 20 && f.seen_once / f.values >= 0.9
+  f.values >= 20 && f.one_off / f.values >= 0.9
 
 // FieldReview: the review as a decision per field. Ticking a field allows every
 // value it has in this candidate - the same as ticking each of them - and
@@ -124,15 +124,15 @@ export const FieldReview = ({
                 </TableCell>
                 <TableCell align="right">
                   {fmtInt(f.values)}
-                  {f.seen_once > 0 && (
+                  {f.one_off > 0 && (
                     <Typography
                       variant="caption"
                       color="text.secondary"
                       sx={{ display: 'block' }}
                     >
-                      {f.seen_once === f.values
-                        ? 'all seen once'
-                        : `${fmtInt(f.seen_once)} seen once`}
+                      {f.one_off === f.values
+                        ? 'all one-off'
+                        : `${fmtInt(f.one_off)} one-off`}
                     </Typography>
                   )}
                 </TableCell>
