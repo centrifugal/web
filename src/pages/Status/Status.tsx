@@ -433,7 +433,12 @@ export function Status({ signinSilent, authorization, edition }: StatusProps) {
                 <TableBody>
                   {nodes
                     .slice()
-                    .sort((a, b) => a.uptime - b.uptime)
+                    // By name, which a node keeps across restarts and shares
+                    // with no other: by uptime, nodes started together swapped
+                    // places from one refresh to the next.
+                    .sort((a, b) =>
+                      a.name.localeCompare(b.name, undefined, { numeric: true })
+                    )
                     .map(node => (
                       <Fragment key={node.name}>
                         <StyledTableRow
