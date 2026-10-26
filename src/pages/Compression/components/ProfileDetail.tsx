@@ -15,6 +15,10 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import UndoIcon from '@mui/icons-material/Undo'
+import MoreVertIcon from '@mui/icons-material/MoreVert'
+import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 
 import { useSearchParams } from 'react-router-dom'
 
@@ -23,7 +27,6 @@ import { useCan } from 'contexts/SessionContext'
 import { Panel, CapabilityChip, InlineStat } from 'pages/Inspector/ui'
 import { EmptyState } from 'components/EmptyState'
 import { ConfirmButton } from 'components/ConfirmButton'
-import { CopyButton } from 'components/CopyButton'
 import { HumanSize } from 'utils/Functions'
 
 import {
@@ -136,6 +139,18 @@ export const ProfileDetail = ({
   const [busyVersionId, setBusyVersionId] = useState<string | null>(null)
   const [rollbackBusy, setRollbackBusy] = useState(false)
   const [valuesTarget, setValuesTarget] = useState<Version | null>(null)
+  // What a version is beyond serving it - its values, its dictionary ids -
+  // is one menu away rather than a column on every row.
+  const [versionMenu, setVersionMenu] = useState<{
+    anchor: HTMLElement
+    version: Version
+  } | null>(null)
+  const copyId = (id: string) => {
+    navigator.clipboard
+      ?.writeText(id)
+      .then(() => showAlert('Copied', { severity: 'success' }))
+      .catch(() => showAlert(id, { severity: 'info' }))
+  }
   // An activation or rollback the server refused because the version was
   // approved for a narrower audience than the profile now reaches; confirming
   // resends it as an approval for the wider one.
@@ -424,8 +439,8 @@ export const ProfileDetail = ({
         title="Versions"
         subtitle="Established connections keep the dictionary they were given until they reconnect — activating or deactivating a version here does not recall anything already delivered."
         action={
-          // Rolling back needs a version to go back to.
-          profile.versions.length > 1 && (
+          // Rolling back needs a version that served before and does not now.
+          profile.versions.some(v => !v.active && v.activated_at) && (
             <ConfirmButton
               title="Rollback to the previous version?"
               body="Re-activates whichever version was active before the current one. Established connections keep whatever dictionary they currently have until they reconnect."
@@ -460,13 +475,13 @@ export const ProfileDetail = ({
               <TableHead>
                 <TableRow>
                   <TableCell>Contents</TableCell>
-                  <TableCell>Artifacts</TableCell>
-                  <TableCell align="right">Raw / wire size</TableCell>
+                  <TableCell align="right">Size</TableCell>
                   <TableCell align="right">Expected ratio</TableCell>
                   <TableCell>Approved by / at</TableCell>
                   <TableCell align="right">Rollout</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Actions</TableCell>
+                  <TableCell padding="checkbox"></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -477,57 +492,12 @@ export const ProfileDetail = ({
                         v.fidelity === 'reviewed' ? 'values' : 'schema'
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 0.25,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5,
-                          }}
-                        >
-                          <Typography
-                            variant="caption"
-                            sx={{ fontFamily: 'monospace' }}
-                          >
-                            json: {v.artifact_json_id.slice(0, 12)}…
-                          </Typography>
-                          <CopyButton
-                            value={v.artifact_json_id}
-                            label="Copy JSON artifact id"
-                          />
-                        </Box>
-                        {v.artifact_protobuf_id && (
-                          <Box
-                            sx={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.5,
-                            }}
-                          >
-                            <Typography
-                              variant="caption"
-                              sx={{ fontFamily: 'monospace' }}
-                            >
-                              pb: {v.artifact_protobuf_id.slice(0, 12)}…
-                            </Typography>
-                            <CopyButton
-                              value={v.artifact_protobuf_id}
-                              label="Copy Protobuf artifact id"
-                            />
-                          </Box>
-                        )}
-                      </Box>
-                    </TableCell>
                     <TableCell align="right">
-                      {HumanSize(v.artifact_json_size)} /{' '}
-                      {HumanSize(v.artifact_json_wire_size)}
+                      <Tooltip
+                        title={`What each new connection downloads. ${HumanSize(v.artifact_json_size)} once unpacked.`}
+                      >
+                        <span>{HumanSize(v.artifact_json_wire_size)}</span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell align="right">
                       <ExpectedRatio
@@ -551,19 +521,6 @@ export const ProfileDetail = ({
                       />
                     </TableCell>
                     <TableCell align="right">
-                      {canReadValues &&
-                        v.fidelity === 'reviewed' &&
-                        v.values_count > 0 && (
-                          <Button
-                            variant="text"
-                            color="inherit"
-                            size="small"
-                            onClick={() => setValuesTarget(v)}
-                            sx={{ mr: 1 }}
-                          >
-                            Values ({v.values_count})
-                          </Button>
-                        )}
                       {v.active ? (
                         <ConfirmButton
                           title="Deactivate this version?"
@@ -597,6 +554,20 @@ export const ProfileDetail = ({
                         </Button>
                       )}
                     </TableCell>
+                    <TableCell padding="checkbox">
+                      <IconButton
+                        size="small"
+                        aria-label={`More for version ${v.id}`}
+                        onClick={e =>
+                          setVersionMenu({
+                            anchor: e.currentTarget,
+                            version: v,
+                          })
+                        }
+                      >
+                        <MoreVertIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -611,6 +582,43 @@ export const ProfileDetail = ({
         onClose={() => setEditOpen(false)}
         onSubmit={handleEditSubmit}
       />
+      <Menu
+        anchorEl={versionMenu?.anchor}
+        open={versionMenu !== null}
+        onClose={() => setVersionMenu(null)}
+      >
+        {versionMenu &&
+          canReadValues &&
+          versionMenu.version.fidelity === 'reviewed' &&
+          versionMenu.version.values_count > 0 && (
+            <MenuItem
+              onClick={() => {
+                setValuesTarget(versionMenu.version)
+                setVersionMenu(null)
+              }}
+            >
+              Values ({versionMenu.version.values_count})…
+            </MenuItem>
+          )}
+        <MenuItem
+          onClick={() => {
+            if (versionMenu) copyId(versionMenu.version.artifact_json_id)
+            setVersionMenu(null)
+          }}
+        >
+          Copy JSON dictionary id
+        </MenuItem>
+        {versionMenu?.version.artifact_protobuf_id && (
+          <MenuItem
+            onClick={() => {
+              copyId(versionMenu.version.artifact_protobuf_id)
+              setVersionMenu(null)
+            }}
+          >
+            Copy Protobuf dictionary id
+          </MenuItem>
+        )}
+      </Menu>
       <ActivateVersionDialog
         version={activateTarget}
         onClose={() => setActivateTarget(null)}

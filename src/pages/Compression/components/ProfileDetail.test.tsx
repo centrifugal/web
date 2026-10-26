@@ -146,7 +146,10 @@ describe('ProfileDetail', () => {
     const api = makeApi()
     renderDetail(api)
     fireEvent.click(
-      (await screen.findAllByRole('button', { name: 'Values (2)' }))[0]
+      (await screen.findAllByRole('button', { name: /^More for version/ }))[0]
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Values (2)…' })
     )
     fireEvent.click(
       await screen.findByRole('button', { name: 'Deny user.email = a@b.c' })
