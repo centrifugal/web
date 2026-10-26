@@ -348,33 +348,37 @@ export const ProfileDetail = ({
           {profile.name}
         </Typography>
         <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="tonal"
-          color="inherit"
-          size="small"
-          startIcon={<EditIcon />}
-          onClick={() => setEditOpen(true)}
-        >
-          Edit
-        </Button>
-        <ConfirmButton
-          title={`Delete ${profile.name}?`}
-          body={`This removes the profile and its version history. Rejections recorded against the name "${profile.name}" survive deletion — recreating a profile with this name inherits them, so previously-denied values won't be proposed again from scratch.`}
-          confirmText="Delete"
-          onConfirm={handleDelete}
-        >
-          {open => (
+        {canChange && (
+          <>
             <Button
               variant="tonal"
-              color="error"
+              color="inherit"
               size="small"
-              startIcon={<DeleteIcon />}
-              onClick={open}
+              startIcon={<EditIcon />}
+              onClick={() => setEditOpen(true)}
             >
-              Delete
+              Edit
             </Button>
-          )}
-        </ConfirmButton>
+            <ConfirmButton
+              title={`Delete ${profile.name}?`}
+              body={`This removes the profile and its version history. Rejections recorded against the name "${profile.name}" survive deletion — recreating a profile with this name inherits them, so previously-denied values won't be proposed again from scratch.`}
+              confirmText="Delete"
+              onConfirm={handleDelete}
+            >
+              {open => (
+                <Button
+                  variant="tonal"
+                  color="error"
+                  size="small"
+                  startIcon={<DeleteIcon />}
+                  onClick={open}
+                >
+                  Delete
+                </Button>
+              )}
+            </ConfirmButton>
+          </>
+        )}
       </Box>
 
       <ProfileNextStep
@@ -440,6 +444,7 @@ export const ProfileDetail = ({
         subtitle="Established connections keep the dictionary they were given until they reconnect — activating or deactivating a version here does not recall anything already delivered."
         action={
           // Rolling back needs a version that served before and does not now.
+          canChange &&
           profile.versions.some(v => !v.active && v.activated_at) && (
             <ConfirmButton
               title="Rollback to the previous version?"
@@ -521,7 +526,7 @@ export const ProfileDetail = ({
                       />
                     </TableCell>
                     <TableCell align="right">
-                      {v.active ? (
+                      {!canChange ? null : v.active ? (
                         <ConfirmButton
                           title="Deactivate this version?"
                           body="Established connections keep this dictionary until they reconnect — deactivating doesn't recall anything already delivered."

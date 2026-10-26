@@ -3,6 +3,7 @@ import { vi, describe, it, expect } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 
 import { ProfileDetail } from './ProfileDetail'
+import { SessionContext } from 'contexts/SessionContext'
 import {
   AUDIENCE_WIDENED,
   CompressionApiError,
@@ -164,5 +165,30 @@ describe('ProfileDetail', () => {
         denied_fields: ['user.email'],
       })
     )
+  })
+
+  it('shows a read-only role the versions without the controls', async () => {
+    const api = makeApi()
+    render(
+      <SessionContext.Provider
+        value={{
+          user: { name: 'v', auth: 'oidc', role: 'viewer', roles: ['viewer'] },
+          permissions: ['ops:read'],
+        }}
+      >
+        <MemoryRouter>
+          <ProfileDetail
+            api={api}
+            profileId="p1"
+            onBack={() => {}}
+            onDeleted={() => {}}
+          />
+        </MemoryRouter>
+      </SessionContext.Provider>
+    )
+    expect(await screen.findByText('Versions')).toBeInTheDocument()
+    for (const name of ['Activate', 'Rollback', 'Edit', 'Delete']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
+    }
   })
 })

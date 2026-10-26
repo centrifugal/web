@@ -59,6 +59,9 @@ interface ReviewScreenProps {
   // The profile the session was trained for, preselected on approve.
   defaultProfileId?: string
   onApproved: (created: CreatedVersion) => void
+  // False for a role that may read values but not change anything: the
+  // ticks still preview what a selection would give, nothing is saved.
+  canApprove?: boolean
 }
 
 const DENIED_LABELS: {
@@ -109,6 +112,7 @@ export const ReviewScreen = ({
   onCandidateUpdated,
   defaultProfileId,
   onApproved,
+  canApprove = true,
 }: ReviewScreenProps) => {
   const { showAlert } = useContext(ShellContext)
 
@@ -1129,26 +1133,34 @@ export const ReviewScreen = ({
               ))}
             </TextField>
           )}
-          <Button
-            variant="tonal"
-            color="inherit"
-            onClick={handleSaveDraft}
-            disabled={savingDraft}
-            startIcon={
-              savingDraft ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : undefined
-            }
-          >
-            {savingDraft ? 'Saving…' : 'Save draft'}
-          </Button>
-          <Button
-            variant="solid"
-            color="primary"
-            onClick={() => setApproveOpen(true)}
-          >
-            Approve…
-          </Button>
+          {canApprove ? (
+            <>
+              <Button
+                variant="tonal"
+                color="inherit"
+                onClick={handleSaveDraft}
+                disabled={savingDraft}
+                startIcon={
+                  savingDraft ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : undefined
+                }
+              >
+                {savingDraft ? 'Saving…' : 'Save draft'}
+              </Button>
+              <Button
+                variant="solid"
+                color="primary"
+                onClick={() => setApproveOpen(true)}
+              >
+                Approve…
+              </Button>
+            </>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              Your role can view values, not approve them.
+            </Typography>
+          )}
         </Box>
       </Paper>
 

@@ -14,6 +14,7 @@ import TableRow from '@mui/material/TableRow'
 import AddIcon from '@mui/icons-material/Add'
 import PlayCircleIcon from '@mui/icons-material/PlayCircle'
 
+import { useCan } from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
@@ -54,6 +55,7 @@ export const SessionsTab = ({
   const [loading, setLoading] = useState(true)
   const [nextCursor, setNextCursor] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const canChange = useCan('ops:write')
   // Offered as the optional "train for" binding when creating a session. A
   // failure here is not worth surfacing: the binding is optional, so an empty
   // list simply hides the field.
@@ -70,6 +72,7 @@ export const SessionsTab = ({
   const [retrainFrom] = useUrlSelection('retrain_from')
   const [initial, setInitial] = useState<CreateSessionRequest | undefined>()
   useEffect(() => {
+    if (!canChange) return
     if (!retrainFrom) {
       // Opened once the profiles are known, so it opens filled in for the
       // profile's own audience.
@@ -101,7 +104,7 @@ export const SessionsTab = ({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trainFor, retrainFrom, profilesLoaded])
+  }, [trainFor, retrainFrom, profilesLoaded, canChange])
   const [selectedId, setSelectedId] = useUrlSelection('session')
   const [, setSearchParams] = useSearchParams()
 
@@ -207,15 +210,17 @@ export const SessionsTab = ({
         title="Training sessions"
         subtitle="Each session samples live traffic of the connections you choose, for a set time, and builds a dictionary from it."
         action={
-          <Button
-            variant="solid"
-            color="primary"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-          >
-            Start training
-          </Button>
+          canChange && (
+            <Button
+              variant="solid"
+              color="primary"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateOpen(true)}
+            >
+              Start training
+            </Button>
+          )
         }
       >
         {loading && sessions.length === 0 ? (

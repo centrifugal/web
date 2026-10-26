@@ -264,7 +264,7 @@ export const OverviewTab = ({
                 <Switch
                   size="small"
                   checked={overview.enabled}
-                  disabled={toggling}
+                  disabled={toggling || !canChange}
                   onChange={handleToggleEnabled}
                 />
               }
@@ -345,7 +345,7 @@ export const OverviewTab = ({
               <Switch
                 size="small"
                 checked={overview.structure_active}
-                disabled={togglingStructure}
+                disabled={togglingStructure || !canChange}
                 onChange={handleToggleStructure}
               />
             }

@@ -103,6 +103,8 @@ export const SessionDetail = ({
   const [listed, setListed] = useState(false)
   const autoBuilt = useRef(false)
   const canChange = useCan('ops:write')
+  // Reviewing reads the collected values, which is its own permission.
+  const canReadValues = useCan('channels:read')
   const [buildReason, setBuildReason] = useState<string | null>(null)
   const [building, setBuilding] = useState(false)
   const [assignTarget, setAssignTarget] = useState<Candidate | null>(null)
@@ -256,6 +258,7 @@ export const SessionDetail = ({
           )
         }
         defaultProfileId={session?.profile_id}
+        canApprove={canChange}
         onApproved={c => {
           setCreated(c)
           setReviewId(null)
@@ -323,7 +326,7 @@ export const SessionDetail = ({
           tone={statusTone(session.status)}
         />
         <Box sx={{ flexGrow: 1 }} />
-        {session.status === 'running' && (
+        {session.status === 'running' && canChange && (
           <>
             <Button
               variant="tonal"
@@ -446,7 +449,7 @@ export const SessionDetail = ({
         <Panel
           title="Candidates"
           action={
-            session.status === 'collected' ? (
+            session.status === 'collected' && canChange ? (
               <Button
                 variant={candidates ? 'tonal' : 'solid'}
                 color={candidates ? 'inherit' : 'primary'}
@@ -749,25 +752,27 @@ export const SessionDetail = ({
                           alignItems: 'center',
                         }}
                       >
-                        {c.fidelity === 'schema' ? (
-                          <Button
-                            variant="solid"
-                            color="primary"
-                            size="small"
-                            onClick={() => setAssignTarget(c)}
-                          >
-                            Create version
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="solid"
-                            color="primary"
-                            size="small"
-                            onClick={() => setReviewId(c.id)}
-                          >
-                            Review values
-                          </Button>
-                        )}
+                        {c.fidelity === 'schema'
+                          ? canChange && (
+                              <Button
+                                variant="solid"
+                                color="primary"
+                                size="small"
+                                onClick={() => setAssignTarget(c)}
+                              >
+                                Create version
+                              </Button>
+                            )
+                          : canReadValues && (
+                              <Button
+                                variant="solid"
+                                color="primary"
+                                size="small"
+                                onClick={() => setReviewId(c.id)}
+                              >
+                                {canChange ? 'Review values' : 'View values'}
+                              </Button>
+                            )}
                         {c.size_curve.length > 0 && (
                           <Button
                             variant="text"

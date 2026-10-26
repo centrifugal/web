@@ -14,6 +14,7 @@ import Tooltip from '@mui/material/Tooltip'
 import AddIcon from '@mui/icons-material/Add'
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt'
 
+import { Can } from 'contexts/SessionContext'
 import { EmptyState } from 'components/EmptyState'
 import { Panel, CapabilityChip } from 'pages/Inspector/ui'
 
@@ -91,15 +92,17 @@ export const ProfilesTab = ({
         title="Profiles"
         subtitle="Each profile is a dictionary audience — a name, an active version, and who may receive it."
         action={
-          <Button
-            variant="solid"
-            color="primary"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateOpen(true)}
-          >
-            Create profile
-          </Button>
+          <Can permission="ops:write">
+            <Button
+              variant="solid"
+              color="primary"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateOpen(true)}
+            >
+              Create profile
+            </Button>
+          </Can>
         }
       >
         {loading ? (

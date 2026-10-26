@@ -52,6 +52,38 @@ const renderDetail = (api: CompressionApiHook, session: AdminSession | null) =>
     </SessionContext.Provider>
   )
 
+const cand = (
+  id: string,
+  fidelity: string,
+  over: Partial<Candidate> = {}
+): Candidate =>
+  ({
+    id,
+    fidelity,
+    ratio_by_protocol: { json: 3 },
+    size_curve: [
+      {
+        size_bytes: 4096,
+        ratio: 3.2,
+        measured: true,
+        recommended_values: 10,
+        delivery_bytes: 1500,
+        shapes_held: 1,
+        shapes_total: 1,
+        values_held: 10,
+        values_total: 10,
+      },
+    ],
+    values_total: fidelity === 'schema' ? 0 : 120,
+    expires_at: '2026-10-30T10:00:00Z',
+    created_at: '2026-10-25T10:00:00Z',
+    draft_count: 0,
+    recommended_count: 10,
+    recommended_ratio: 3.2,
+    recommended_size: 4096,
+    ...over,
+  }) as Candidate
+
 describe('SessionDetail', () => {
   it('builds a collected session with no candidates once, and says why nothing was built', async () => {
     const api = makeApi()
@@ -81,37 +113,6 @@ describe('SessionDetail', () => {
   // What to use is the decision on this screen; the size table and older
   // builds are there, folded, for whoever wants them.
   it('shows the current candidates and folds the rest', async () => {
-    const cand = (
-      id: string,
-      fidelity: string,
-      over: Partial<Candidate> = {}
-    ): Candidate =>
-      ({
-        id,
-        fidelity,
-        ratio_by_protocol: { json: 3 },
-        size_curve: [
-          {
-            size_bytes: 4096,
-            ratio: 3.2,
-            measured: true,
-            recommended_values: 10,
-            delivery_bytes: 1500,
-            shapes_held: 1,
-            shapes_total: 1,
-            values_held: 10,
-            values_total: 10,
-          },
-        ],
-        values_total: fidelity === 'schema' ? 0 : 120,
-        expires_at: '2026-10-30T10:00:00Z',
-        created_at: '2026-10-25T10:00:00Z',
-        draft_count: 0,
-        recommended_count: 10,
-        recommended_ratio: 3.2,
-        recommended_size: 4096,
-        ...over,
-      }) as Candidate
     const api = makeApi({
       listCandidates: vi.fn().mockResolvedValue({
         candidates: [
@@ -137,5 +138,34 @@ describe('SessionDetail', () => {
     expect(
       screen.getAllByRole('button', { name: 'Review values' })
     ).toHaveLength(2)
+  })
+
+  it('offers a read-only role only what it may do', async () => {
+    const api = makeApi({
+      listCandidates: vi.fn().mockResolvedValue({
+        candidates: [cand('v', 'reviewed'), cand('s', 'schema')],
+      }),
+    } as Partial<CompressionApiHook>)
+    const { unmount } = renderDetail(api, {
+      ...viewer,
+      permissions: ['ops:read', 'channels:read'],
+    })
+    expect(
+      await screen.findByRole('button', { name: 'View values' })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Create version' })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Rebuild' })
+    ).not.toBeInTheDocument()
+    unmount()
+
+    // Without channels:read the values are not its to read at all.
+    renderDetail(api, viewer)
+    await screen.findAllByRole('button', { name: 'Sizes' })
+    expect(
+      screen.queryByRole('button', { name: /values/ })
+    ).not.toBeInTheDocument()
   })
 })
