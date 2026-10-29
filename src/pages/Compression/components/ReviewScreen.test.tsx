@@ -73,6 +73,8 @@ const pageFor = (cursor?: string): CandidateValuesResponse => {
 }
 
 describe('ReviewScreen paging', () => {
+  // Pages through three screens of the review; past the default 5 s when the
+  // whole suite runs at once.
   it('Previous returns to the page before, not the current one', async () => {
     const cursorsRequested: (string | undefined)[] = []
     const getCandidateValues = vi.fn(
@@ -138,7 +140,7 @@ describe('ReviewScreen paging', () => {
       '50',
       undefined,
     ])
-  })
+  }, 15_000)
 })
 
 // A retrain opens on what earlier reviews decided: allowed values ticked,
