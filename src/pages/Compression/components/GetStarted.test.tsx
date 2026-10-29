@@ -7,6 +7,7 @@ import { CompressionApiHook, CompressionOverview } from '../api'
 const empty: CompressionOverview = {
   enabled: false,
   structure_active: false,
+  client_filter: { mode: 'all', clients: [] },
   profiles: 0,
   active_versions: 0,
 }

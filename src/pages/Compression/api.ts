@@ -79,9 +79,20 @@ export interface ServingSurvey {
   by_profile: ProfileServing[]
 }
 
+// Which clients are offered a dictionary, by the name a client sends on
+// connect. An empty name stands for a client that sent none. Entries are
+// objects so a later condition can be a new field.
+export type ClientFilterMode = 'all' | 'only' | 'except'
+
+export interface ClientFilter {
+  mode: ClientFilterMode
+  clients: { name: string }[]
+}
+
 export interface CompressionOverview {
   enabled: boolean // the deployment switch, independent of config
   structure_active: boolean
+  client_filter: ClientFilter
   profiles: number
   active_versions: number
   serving?: ServingSurvey // absent if no node answered
@@ -506,6 +517,7 @@ export interface CompressionApiHook {
   setCompressionEnabled: (enabled: boolean) => Promise<CompressionOverview>
   getStructure: () => Promise<StructureInfo>
   setStructureActive: (active: boolean) => Promise<StructureInfo>
+  setClientFilter: (filter: ClientFilter) => Promise<CompressionOverview>
 
   // Profiles
   listProfiles: () => Promise<ProfilesResponse>
@@ -707,6 +719,8 @@ export function useCompressionApi({
       getStructure: () => getJson<StructureInfo>('/structure'),
       setStructureActive: active =>
         postJson<StructureInfo>('/structure', { active }),
+      setClientFilter: filter =>
+        postJson<CompressionOverview>('/client_filter', filter),
 
       listProfiles: () => getJson<ProfilesResponse>('/profiles'),
       createProfile: reqBody => postJson<Profile>('/profiles', reqBody),

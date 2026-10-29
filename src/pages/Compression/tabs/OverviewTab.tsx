@@ -28,10 +28,12 @@ import { HumanSize } from 'utils/Functions'
 
 import {
   useCompressionApi,
+  ClientFilter,
   CompressionOverview,
   ConnectionsByTier,
   StructureInfo,
 } from '../api'
+import { ClientFilterField } from '../components/ClientFilterField'
 import { GetStarted } from '../components/GetStarted'
 import { NOT_MEASURED_HINT } from '../components/ExpectedRatio'
 
@@ -215,6 +217,18 @@ export const OverviewTab = ({
     }
   }
 
+  const saveClientFilter = async (filter: ClientFilter) => {
+    try {
+      const updated = await api.setClientFilter(filter)
+      setOverview(updated)
+      showAlert('Client filter applied to new connections', {
+        severity: 'success',
+      })
+    } catch (err) {
+      api.handleError(err)
+    }
+  }
+
   if (loading && !overview) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -371,6 +385,13 @@ export const OverviewTab = ({
               label="Copy dictionary id"
             />
           )}
+        </Box>
+        <Box sx={{ mt: 2, opacity: overview.enabled ? 1 : 0.6 }}>
+          <ClientFilterField
+            value={overview.client_filter}
+            disabled={!canChange}
+            onSave={saveClientFilter}
+          />
         </Box>
       </Panel>
 
