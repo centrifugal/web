@@ -386,7 +386,10 @@ export const OverviewTab = ({
             />
           )}
         </Box>
-        <Box sx={{ mt: 2, opacity: overview.enabled ? 1 : 0.6 }}>
+        <Box sx={{ mt: 3, opacity: overview.enabled ? 1 : 0.6 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Which clients get a dictionary
+          </Typography>
           <ClientFilterField
             value={overview.client_filter}
             disabled={!canChange}

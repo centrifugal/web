@@ -192,9 +192,10 @@ export const ClientFilterField = ({
         )}
       </Box>
       <Typography variant="body2" color="text.secondary">
-        The name a client sends on connect: official SDKs send their own (js,
-        dart, …) unless the app sets another. A client's claim, not access
-        control. Applies to new connections.
+        One setting for the structure dictionary and every profile: a client
+        left out gets none of them. Matches the name a client sends on connect:
+        official SDKs send their own (js, dart, …) unless the app sets another.
+        A client's claim, not access control. Applies to new connections.
       </Typography>
     </Box>
   )
