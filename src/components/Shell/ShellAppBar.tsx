@@ -138,6 +138,9 @@ const pages: {
     to: routes.COMPRESSION,
     oss: false,
     permissions: ['ops:read'],
+    // Reachable at /compression, just not advertised in the nav while the
+    // feature settles. Drop this line to put it back.
+    hidden: true,
   },
 ]
 
